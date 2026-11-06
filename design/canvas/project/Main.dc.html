@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The plan on one page</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.mem{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;--ok-bg:rgba(6,78,59,.4);--ok-fg:#6ee7b7;--warn-bg:rgba(120,53,15,.4);--warn-fg:#fcd34d;font-family:Inter,system-ui,sans-serif;color:var(--fg);background:var(--bg);font-size:14px;line-height:1.45}
+.mem a{color:var(--btext)}
+</style>
+</helmet>
+<div class="mem" style="width: 1440px; height: 1180px; box-sizing: border-box; padding: 48px 56px; display: flex; flex-direction: column; gap: 28px; overflow: hidden">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px">
+    <div>
+      <h1 style="margin: 0; font-size: 36px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1">Memberly on the phone, with Gelatin talent built in</h1>
+      <p style="margin: 8px 0 0; font-size: 15px; color: var(--mf); max-width: 70ch">One native app for members and organizers. Booking a DJ is a section of Create New Event, not a separate marketplace. Draft for discussion, 30 Oct 2026. Every DJ, draw, member count and dollar figure on this canvas is sample data.</p>
+    </div>
+    <div style="display: flex; gap: 8px; flex-shrink: 0">
+      <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 999px; padding: 6px 10px; background: var(--tint); color: var(--btext)">Flutter · iPhone first</span>
+      <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 999px; padding: 6px 10px; background: var(--muted); color: var(--mf)">Dark appearance</span>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+
+    <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--card); padding: 20px 22px; display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Who owns what</h2>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="font-size: 13px; font-weight: 700; color: var(--btext)">Gelatin provides</div>
+          <ul style="margin: 0; padding-left: 16px; font-size: 13px; color: var(--mf); display: flex; flex-direction: column; gap: 5px">
+            <li>Bookable DJ catalog: availability, rates, tiers, genres, draw</li>
+            <li>Discovery by city, date, budget, genre; alternates and waitlist</li>
+            <li>Booking engine: requests, offers, DJ notifications</li>
+            <li>Payments: server totals, checkout, card hold, capture, release, payouts</li>
+            <li>Portal in Memberly's theme for everything after first payment</li>
+            <li>Emails to organizers and all messages to DJs</li>
+            <li>Partner API, spec and TypeScript SDK</li>
+          </ul>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="font-size: 13px; font-weight: 700; color: var(--btext)">Memberly provides</div>
+          <ul style="margin: 0; padding-left: 16px; font-size: 13px; color: var(--mf); display: flex; flex-direction: column; gap: 5px">
+            <li>The product, its organizers and audiences</li>
+            <li>Communities, events, members, passes, pass revenue</li>
+            <li>Every native screen: Lineup, browse, offer, hold, status, public lineup</li>
+            <li>A backend that holds the partner key and proxies every call</li>
+            <li>Organizer identity and event data: name, times, time zone, place</li>
+            <li>Portal theme and a registered return address</li>
+            <li>Notices to pass holders when a date changes</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--card); padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+      <h2 style="margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">How it is wired</h2>
+      <div style="display: flex; align-items: center; gap: 8px">
+        <div style="flex: 1 1 0; border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--tint)"><div style="font-weight: 700; font-size: 13px">Memberly app</div><div style="font-size: 12px; color: var(--btext)">Flutter, iPhone and Android</div></div>
+        <svg width="24" height="16" viewBox="0 0 24 16" fill="none" stroke="#a1a1a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8h18M15 3l5 5-5 5"></path></svg>
+        <div style="flex: 1 1 0; border: 1px solid var(--border); border-radius: 12px; padding: 12px"><div style="font-weight: 700; font-size: 13px">Memberly backend</div><div style="font-size: 12px; color: var(--mf)">Holds the partner key, proxies every call</div></div>
+        <svg width="24" height="16" viewBox="0 0 24 16" fill="none" stroke="#a1a1a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8h18M15 3l5 5-5 5"></path></svg>
+        <div style="flex: 1 1 0; border: 1px solid var(--border); border-radius: 12px; padding: 12px"><div style="font-weight: 700; font-size: 13px">Gelatin</div><div style="font-size: 12px; color: var(--mf)">Partner API, booking engine, payments</div></div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+        <div style="border: 1px solid var(--border); border-radius: 12px; padding: 12px"><div style="font-weight: 700; font-size: 13px">Card hold</div><div style="font-size: 12px; color: var(--mf)">Gelatin's checkout page opens in a native in-app browser sheet. Apple Pay and Google Pay work there. Nothing is captured until the DJ accepts.</div></div>
+        <div style="border: 1px solid var(--border); border-radius: 12px; padding: 12px"><div style="font-weight: 700; font-size: 13px">After the first payment</div><div style="font-size: 12px; color: var(--mf)">Counters, new prices, changes and refunds happen in Gelatin's portal, opened with a single-use link and returning to the app.</div></div>
+      </div>
+      <div style="font-size: 12px; color: var(--mf)">The app reads booking status by asking Memberly's backend every 5 seconds, only while a DJ is deciding. No keys, no secrets and no Gelatin call ever live in the app.</div>
+    </div>
+
+    <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--card); padding: 20px 22px; display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">The app in one map</h2>
+      <div style="display: flex; gap: 6px">
+        <span style="flex: 1 1 0; text-align: center; font-size: 12px; font-weight: 600; border: 1px solid var(--border); border-radius: 999px; padding: 7px 0">Home</span>
+        <span style="flex: 1 1 0; text-align: center; font-size: 12px; font-weight: 600; border: 1px solid var(--border); border-radius: 999px; padding: 7px 0">Explore</span>
+        <span style="flex: 1 1 0; text-align: center; font-size: 12px; font-weight: 600; border: 1px solid var(--border); border-radius: 999px; padding: 7px 0">Events</span>
+        <span style="flex: 1 1 0; text-align: center; font-size: 12px; font-weight: 600; border: 1px solid var(--border); border-radius: 999px; padding: 7px 0">Me</span>
+        <span style="flex: 1 1 0; text-align: center; font-size: 12px; font-weight: 600; border: 1px solid var(--line); background: var(--tint); color: var(--btext); border-radius: 999px; padding: 7px 0">Manage</span>
+      </div>
+      <div style="font-size: 12px; color: var(--mf)">Four tabs for members. Organizers get Manage, which holds their communities.</div>
+      <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px">
+        <div style="display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 999px; background: var(--brand); flex-shrink: 0"></span><span><strong>Members</strong> · tonight on a map, next pass, card, explore, event page with the confirmed lineup, preferences</span></div>
+        <div style="display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 999px; background: var(--brand); flex-shrink: 0"></span><span><strong>Organizers</strong> · community overview, events, memberships, create event</span></div>
+        <div style="display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 8px; border-radius: 999px; background: var(--warn-fg); flex-shrink: 0"></span><span><strong>Lineup</strong> · browse → add → offer → hold card → status → Gelatin for the rest</span></div>
+      </div>
+      <div style="border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 4px">
+        <div style="display: flex; justify-content: space-between; font-size: 13px"><span style="color: var(--mf)">DJ's fee</span><span>$450.00</span></div>
+        <div style="display: flex; justify-content: space-between; font-size: 13px"><span style="color: var(--mf)">Gelatin service fee</span><span>$7.00</span></div>
+        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700"><span>Held on your card</span><span style="font-variant-numeric: tabular-nums">$457.00</span></div>
+        <div style="font-size: 12px; color: var(--mf)">The total always comes from the server. The app only shows it.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 24px; flex-grow: 1; min-height: 0">
+    <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--card); overflow: hidden; display: flex; flex-direction: column">
+      <div style="padding: 16px 22px 12px; display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Decisions needed</h2><span style="font-size: 12px; color: var(--mf)">One line each, with the recommendation</span></div>
+      <sc-for list="{{decisions}}" as="d" hint-placeholder-count="8">
+        <div style="display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; padding: 10px 22px; border-top: 1px solid var(--border); align-items: start">
+          <span style="font-size: 13px; font-weight: 600">{{d.q}}</span>
+          <span style="font-size: 13px; color: var(--mf)"><span style="color: var(--btext); font-weight: 600">{{d.rec}}</span> {{d.why}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--card); overflow: hidden; display: flex; flex-direction: column">
+      <div style="padding: 16px 22px 12px"><h2 style="margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Milestones, each one runnable</h2></div>
+      <sc-for list="{{milestones}}" as="m" hint-placeholder-count="8">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 9px 22px; border-top: 1px solid var(--border)">
+          <span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px; border: 1px solid var(--line); color: var(--btext); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums">{{m.n}}</span>
+          <span style="font-size: 13px; flex-grow: 1">{{m.label}}</span>
+          <span style="font-size: 12px; color: var(--mf); flex-shrink: 0">{{m.note}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      decisions: [
+        { q: 'Home structure', rec: 'C, map first. Chosen 30 Oct.', why: 'Tonight’s events on a map of the city, with the list in a sheet underneath. A (card-led) and B (your week) stay on the next row for reference.' },
+        { q: 'Tabs', rec: 'Home, Explore, Events, Me.', why: 'Organizers also see Manage. No marketplace tab; talent lives inside Create New Event.' },
+        { q: 'Card hold', rec: 'Native in-app browser sheet.', why: 'Gelatin’s checkout stays as it is. Apple Pay and Google Pay work; the sheet closes itself when the hold succeeds.' },
+        { q: 'Back from Gelatin', rec: 'Universal link on memberly.com.', why: 'The portal and the checkout return to the app through one registered address; the app refreshes the booking on return.' },
+        { q: 'Status refresh', rec: 'Every 5 seconds while a DJ is deciding.', why: 'Stops in the background, refreshes once on resume, and stops for good once the booking settles.' },
+        { q: 'Public lineup', rec: 'Confirmed DJs only.', why: 'Pending DJs show as TBA only when the organizer turns that on.' },
+        { q: 'Store review', rec: 'Treat it as a real-world service.', why: 'A DJ playing a room is not digital content, so this is card payment, not in-app purchase.' },
+        { q: 'Android in the pilot', rec: 'iPhone first, Android second.', why: 'Same screens; Android gets Material navigation, predictive back and Google Pay.' }
+      ],
+      milestones: [
+        { n: '1', label: 'Design tokens and shared parts', note: 'dark, light-ready' },
+        { n: '2', label: 'App shell and navigation', note: 'tabs, stacks, sheets' },
+        { n: '3', label: 'Create New Event with Lineup', note: 'fake data' },
+        { n: '4', label: 'Browse, filters, DJ cards', note: 'every empty state' },
+        { n: '5', label: 'Offer and card hold', note: 'in-app browser sheet' },
+        { n: '6', label: 'Status, alternates, hand-off', note: 'polling, portal' },
+        { n: '7', label: 'Public event lineup', note: 'confirmed, TBA' },
+        { n: '8', label: 'Live through Memberly’s backend', note: 'test environment' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

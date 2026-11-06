@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Preferences, step one</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.mem{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;font-family:Inter,system-ui,sans-serif;color:var(--fg);background:var(--bg);font-size:15px;line-height:1.45}
+.mem a{color:var(--btext);text-decoration:none}
+.mem button{font:inherit;color:inherit}
+.mem ::selection{background:#6b21a8;color:#fff}
+</style>
+</helmet>
+<div class="mem" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 24px; padding: 60px 20px 0">
+
+  <div style="display: flex; align-items: center; gap: 12px">
+    <button type="button" aria-label="Back" style="width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--border); background: transparent; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg></button>
+    <div style="flex-grow: 1; display: flex; gap: 6px" aria-label="Step 1 of 4"><span style="flex: 1 1 0; height: 4px; border-radius: 999px; background: var(--brand)"></span><span style="flex: 1 1 0; height: 4px; border-radius: 999px; background: var(--muted)"></span><span style="flex: 1 1 0; height: 4px; border-radius: 999px; background: var(--muted)"></span><span style="flex: 1 1 0; height: 4px; border-radius: 999px; background: var(--muted)"></span></div>
+    <a href="HomeMap.dc.html" style="font-size: 13px; font-weight: 500; color: var(--mf); min-height: 44px; display: inline-flex; align-items: center">Skip</a>
+  </div>
+
+  <div>
+    <h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15">What do you go out for?</h1>
+    <p style="margin: 8px 0 0; font-size: 15px; color: var(--mf)">Pick at least three. We use these to match you with communities and events.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+    <sc-for list="{{tiles}}" as="t" hint-placeholder-count="8">
+      <button type="button" aria-pressed="{{t.on}}" style="height: 88px; border-radius: 16px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: {{t.fg}}; text-align: left; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; position: relative">
+        <span style="display: flex; align-items: center; justify-content: space-between; width: 100%"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{t.icon}}"></path></svg><sc-if value="{{t.on}}" hint-placeholder-val="{{false}}"><span style="width: 22px; height: 22px; border-radius: 999px; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if></span>
+        <span style="font-size: 15px; font-weight: 600">{{t.label}}</span>
+      </button>
+    </sc-for>
+  </div>
+
+  <div style="position: absolute; left: 20px; right: 20px; bottom: 34px; display: flex; flex-direction: column; gap: 10px">
+    <a href="Permissions.dc.html" style="height: 52px; border-radius: 6px; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; font-size: 16px">Continue · 3 selected<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"></path></svg></a>
+    <div style="font-size: 12px; color: var(--mf); text-align: center">Music genres, vibes and themes come next. You can change these any time in Me.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const t = (label, icon, on) => ({ label, icon, on: !!on, border: on ? 'var(--line)' : 'var(--border)', bg: on ? 'var(--tint)' : 'var(--card)', fg: on ? 'var(--btext)' : 'var(--fg)' });
+    return {
+      tiles: [
+        t('Nightlife', 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z', true),
+        t('Concerts', 'M9 18V5l12-2v13M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', true),
+        t('Dinners', 'M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7'),
+        t('Day parties', 'M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10z', true),
+        t('Networking', 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8'),
+        t('Art', 'M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5zM2 2l7.6 7.6M11 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4z'),
+        t('Workshops', 'M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z'),
+        t('Wellness', 'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

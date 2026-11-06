@@ -1,0 +1,16 @@
+node_modules/
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Local tooling
+.claude/
+
+# Generated review renders
+.impeccable/review/
+
+# Generated native projects (Continuous Native Generation)
+app/ios/
+app/android/
+app/.expo/

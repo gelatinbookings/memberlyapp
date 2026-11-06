@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Exploring option, event page in daylight</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.mem{--bg:#fff;--fg:#020817;--card:#fff;--muted:#f1f5f9;--mf:#64748b;--border:#e2e8f0;--brand:#9333ea;--tint:#f3e8ff;--btext:#7e22ce;--line:#c084fc;font-family:Inter,system-ui,sans-serif;color:var(--fg);background:var(--bg);font-size:15px;line-height:1.45}
+.mem a{color:var(--btext);text-decoration:none}
+.mem button{font:inherit;color:inherit}
+</style>
+</helmet>
+<div class="mem" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 60px 20px 0">
+  <div style="display: flex; justify-content: space-between">
+    <span style="width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg></span>
+    <span style="width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"></path></svg></span>
+  </div>
+  <div>
+    <div style="font-size: 13px; font-weight: 600; color: var(--btext)">Fri, Nov 20 · 10 PM – 2 AM</div>
+    <h1 style="margin: 4px 0 0; font-size: 40px; font-weight: 800; letter-spacing: -0.03em; line-height: 1">Warehouse Friday</h1>
+    <div style="font-size: 15px; color: var(--mf); margin-top: 8px">Second Sundays · Westside, Atlanta</div>
+  </div>
+  <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; height: 220px">
+    <img src="/_blob/3a9257843bd2c59903b82feae14987ad" alt="" style="width: 100%; height: 100%; object-fit: cover; border-radius: 20px; display: block">
+    <div style="display: grid; grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 8px"><img src="/_blob/07bc587c0f3a529389180815dd804a32" alt="" style="width: 100%; height: 100%; object-fit: cover; border-radius: 20px; display: block"><img src="/_blob/b01b0c9e4f75b042e783748d8e3c206c" alt="" style="width: 100%; height: 100%; object-fit: cover; border-radius: 20px; display: block"></div>
+  </div>
+  <p style="margin: 0; font-size: 16px; line-height: 1.5">A long night in a raw room on the Westside. Members get in free before midnight; everyone else needs a pass.</p>
+  <div style="border-radius: 20px; background: var(--muted); padding: 16px; display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 17px; font-weight: 800; letter-spacing: -0.01em">Lineup</span><span style="font-size: 12px; color: var(--mf)">via Gelatin</span></div>
+    <div style="display: flex; align-items: center; gap: 12px"><img src="/_blob/b01b0c9e4f75b042e783748d8e3c206c" alt="" style="width: 48px; height: 48px; border-radius: 999px; object-fit: cover; display: block"><span style="flex-grow: 1"><span style="display: block; font-size: 16px; font-weight: 700">KOYO</span><span style="display: block; font-size: 13px; color: var(--mf)">Midnight to 2 · House, Afrobeats</span></span></div>
+  </div>
+  <div style="position: absolute; left: 20px; right: 20px; bottom: 34px; display: flex; gap: 10px; align-items: center; background: #fff; padding-top: 8px">
+    <div style="flex-grow: 1"><div style="font-size: 22px; font-weight: 800; letter-spacing: -0.02em">$30</div><div style="font-size: 12px; color: var(--mf)">Members free</div></div>
+    <span style="height: 52px; padding: 0 28px; border-radius: 999px; background: var(--fg); color: #fff; display: inline-flex; align-items: center; font-weight: 700; font-size: 16px">Get a pass</span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

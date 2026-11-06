@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Browse, loading</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.mem{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;font-family:Inter,system-ui,sans-serif;color:var(--fg);background:var(--bg);font-size:15px;line-height:1.45}
+.mem a{color:var(--btext);text-decoration:none}
+.mem button{font:inherit;color:inherit}
+</style>
+</helmet>
+<div class="mem" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 14px; padding: 60px 20px 0" aria-busy="true">
+
+  <div style="display: flex; align-items: center; gap: 12px">
+    <div style="flex-grow: 1; min-width: 0"><h1 style="margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2">Browse talent</h1><div style="font-size: 13px; color: var(--mf)">Finding DJs open on Fri, Nov 20 in Atlanta…</div></div>
+    <a href="LineupEmpty.dc.html" aria-label="Close" style="width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--fg); flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></a>
+  </div>
+
+  <div style="display: flex; gap: 8px">
+    <span style="height: 38px; width: 84px; border-radius: 999px; background: var(--muted)"></span>
+    <span style="height: 38px; width: 104px; border-radius: 999px; background: var(--muted)"></span>
+    <span style="height: 38px; width: 96px; border-radius: 999px; background: var(--muted)"></span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+      <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--card); padding: 12px; display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <span style="width: 52px; height: 52px; border-radius: 999px; background: var(--muted); flex-shrink: 0"></span>
+          <span style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px"><span style="height: 14px; width: {{r.w1}}; border-radius: 999px; background: var(--muted)"></span><span style="height: 12px; width: {{r.w2}}; border-radius: 999px; background: var(--muted)"></span></span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between"><span style="height: 16px; width: 56px; border-radius: 999px; background: var(--muted)"></span><span style="height: 40px; width: 72px; border-radius: 999px; background: var(--muted)"></span></div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="position: absolute; left: 20px; right: 20px; bottom: 34px; font-size: 12px; color: var(--mf); text-align: center">DJs, availability and rates from Gelatin</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return { rows: [{ w1: '44%', w2: '62%' }, { w1: '56%', w2: '48%' }, { w1: '38%', w2: '70%' }, { w1: '50%', w2: '55%' }] }; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "v": 4,
+  "createdOnFiles": { "v": 1, "at": "2026-10-30T16:20:00Z" },
+  "lists": "css",
+  "title": "Memberly Experience Design",
+  "order": ["cover", "agenda", "ideations", "safe-intro", "safe-member", "safe-organizer", "safe-booking", "exploring", "veryfar", "compare", "questions"],
+  "sections": {
+    "open": { "description": "Why we are here and what needs deciding", "start": "cover" },
+    "safe": { "description": "Ideation 1 of 3, the safe option presented today", "start": "safe-intro" },
+    "alts": { "description": "Ideations 2 and 3, exploring and very far", "start": "exploring" },
+    "close": { "description": "Comparison and final questions", "start": "compare" }
+  },
+  "faces": {
+    "inter": { "family": "Inter", "href": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" }
+  },
+  "designSystems": []
+}

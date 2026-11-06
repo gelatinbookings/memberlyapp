@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DJ taken</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.mem{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;font-family:Inter,system-ui,sans-serif;color:var(--fg);background:var(--bg);font-size:15px;line-height:1.45}
+.mem a{color:var(--btext);text-decoration:none}
+.mem button{font:inherit;color:inherit}
+.mem ::selection{background:#6b21a8;color:#fff}
+</style>
+</helmet>
+<div class="mem" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden">
+  <div style="padding: 60px 20px 0; display: flex; flex-direction: column; gap: 14px; opacity: .35">
+    <div style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em">Lineup</div>
+    <div style="height: 150px; border: 1px solid var(--border); border-radius: 16px; background: var(--card)"></div>
+    <div style="height: 150px; border: 1px solid var(--border); border-radius: 16px; background: var(--card)"></div>
+  </div>
+
+  <div role="dialog" aria-label="KOYO is no longer available" style="position: absolute; left: 0; right: 0; bottom: 0; background: var(--bg); border-top: 1px solid var(--border); border-radius: 24px 24px 0 0; padding: 10px 20px 34px; display: flex; flex-direction: column; gap: 18px">
+    <span style="width: 40px; height: 4px; border-radius: 999px; background: var(--border); align-self: center"></span>
+    <div style="display: flex; align-items: center; gap: 12px">
+      <img src="/_blob/b01b0c9e4f75b042e783748d8e3c206c" alt="" style="width: 56px; height: 56px; object-fit: cover; border-radius: 999px; flex-shrink: 0; display: block; filter: grayscale(1)">
+      <div style="flex-grow: 1; min-width: 0"><div style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2">KOYO just got booked</div><div style="font-size: 13px; color: var(--mf)">Fri, Nov 20 is no longer open</div></div>
+    </div>
+    <p style="margin: 0; font-size: 15px; color: var(--mf)">Someone else confirmed KOYO for that night a moment ago. Nothing was held and nothing was charged. These DJs are still open.</p>
+
+    <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--card); overflow: hidden">
+      <sc-for list="{{alts}}" as="a" hint-placeholder-count="3">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-top: 1px solid {{a.top}}">
+          <span style="width: 40px; height: 40px; border-radius: 999px; background: var(--tint); color: var(--btext); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0">{{a.initials}}</span>
+          <span style="flex-grow: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 600">{{a.name}}</span><span style="display: block; font-size: 12px; color: var(--mf)">{{a.line}}</span></span>
+          <span style="font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: {{a.rateFg}}">{{a.rate}}</span>
+          <a href="LineupOffers.dc.html" style="height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); display: inline-flex; align-items: center; font-size: 13px; font-weight: 600; color: var(--fg)">Offer</a>
+        </div>
+      </sc-for>
+    </div>
+
+    <a href="Browse.dc.html" style="height: 52px; border-radius: 6px; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 16px">See everyone open that night</a>
+    <div style="font-size: 12px; color: var(--mf); text-align: center">DJs, availability and rates from Gelatin</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      alts: [
+        { initials: 'BM', name: 'BLKMTN', line: 'Baile funk · Jersey club · draws 150–205', rate: '$390', rateFg: 'var(--fg)', top: 'transparent' },
+        { initials: 'NF', name: 'NIGHTFORM', line: 'Techno · Bass · draws 240–330', rate: 'Private', rateFg: 'var(--mf)', top: 'var(--border)' },
+        { initials: 'SH', name: 'Sable Hart', line: 'Soul · Disco · draw not yet established', rate: '$275', rateFg: 'var(--fg)', top: 'var(--border)' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

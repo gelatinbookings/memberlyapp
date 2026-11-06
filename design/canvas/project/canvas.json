@@ -1,0 +1,621 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Alternates.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "After a pass · other DJs open that night",
+      "w": 390,
+      "x": 470,
+      "y": 10210
+    },
+    "Browse.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Browse talent",
+      "w": 390,
+      "x": 0,
+      "y": 7750
+    },
+    "BrowseEmptyCity.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "No DJs in this city · Notify me",
+      "w": 390,
+      "x": 1880,
+      "y": 7750
+    },
+    "BrowseFilters.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Filters · budget and genre",
+      "w": 390,
+      "x": 470,
+      "y": 7750
+    },
+    "BrowseLoading.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Loading",
+      "w": 390,
+      "x": 1410,
+      "y": 7750
+    },
+    "BrowseTooTight.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Filters too tight",
+      "w": 390,
+      "x": 2350,
+      "y": 7750
+    },
+    "BrowseUnavailable.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Catalog unavailable",
+      "w": 390,
+      "x": 2820,
+      "y": 7750
+    },
+    "Card.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "My Memberly Card",
+      "w": 390,
+      "x": 1410,
+      "y": 4060
+    },
+    "CreateAccount.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Create account · bottom sheet",
+      "w": 390,
+      "x": 940,
+      "y": 2830
+    },
+    "CreateEvent.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Create New Event · sections",
+      "w": 390,
+      "x": 470,
+      "y": 5290
+    },
+    "DateChangeAfter.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Date change after confirmation",
+      "w": 390,
+      "x": 2350,
+      "y": 10210
+    },
+    "DateChangeBefore.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Date change before the DJ accepts",
+      "w": 390,
+      "x": 1880,
+      "y": 10210
+    },
+    "DateTime.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Date, time and place",
+      "w": 390,
+      "x": 940,
+      "y": 5290
+    },
+    "DjProfile.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "DJ profile",
+      "w": 390,
+      "x": 940,
+      "y": 7750
+    },
+    "DjTaken.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "DJ taken",
+      "w": 390,
+      "x": 1880,
+      "y": 8980
+    },
+    "EventPage.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Event page · open offers shown as TBA",
+      "w": 390,
+      "x": 940,
+      "y": 4060
+    },
+    "Events.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Events · passes and upcoming",
+      "w": 390,
+      "x": 2350,
+      "y": 4060
+    },
+    "Explore.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Explore",
+      "w": 390,
+      "x": 470,
+      "y": 4060
+    },
+    "ExploreFilters.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Explore filters · bottom sheet",
+      "w": 390,
+      "x": 2820,
+      "y": 2830
+    },
+    "Hold.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Card hold · Gelatin checkout in a native sheet",
+      "w": 390,
+      "x": 470,
+      "y": 8980
+    },
+    "HoldDone.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Card held, offer sent",
+      "w": 390,
+      "x": 940,
+      "y": 8980
+    },
+    "HoldTimedOut.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Checkout timed out",
+      "w": 390,
+      "x": 1410,
+      "y": 8980
+    },
+    "HomeCard.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "A · Card-led",
+      "w": 390,
+      "x": 470,
+      "y": 1600
+    },
+    "HomeMap.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "C · Map first (chosen)",
+      "w": 390,
+      "x": 0,
+      "y": 1600
+    },
+    "HomeWeek.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "B · Your week",
+      "w": 390,
+      "x": 940,
+      "y": 1600
+    },
+    "Intro.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Intro · slide 2 of 3",
+      "w": 390,
+      "x": 470,
+      "y": 2830
+    },
+    "Kit.dc.html": {
+      "h": 960,
+      "title": "Parts kit",
+      "w": 1280,
+      "x": 0,
+      "y": 13020
+    },
+    "LineupBlocked.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Lineup · no date or city yet",
+      "w": 390,
+      "x": 470,
+      "y": 6520
+    },
+    "LineupEmpty.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Lineup · empty",
+      "w": 390,
+      "x": 0,
+      "y": 6520
+    },
+    "LineupMotion.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Lineup · in motion",
+      "w": 390,
+      "x": 1410,
+      "y": 6520
+    },
+    "LineupOffers.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Lineup · DJs added, fee and note",
+      "w": 390,
+      "x": 940,
+      "y": 6520
+    },
+    "LineupVisibility.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Organizer setting · show open offers as TBA",
+      "w": 390,
+      "x": 470,
+      "y": 11790
+    },
+    "Main.dc.html": {
+      "h": 1180,
+      "title": "The plan on one page",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "Manage.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Manage · community overview",
+      "w": 390,
+      "x": 0,
+      "y": 5290
+    },
+    "Me.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Me",
+      "w": 390,
+      "x": 1880,
+      "y": 4060
+    },
+    "Offer.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Offer · what gets held",
+      "w": 390,
+      "x": 0,
+      "y": 8980
+    },
+    "Onboarding.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Preferences, step 1 of 4",
+      "w": 390,
+      "x": 0,
+      "y": 4060
+    },
+    "Permissions.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Location and notifications",
+      "w": 390,
+      "x": 2350,
+      "y": 2830
+    },
+    "Portal.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Hand-off to Gelatin",
+      "w": 390,
+      "x": 940,
+      "y": 10210
+    },
+    "PortalReturn.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Back from Gelatin · new offer from the DJ",
+      "w": 390,
+      "x": 1410,
+      "y": 10210
+    },
+    "PublicLineupDefault.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Default · confirmed DJs only",
+      "w": 390,
+      "x": 0,
+      "y": 11790
+    },
+    "PublishNoLineup.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Published with no lineup",
+      "w": 390,
+      "x": 3290,
+      "y": 10210
+    },
+    "PublishOutstanding.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Published with offers outstanding",
+      "w": 390,
+      "x": 2820,
+      "y": 10210
+    },
+    "SignIn.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Sign in · bottom sheet",
+      "w": 390,
+      "x": 1410,
+      "y": 2830
+    },
+    "StatusAll.dc.html": {
+      "h": 1200,
+      "is_interactive": true,
+      "title": "Every status, in one list (scrolls)",
+      "w": 390,
+      "x": 0,
+      "y": 10210
+    },
+    "Verify.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Verification code",
+      "w": 390,
+      "x": 1880,
+      "y": 2830
+    },
+    "Welcome.dc.html": {
+      "h": 844,
+      "is_interactive": true,
+      "title": "Welcome",
+      "w": 390,
+      "x": 0,
+      "y": 2830
+    },
+    "HomeExplore.dc.html": {
+      "x": 0,
+      "y": 14360,
+      "w": 390,
+      "h": 844,
+      "title": "Exploring · Home in daylight"
+    },
+    "EventExplore.dc.html": {
+      "x": 470,
+      "y": 14360,
+      "w": 390,
+      "h": 844,
+      "title": "Exploring · event page"
+    },
+    "LineupExplore.dc.html": {
+      "x": 940,
+      "y": 14360,
+      "w": 390,
+      "h": 844,
+      "title": "Exploring · Lineup"
+    },
+    "Concierge.dc.html": {
+      "x": 1560,
+      "y": 14360,
+      "w": 390,
+      "h": 844,
+      "title": "Very far · concierge Home"
+    },
+    "TonightFeed.dc.html": {
+      "x": 2030,
+      "y": 14360,
+      "w": 390,
+      "h": 844,
+      "title": "Very far · tonight feed"
+    },
+    "BookChat.dc.html": {
+      "x": 2500,
+      "y": 14360,
+      "w": 390,
+      "h": 844,
+      "title": "Very far · book a DJ by chat"
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-30T15:05:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "file": "Welcome.dc.html",
+    "view": "focused"
+  },
+  "noteOrder": [
+    "row0",
+    "row1",
+    "pick",
+    "row2",
+    "row3",
+    "row4",
+    "row5",
+    "row6",
+    "row7",
+    "row8",
+    "row9",
+    "rowFirst",
+    "proto",
+    "rowIdeas"
+  ],
+  "notes": {
+    "pick": {
+      "fill": "purple",
+      "text": "Chosen 30 Oct 2026: C. Tonight's events sit on a map of the city with the list in a sheet; the member's next pass is the first row. Every Home tab and back link on this canvas now returns here. The map itself is a placeholder until the map provider is picked.",
+      "w": 300,
+      "x": 1410,
+      "y": 1600
+    },
+    "proto": {
+      "fill": "purple",
+      "text": "Clickable prototype: press Play on Welcome (or open the canvas full-screen). Flow: Welcome → Create account → Code → Preferences → Permissions → Home map → Event → Pass. Me → Manage → New event → Lineup → Browse → Offer → Hold → Status → Gelatin hand-off → Publish.",
+      "w": 420,
+      "x": 1540,
+      "y": -280
+    },
+    "row0": {
+      "kind": "title1",
+      "maxW": 1440,
+      "text": "Memberly on the phone, with Gelatin talent built in",
+      "w": 240,
+      "x": 0,
+      "y": -280
+    },
+    "row1": {
+      "kind": "title1",
+      "maxW": 1330,
+      "text": "Home: C, map first, is the chosen direction. A and B kept for reference.",
+      "w": 240,
+      "x": 0,
+      "y": 1340
+    },
+    "row2": {
+      "kind": "title1",
+      "maxW": 2740,
+      "text": "Member side",
+      "w": 240,
+      "x": 0,
+      "y": 3800
+    },
+    "row3": {
+      "kind": "title1",
+      "maxW": 1330,
+      "text": "Organizer side",
+      "w": 240,
+      "x": 0,
+      "y": 5030
+    },
+    "row4": {
+      "kind": "title1",
+      "maxW": 1800,
+      "text": "Lineup, inside Create New Event",
+      "w": 240,
+      "x": 0,
+      "y": 6260
+    },
+    "row5": {
+      "kind": "title1",
+      "maxW": 3210,
+      "text": "Find the talent, and every way it can go wrong",
+      "w": 240,
+      "x": 0,
+      "y": 7490
+    },
+    "row6": {
+      "kind": "title1",
+      "maxW": 2270,
+      "text": "Offer and card hold: held, not charged",
+      "w": 240,
+      "x": 0,
+      "y": 8720
+    },
+    "row7": {
+      "kind": "title1",
+      "maxW": 3680,
+      "text": "After the hold: every status, the hand-off, date changes, publishing",
+      "w": 240,
+      "x": 0,
+      "y": 9950
+    },
+    "row8": {
+      "kind": "title1",
+      "maxW": 860,
+      "text": "The public lineup",
+      "w": 240,
+      "x": 0,
+      "y": 11530
+    },
+    "row9": {
+      "kind": "title1",
+      "maxW": 1280,
+      "text": "The parts",
+      "w": 240,
+      "x": 0,
+      "y": 12760
+    },
+    "rowFirst": {
+      "kind": "title1",
+      "maxW": 3210,
+      "text": "First run: welcome, account, verification, permissions. Bottom sheets for sign in, account and filters.",
+      "w": 240,
+      "x": 0,
+      "y": 2570
+    },
+    "rowIdeas": {
+      "x": 0,
+      "y": 14100,
+      "text": "Ideations for the deck: Exploring (daylight, editorial) and Very far (concierge, drenched purple). The safe option is everything above.",
+      "kind": "title1",
+      "maxW": 2890,
+      "w": 240
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "HomeMap.dc.html",
+    "HomeCard.dc.html",
+    "HomeWeek.dc.html",
+    "Welcome.dc.html",
+    "Intro.dc.html",
+    "CreateAccount.dc.html",
+    "SignIn.dc.html",
+    "Verify.dc.html",
+    "Permissions.dc.html",
+    "Onboarding.dc.html",
+    "Explore.dc.html",
+    "ExploreFilters.dc.html",
+    "EventPage.dc.html",
+    "Card.dc.html",
+    "Me.dc.html",
+    "Events.dc.html",
+    "Manage.dc.html",
+    "CreateEvent.dc.html",
+    "DateTime.dc.html",
+    "LineupEmpty.dc.html",
+    "LineupBlocked.dc.html",
+    "LineupOffers.dc.html",
+    "LineupMotion.dc.html",
+    "Browse.dc.html",
+    "BrowseFilters.dc.html",
+    "DjProfile.dc.html",
+    "BrowseLoading.dc.html",
+    "BrowseEmptyCity.dc.html",
+    "BrowseTooTight.dc.html",
+    "BrowseUnavailable.dc.html",
+    "Offer.dc.html",
+    "Hold.dc.html",
+    "HoldDone.dc.html",
+    "HoldTimedOut.dc.html",
+    "DjTaken.dc.html",
+    "StatusAll.dc.html",
+    "Alternates.dc.html",
+    "Portal.dc.html",
+    "PortalReturn.dc.html",
+    "DateChangeBefore.dc.html",
+    "DateChangeAfter.dc.html",
+    "PublishOutstanding.dc.html",
+    "PublishNoLineup.dc.html",
+    "PublicLineupDefault.dc.html",
+    "LineupVisibility.dc.html",
+    "Kit.dc.html",
+    "HomeExplore.dc.html",
+    "EventExplore.dc.html",
+    "LineupExplore.dc.html",
+    "Concierge.dc.html",
+    "TonightFeed.dc.html",
+    "BookChat.dc.html"
+  ],
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "UI Designs - Exploration"
+    }
+  ],
+  "title": "Memberly App: Design Directions"
+}

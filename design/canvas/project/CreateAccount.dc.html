@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Create account, bottom sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.mem{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;font-family:Inter,system-ui,sans-serif;color:var(--fg);background:var(--bg);font-size:15px;line-height:1.45}
+.mem a{color:var(--btext);text-decoration:none}
+.mem button,.mem input{font:inherit;color:inherit}
+.mem input::placeholder{color:#a1a1a1}
+</style>
+</helmet>
+<div class="mem" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden">
+  <img src="/_blob/07bc587c0f3a529389180815dd804a32" alt="" style="position: absolute; left: 0; top: 0; width: 390px; height: 560px; object-fit: cover; display: block; opacity: .35">
+  <img src="/_blob/9b1d0eb2c7dd9f7d8bc27a0a5f18c5c7" alt="Memberly" style="position: absolute; left: 20px; top: 64px; height: 30px; display: block; opacity: .6">
+
+  <div role="dialog" aria-label="Create your account" style="position: absolute; left: 0; right: 0; bottom: 0; background: var(--bg); border-top: 1px solid var(--border); border-radius: 24px 24px 0 0; padding: 10px 20px 34px; display: flex; flex-direction: column; gap: 16px">
+    <span style="width: 40px; height: 4px; border-radius: 999px; background: var(--border); align-self: center"></span>
+    <img src="/_blob/9b1d0eb2c7dd9f7d8bc27a0a5f18c5c7" alt="" style="height: 40px; width: auto; display: block; align-self: flex-start; margin-top: 6px">
+    <div>
+      <div style="font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15">Create your account</div>
+      <div style="font-size: 14px; color: var(--mf); margin-top: 4px">We'll send a code to your email. No password to remember.</div>
+    </div>
+    <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500">Your name</span><input value="Jordan Reese" style="height: 52px; box-sizing: border-box; border-radius: 6px; border: 1px solid var(--border); background: var(--card); padding: 0 14px; font-size: 16px"></label>
+    <label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; font-weight: 500">Email</span><input type="email" placeholder="your@email.com" inputmode="email" style="height: 52px; box-sizing: border-box; border-radius: 6px; border: 1px solid var(--border); background: var(--card); padding: 0 14px; font-size: 16px"></label>
+    <a href="Verify.dc.html" style="height: 52px; border-radius: 6px; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 16px">Send verification code</a>
+    <div style="display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--mf)"><span style="flex-grow: 1; height: 1px; background: var(--border)"></span>or<span style="flex-grow: 1; height: 1px; background: var(--border)"></span></div>
+    <button type="button" style="height: 52px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); font-weight: 600; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 10px"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.7v3h3.9c2.3-2.1 3.5-5.2 3.5-8.9z"></path><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3a7.3 7.3 0 0 1-10.9-3.8H1.2v3.1A12 12 0 0 0 12 24z"></path><path fill="#FBBC05" d="M5.2 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.2a12 12 0 0 0 0 10.8l4-3.1z"></path><path fill="#EA4335" d="M12 4.8c1.8 0 3.4.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.2 6.6l4 3.1C6.2 6.8 8.9 4.8 12 4.8z"></path></svg>Continue with Google</button>
+    <div style="font-size: 13px; color: var(--mf); text-align: center">Already have an account? <a href="SignIn.dc.html" style="font-weight: 600">Sign in</a></div>
+    <div style="font-size: 12px; color: var(--mf); text-align: center">By continuing, you agree to our <a href="#terms">Terms of Use</a> and <a href="#privacy">Privacy Policy</a>.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Card held, offer sent</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.mem{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;font-family:Inter,system-ui,sans-serif;color:var(--fg);background:var(--bg);font-size:15px;line-height:1.45}
+.mem a{color:var(--btext);text-decoration:none}
+.mem button{font:inherit;color:inherit}
+.mem ::selection{background:#6b21a8;color:#fff}
+</style>
+</helmet>
+<div class="mem" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 20px; padding: 60px 20px 0">
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 18px; padding: 0 8px">
+    <span style="width: 88px; height: 88px; border-radius: 999px; background: var(--tint); border: 1px solid var(--line); color: var(--btext); display: flex; align-items: center; justify-content: center"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span>
+    <div>
+      <div style="font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15">Card held. KOYO has your offer.</div>
+      <p style="margin: 10px 0 0; font-size: 15px; color: var(--mf)">$457.00 is held on your card, not charged. KOYO usually answers within a day. We'll let you know the moment they do.</p>
+    </div>
+    <div style="width: 100%; border: 1px solid var(--border); border-radius: 16px; background: var(--card); padding: 12px 14px; display: flex; align-items: center; gap: 12px; text-align: left">
+      <img src="/_blob/b01b0c9e4f75b042e783748d8e3c206c" alt="" style="width: 44px; height: 44px; object-fit: cover; border-radius: 999px; flex-shrink: 0; display: block">
+      <span style="flex-grow: 1; min-width: 0"><span style="display: block; font-size: 16px; font-weight: 600">KOYO</span><span style="display: block; font-size: 13px; color: var(--mf)">Fri, Nov 20 · midnight to 2</span></span>
+      <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 999px; padding: 5px 9px; background: var(--tint); color: var(--btext); flex-shrink: 0">Card held</span>
+    </div>
+  </div>
+
+  <div style="margin-bottom: 34px; display: flex; flex-direction: column; gap: 10px">
+    <a href="LineupMotion.dc.html" style="height: 52px; border-radius: 6px; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 16px">Back to your lineup</a>
+    <a href="Browse.dc.html" style="height: 52px; border-radius: 6px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 16px; color: var(--fg)">Add another DJ</a>
+    <div style="font-size: 12px; color: var(--mf); text-align: center">You can publish the event now. KOYO joins the public lineup once they accept.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

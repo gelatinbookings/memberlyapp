@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home, card-led</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.mem{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;--ok-bg:rgba(6,78,59,.4);--ok-fg:#6ee7b7;font-family:Inter,system-ui,sans-serif;color:var(--fg);background:var(--bg);font-size:15px;line-height:1.45}
+.mem a{color:var(--btext);text-decoration:none}
+.mem button{font:inherit;color:inherit}
+.mem ::selection{background:#6b21a8;color:#fff}
+</style>
+</helmet>
+<div class="mem" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 22px; padding: 60px 20px 0">
+
+  <div style="display: flex; align-items: center; gap: 12px">
+    <span style="width: 44px; height: 44px; border-radius: 999px; background: var(--tint); color: var(--btext); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0">JR</span>
+    <div style="flex-grow: 1; min-width: 0">
+      <div style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2">Hello, Jordan</div>
+      <div style="font-size: 13px; color: var(--mf)">Friday night in Atlanta</div>
+    </div>
+    <button type="button" aria-label="Notifications" style="width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--border); background: transparent; display: flex; align-items: center; justify-content: center; color: var(--fg)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 0 1-3.4 0"></path></svg></button>
+  </div>
+
+  <div style="border: 1px solid var(--line); border-radius: 16px; background: var(--tint); padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 34px">
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <span style="width: 32px; height: 32px; border-radius: 8px; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px">M</span>
+      <span style="font-size: 12px; font-weight: 600; color: var(--btext)">Member</span>
+    </div>
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px">
+      <div style="min-width: 0">
+        <div style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2">Jordan Reese</div>
+        <div style="font-size: 13px; color: var(--btext)">3 communities · since 2025</div>
+      </div>
+      <a href="Card.dc.html" style="height: 44px; padding: 0 14px; border-radius: 999px; background: var(--brand); color: #fff; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><path d="M14 14h3v3M21 14v7h-7"></path></svg>Show card</a>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <div style="font-size: 17px; font-weight: 700; letter-spacing: -0.01em">Your next pass</div>
+    <a href="EventPage.dc.html" style="border: 1px solid var(--border); border-radius: 16px; background: var(--card); padding: 12px; display: flex; align-items: center; gap: 14px; color: var(--fg)">
+      <span style="width: 56px; height: 56px; border-radius: 12px; background: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1"><span style="font-size: 11px; font-weight: 700; color: var(--mf)">FRI</span><span style="font-size: 22px; font-weight: 800; margin-top: 2px">20</span></span>
+      <span style="flex-grow: 1; min-width: 0"><span style="display: block; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Warehouse Friday</span><span style="display: block; font-size: 13px; color: var(--mf)">Second Sundays · 10:00 PM</span></span>
+      <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 999px; padding: 5px 9px; background: var(--ok-bg); color: var(--ok-fg); flex-shrink: 0">Pass</span>
+    </a>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 17px; font-weight: 700; letter-spacing: -0.01em">Tonight in Atlanta</span><a href="Explore.dc.html" style="font-size: 13px; font-weight: 500">See all</a></div>
+    <div style="display: flex; gap: 12px; margin-right: -20px; overflow: hidden">
+      <sc-for list="{{tonight}}" as="e" hint-placeholder-count="2">
+        <a href="EventPage.dc.html" style="width: 228px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; color: var(--fg)">
+          <img src="{{e.img}}" alt="" style="width: 228px; height: 150px; object-fit: cover; border-radius: 16px; display: block">
+          <span style="display: block; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{e.name}}</span>
+          <span style="display: block; font-size: 13px; color: var(--mf); margin-top: -6px">{{e.meta}}</span>
+        </a>
+      </sc-for>
+    </div>
+  </div>
+
+  <nav aria-label="Main" style="position: absolute; left: 16px; right: 16px; bottom: 34px; height: 64px; box-sizing: border-box; border-radius: 999px; background: var(--card); border: 1px solid var(--border); display: flex; align-items: center; padding: 6px; gap: 4px">
+    <a href="HomeCard.dc.html" aria-current="page" style="flex: 1.6 1 0; height: 50px; border-radius: 999px; background: var(--tint); display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--btext); font-size: 13px; font-weight: 600"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Home</a>
+    <a href="Explore.dc.html" aria-label="Explore" style="flex: 1 1 0; height: 50px; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: var(--mf)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polygon points="16.2 7.8 14.1 14.1 7.8 16.2 9.9 9.9"></polygon></svg></a>
+    <a href="Events.dc.html" aria-label="Events" style="flex: 1 1 0; height: 50px; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: var(--mf)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg></a>
+    <a href="Me.dc.html" aria-label="Me" style="flex: 1 1 0; height: 50px; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: var(--mf)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      tonight: [
+        { img: '/_blob/3a9257843bd2c59903b82feae14987ad', name: 'Warehouse Friday', meta: 'Second Sundays · 10:00 PM' },
+        { img: '/_blob/f5fe394418c7a84914baa544150400c5', name: 'Rooftop Hours', meta: 'Rooftop Society · 9:00 PM' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

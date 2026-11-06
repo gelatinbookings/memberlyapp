@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Create New Event</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.mem{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;--ok-bg:rgba(6,78,59,.4);--ok-fg:#6ee7b7;font-family:Inter,system-ui,sans-serif;color:var(--fg);background:var(--bg);font-size:15px;line-height:1.45}
+.mem a{color:var(--btext);text-decoration:none}
+.mem button{font:inherit;color:inherit}
+.mem ::selection{background:#6b21a8;color:#fff}
+</style>
+</helmet>
+<div class="mem" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 18px; padding: 60px 20px 0">
+
+  <div style="display: flex; align-items: center; gap: 12px">
+    <a href="Manage.dc.html" aria-label="Back" style="width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--fg); flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg></a>
+    <div style="flex-grow: 1; min-width: 0"><h1 style="margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2">Create New Event</h1><div style="font-size: 13px; color: var(--mf)">Second Sundays · draft</div></div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <sc-for list="{{sections}}" as="s" hint-placeholder-count="5">
+      <a href="{{s.href}}" style="border: 1px solid {{s.border}}; border-radius: 16px; background: {{s.bg}}; padding: 14px; display: flex; align-items: center; gap: 12px; color: var(--fg)">
+        <span style="width: 44px; height: 44px; border-radius: 12px; background: {{s.iconBg}}; color: {{s.iconFg}}; display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{s.icon}}"></path></svg></span>
+        <span style="flex-grow: 1; min-width: 0"><span style="display: block; font-size: 16px; font-weight: 600">{{s.title}}</span><span style="display: block; font-size: 13px; color: {{s.metaFg}}">{{s.meta}}</span></span>
+        <sc-if value="{{s.done}}" hint-placeholder-val="{{false}}"><span style="width: 24px; height: 24px; border-radius: 999px; background: var(--ok-bg); color: var(--ok-fg); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if>
+        <sc-if value="{{s.isNew}}" hint-placeholder-val="{{false}}"><span style="font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 999px; padding: 5px 9px; background: var(--brand); color: #fff; flex-shrink: 0">New</span></sc-if>
+        <sc-if value="{{s.todo}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a1a1a1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg></sc-if>
+      </a>
+    </sc-for>
+  </div>
+
+  <div style="border-radius: 12px; background: var(--muted); padding: 12px 14px; font-size: 13px; color: var(--mf)">You can publish without a lineup. Nothing is sent to a DJ and nothing is charged until you pay for an offer.</div>
+
+  <div style="position: absolute; left: 20px; right: 20px; bottom: 34px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+    <button type="button" style="height: 52px; border-radius: 6px; border: 1px solid var(--border); background: transparent; font-weight: 600; font-size: 15px">Save as draft</button>
+    <a href="PublishOutstanding.dc.html" style="height: 52px; border-radius: 6px; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px">Create &amp; publish</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = (title, meta, icon, href, state) => ({
+      title, meta, icon, href,
+      done: state === 'done', isNew: state === 'new', todo: state === 'todo',
+      border: state === 'new' ? 'var(--line)' : 'var(--border)', bg: 'var(--card)',
+      iconBg: state === 'new' ? 'var(--brand)' : 'var(--tint)', iconFg: state === 'new' ? '#fff' : 'var(--btext)',
+      metaFg: state === 'new' ? 'var(--btext)' : 'var(--mf)'
+    });
+    return {
+      sections: [
+        s('Event details', 'Warehouse Friday · cover added', 'M4 4h16v16H4zM4 15l4-4 4 4 3-3 5 5M15 8h.01', '#details', 'done'),
+        s('Date & time', 'Fri, Nov 20 · 10:00 PM – 2:00 AM', 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM12 6v6l4 2', 'DateTime.dc.html', 'done'),
+        s('Location', 'Westside warehouse · Atlanta, GA', 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0zM12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'DateTime.dc.html', 'done'),
+        s('Lineup', 'Book DJs open on Nov 20 in Atlanta', 'M9 18V5l12-2v13M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'LineupEmpty.dc.html', 'new'),
+        s('Access & passes', 'Who can come, and what it costs', 'M2 9a3 3 0 0 1 0 6v3a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3a3 3 0 0 1 0-6V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2zM13 5v2M13 17v2M13 11v2', '#passes', 'todo')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

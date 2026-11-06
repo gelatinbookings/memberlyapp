@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lineup, empty</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.mem{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;font-family:Inter,system-ui,sans-serif;color:var(--fg);background:var(--bg);font-size:15px;line-height:1.45}
+.mem a{color:var(--btext);text-decoration:none}
+.mem button{font:inherit;color:inherit}
+.mem ::selection{background:#6b21a8;color:#fff}
+</style>
+</helmet>
+<div class="mem" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 20px; padding: 60px 20px 0">
+
+  <div style="display: flex; align-items: center; gap: 12px">
+    <a href="CreateEvent.dc.html" aria-label="Back" style="width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--fg); flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg></a>
+    <div style="flex-grow: 1; min-width: 0"><h1 style="margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2">Lineup</h1><div style="font-size: 13px; color: var(--mf)">Warehouse Friday · Fri, Nov 20 · Atlanta</div></div>
+  </div>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 16px; padding: 0 8px">
+    <span style="width: 72px; height: 72px; border-radius: 999px; background: var(--tint); color: var(--btext); display: flex; align-items: center; justify-content: center"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg></span>
+    <div>
+      <div style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2">No talent booked yet</div>
+      <p style="margin: 8px 0 0; font-size: 15px; color: var(--mf)">See which DJs are open on Fri, Nov 20 in Atlanta. You offer a fee and hold your card, and you're only charged if the DJ accepts.</p>
+    </div>
+    <a href="Browse.dc.html" style="height: 52px; width: 100%; border-radius: 6px; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 16px">Browse talent</a>
+    <div style="font-size: 12px; color: var(--mf)">DJs, availability and rates from Gelatin</div>
+  </div>
+
+  <div style="margin-bottom: 34px; border-radius: 12px; background: var(--muted); padding: 14px 16px; font-size: 13px; color: var(--mf)"><strong style="color: var(--fg); font-weight: 600">No lineup right now?</strong> Create the event without talent and add DJs later. Nothing is sent and nothing is charged.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

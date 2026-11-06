@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Public lineup setting</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.mem{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;--ok-bg:rgba(6,78,59,.4);--ok-fg:#6ee7b7;font-family:Inter,system-ui,sans-serif;color:var(--fg);background:var(--bg);font-size:15px;line-height:1.45}
+.mem a{color:var(--btext);text-decoration:none}
+.mem button{font:inherit;color:inherit}
+.mem ::selection{background:#6b21a8;color:#fff}
+</style>
+</helmet>
+<div class="mem" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 18px; padding: 60px 20px 0">
+
+  <div style="display: flex; align-items: center; gap: 12px">
+    <a href="LineupMotion.dc.html" aria-label="Back" style="width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--fg); flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg></a>
+    <div style="flex-grow: 1; min-width: 0"><h1 style="margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2">Public lineup</h1><div style="font-size: 13px; color: var(--mf)">What members and guests see</div></div>
+  </div>
+
+  <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--card); overflow: hidden">
+    <div style="display: flex; align-items: center; gap: 12px; padding: 14px">
+      <span style="flex-grow: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 600">Confirmed DJs</span><span style="display: block; font-size: 12px; color: var(--mf)">Always shown once they accept</span></span>
+      <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 999px; padding: 4px 8px; background: var(--ok-bg); color: var(--ok-fg)">On</span>
+    </div>
+    <label style="display: flex; align-items: center; gap: 12px; padding: 14px; border-top: 1px solid var(--border)">
+      <span style="flex-grow: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 600">Show open offers as TBA</span><span style="display: block; font-size: 12px; color: var(--mf)">A "TBA" slot for each DJ still deciding. Their name stays hidden until they accept.</span></span>
+      <span role="switch" aria-checked="true" style="width: 52px; height: 32px; border-radius: 999px; background: var(--brand); position: relative; flex-shrink: 0; display: block"><span style="position: absolute; top: 3px; left: 23px; width: 26px; height: 26px; border-radius: 999px; background: #fff; display: block"></span></span>
+    </label>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <div style="font-size: 13px; font-weight: 600; color: var(--mf)">Preview</div>
+    <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--card); padding: 14px; display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 15px; font-weight: 700">Lineup</span><span style="font-size: 11px; color: var(--mf)">via Gelatin</span></div>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <img src="/_blob/b01b0c9e4f75b042e783748d8e3c206c" alt="" style="width: 40px; height: 40px; object-fit: cover; border-radius: 999px; flex-shrink: 0; display: block">
+        <span style="flex-grow: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">KOYO</span><span style="display: block; font-size: 12px; color: var(--mf)">Midnight to 2</span></span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <span style="width: 40px; height: 40px; border-radius: 999px; background: var(--muted); color: var(--mf); display: flex; align-items: center; justify-content: center; flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg></span>
+        <span style="flex-grow: 1; min-width: 0"><span style="display: block; font-size: 14px; font-weight: 600">TBA</span><span style="display: block; font-size: 12px; color: var(--mf)">10 to midnight</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div style="border-radius: 12px; background: var(--muted); padding: 12px 14px; font-size: 13px; color: var(--mf)">Fees, offers, your notes and who you asked are never shown on the public page, whichever setting you choose.</div>
+
+  <div style="position: absolute; left: 20px; right: 20px; bottom: 34px">
+    <a href="LineupMotion.dc.html" style="height: 52px; border-radius: 6px; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 16px">Done</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

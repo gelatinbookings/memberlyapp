@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Browse filters</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.mem{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;font-family:Inter,system-ui,sans-serif;color:var(--fg);background:var(--bg);font-size:15px;line-height:1.45}
+.mem a{color:var(--btext);text-decoration:none}
+.mem button{font:inherit;color:inherit}
+.mem ::selection{background:#6b21a8;color:#fff}
+</style>
+</helmet>
+<div class="mem" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden">
+  <div style="padding: 60px 20px 0; display: flex; flex-direction: column; gap: 14px; opacity: .35">
+    <div style="display: flex; align-items: center; gap: 12px"><div style="flex-grow: 1"><div style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em">Browse talent</div><div style="font-size: 13px; color: var(--mf)">5 DJs open on Fri, Nov 20 in Atlanta</div></div><span style="width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--border)"></span></div>
+    <div style="height: 120px; border: 1px solid var(--border); border-radius: 16px; background: var(--card)"></div>
+    <div style="height: 120px; border: 1px solid var(--border); border-radius: 16px; background: var(--card)"></div>
+  </div>
+
+  <div role="dialog" aria-label="Filters" style="position: absolute; left: 0; right: 0; bottom: 0; background: var(--bg); border-top: 1px solid var(--border); border-radius: 24px 24px 0 0; padding: 10px 20px 34px; display: flex; flex-direction: column; gap: 18px">
+    <span style="width: 40px; height: 4px; border-radius: 999px; background: var(--border); align-self: center"></span>
+    <div style="display: flex; align-items: center; justify-content: space-between"><span style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em">Filters</span><button type="button" style="min-height: 44px; border: 0; background: transparent; font-size: 14px; font-weight: 500; color: var(--btext)">Reset</button></div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 13px; font-weight: 600; color: var(--mf)">From your event</div>
+      <div style="display: flex; gap: 8px">
+        <span style="height: 44px; padding: 0 12px; border-radius: 999px; background: var(--muted); display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Atlanta</span>
+        <span style="height: 44px; padding: 0 12px; border-radius: 999px; background: var(--muted); display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Fri, Nov 20</span>
+      </div>
+      <div style="font-size: 12px; color: var(--mf)">Change these in Date &amp; time and Location.</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 13px; font-weight: 600; color: var(--mf)">Budget per DJ</div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+        <sc-for list="{{budgets}}" as="b" hint-placeholder-count="4">
+          <button type="button" aria-pressed="{{b.on}}" style="height: 44px; border-radius: 999px; border: 1px solid {{b.border}}; background: {{b.bg}}; color: {{b.fg}}; font-size: 14px; font-weight: 500">{{b.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 13px; font-weight: 600; color: var(--mf)">Genre</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+        <sc-for list="{{genres}}" as="g" hint-placeholder-count="8">
+          <button type="button" aria-pressed="{{g.on}}" style="height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid {{g.border}}; background: {{g.bg}}; color: {{g.fg}}; font-size: 13px; font-weight: 500">{{g.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <a href="Browse.dc.html" style="height: 52px; border-radius: 6px; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 16px">Show 3 DJs</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const chip = (label, on) => ({ label, on: !!on, border: on ? 'var(--line)' : 'var(--border)', bg: on ? 'var(--tint)' : 'transparent', fg: on ? 'var(--btext)' : 'var(--fg)' });
+    return {
+      budgets: [chip('Under $300'), chip('$300 – $600', true), chip('$600 – $1,000'), chip('$1,000 and up')],
+      genres: [chip('House', true), chip('Afrobeats'), chip('Techno'), chip('Bass'), chip('Baile funk'), chip('Jersey club'), chip('Soul'), chip('Disco'), chip('Amapiano')]
+    };
+  }
+}
+</script>
+</body>
+</html>

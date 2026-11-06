@@ -1,0 +1,512 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-30T00:00:00Z",
+  "title": "Design System: Memberly App",
+  "extensions": {
+    "colorMeta": {
+      "brand": {
+        "role": "primary",
+        "displayName": "Brand purple",
+        "canonical": "oklch(55.8% 0.252 302)",
+        "tonalRamp": [
+          "oklch(15% 0.200 302)",
+          "oklch(25% 0.200 302)",
+          "oklch(37% 0.200 302)",
+          "oklch(48% 0.200 302)",
+          "oklch(60% 0.200 302)",
+          "oklch(72% 0.200 302)",
+          "oklch(84% 0.200 302)",
+          "oklch(95% 0.200 302)"
+        ]
+      },
+      "brand-pressed": {
+        "role": "primary",
+        "displayName": "Pressed purple",
+        "canonical": "oklch(49.6% 0.237 302)",
+        "tonalRamp": [
+          "oklch(15% 0.200 302)",
+          "oklch(25% 0.200 302)",
+          "oklch(37% 0.200 302)",
+          "oklch(48% 0.200 302)",
+          "oklch(60% 0.200 302)",
+          "oklch(72% 0.200 302)",
+          "oklch(84% 0.200 302)",
+          "oklch(95% 0.200 302)"
+        ]
+      },
+      "ring": {
+        "role": "primary",
+        "displayName": "Focus ring",
+        "canonical": "oklch(60.6% 0.219 293)",
+        "tonalRamp": [
+          "oklch(15% 0.200 293)",
+          "oklch(25% 0.200 293)",
+          "oklch(37% 0.200 293)",
+          "oklch(48% 0.200 293)",
+          "oklch(60% 0.200 293)",
+          "oklch(72% 0.200 293)",
+          "oklch(84% 0.200 293)",
+          "oklch(95% 0.200 293)"
+        ]
+      },
+      "brand-text": {
+        "role": "primary",
+        "displayName": "Purple text",
+        "canonical": "oklch(82.7% 0.108 306)",
+        "tonalRamp": [
+          "oklch(15% 0.108 306)",
+          "oklch(25% 0.108 306)",
+          "oklch(37% 0.108 306)",
+          "oklch(48% 0.108 306)",
+          "oklch(60% 0.108 306)",
+          "oklch(72% 0.108 306)",
+          "oklch(84% 0.108 306)",
+          "oklch(95% 0.108 306)"
+        ]
+      },
+      "brand-line": {
+        "role": "primary",
+        "displayName": "Purple line",
+        "canonical": "oklch(43.8% 0.198 304)",
+        "tonalRamp": [
+          "oklch(15% 0.198 304)",
+          "oklch(25% 0.198 304)",
+          "oklch(37% 0.198 304)",
+          "oklch(48% 0.198 304)",
+          "oklch(60% 0.198 304)",
+          "oklch(72% 0.198 304)",
+          "oklch(84% 0.198 304)",
+          "oklch(95% 0.198 304)"
+        ]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Night ground",
+        "canonical": "oklch(0.0% 0.000 0)",
+        "tonalRamp": [
+          "oklch(15% 0.000 0)",
+          "oklch(25% 0.000 0)",
+          "oklch(37% 0.000 0)",
+          "oklch(48% 0.000 0)",
+          "oklch(60% 0.000 0)",
+          "oklch(72% 0.000 0)",
+          "oklch(84% 0.000 0)",
+          "oklch(95% 0.000 0)"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Card",
+        "canonical": "oklch(15.9% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(25% 0.000 90)",
+          "oklch(37% 0.000 90)",
+          "oklch(48% 0.000 90)",
+          "oklch(60% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "muted-surface": {
+        "role": "neutral",
+        "displayName": "Muted surface",
+        "canonical": "oklch(23.9% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(25% 0.000 90)",
+          "oklch(37% 0.000 90)",
+          "oklch(48% 0.000 90)",
+          "oklch(60% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Border",
+        "canonical": "oklch(28.1% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(25% 0.000 90)",
+          "oklch(37% 0.000 90)",
+          "oklch(48% 0.000 90)",
+          "oklch(60% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Foreground",
+        "canonical": "oklch(98.5% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(25% 0.000 90)",
+          "oklch(37% 0.000 90)",
+          "oklch(48% 0.000 90)",
+          "oklch(60% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "muted-text": {
+        "role": "neutral",
+        "displayName": "Muted text",
+        "canonical": "oklch(70.9% 0.000 90)",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(25% 0.000 90)",
+          "oklch(37% 0.000 90)",
+          "oklch(48% 0.000 90)",
+          "oklch(60% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "success-text": {
+        "role": "status",
+        "displayName": "Confirmed green",
+        "canonical": "oklch(84.5% 0.130 165)",
+        "tonalRamp": [
+          "oklch(15% 0.130 165)",
+          "oklch(25% 0.130 165)",
+          "oklch(37% 0.130 165)",
+          "oklch(48% 0.130 165)",
+          "oklch(60% 0.130 165)",
+          "oklch(72% 0.130 165)",
+          "oklch(84% 0.130 165)",
+          "oklch(95% 0.130 165)"
+        ]
+      },
+      "warning-text": {
+        "role": "status",
+        "displayName": "Payment amber",
+        "canonical": "oklch(87.9% 0.153 92)",
+        "tonalRamp": [
+          "oklch(15% 0.153 92)",
+          "oklch(25% 0.153 92)",
+          "oklch(37% 0.153 92)",
+          "oklch(48% 0.153 92)",
+          "oklch(60% 0.153 92)",
+          "oklch(72% 0.153 92)",
+          "oklch(84% 0.153 92)",
+          "oklch(95% 0.153 92)"
+        ]
+      },
+      "error-text": {
+        "role": "status",
+        "displayName": "Unavailable red",
+        "canonical": "oklch(80.8% 0.103 20)",
+        "tonalRamp": [
+          "oklch(15% 0.103 20)",
+          "oklch(25% 0.103 20)",
+          "oklch(37% 0.103 20)",
+          "oklch(48% 0.103 20)",
+          "oklch(60% 0.103 20)",
+          "oklch(72% 0.103 20)",
+          "oklch(84% 0.103 20)",
+          "oklch(95% 0.103 20)"
+        ]
+      },
+      "destructive": {
+        "role": "status",
+        "displayName": "Destructive red",
+        "canonical": "oklch(63.7% 0.208 25)",
+        "tonalRamp": [
+          "oklch(15% 0.200 25)",
+          "oklch(25% 0.200 25)",
+          "oklch(37% 0.200 25)",
+          "oklch(48% 0.200 25)",
+          "oklch(60% 0.200 25)",
+          "oklch(72% 0.200 25)",
+          "oklch(84% 0.200 25)",
+          "oklch(95% 0.200 25)"
+        ]
+      },
+      "brand-tint": {
+        "role": "primary",
+        "displayName": "Purple tint",
+        "note": "Translucent; layered on background or card. Not ramped."
+      },
+      "success-bg": {
+        "role": "status",
+        "displayName": "Confirmed green tint",
+        "note": "Translucent; layered on background or card. Not ramped."
+      },
+      "warning-bg": {
+        "role": "status",
+        "displayName": "Payment amber tint",
+        "note": "Translucent; layered on background or card. Not ramped."
+      },
+      "error-bg": {
+        "role": "status",
+        "displayName": "Unavailable red tint",
+        "note": "Translucent; layered on background or card. Not ramped."
+      },
+      "on-brand": {
+        "role": "neutral",
+        "displayName": "On brand",
+        "note": "Translucent; layered on background or card. Not ramped."
+      },
+      "photo-scrim": {
+        "role": "neutral",
+        "displayName": "Photo scrim",
+        "note": "Translucent; layered on background or card. Not ramped."
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Large-title screens and sheet welcomes."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Standard navigation-bar screen title; 22px for a person's or DJ's name."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section and sheet headers inside a screen."
+      },
+      "card-title": {
+        "displayName": "Card Title",
+        "purpose": "DJ name, event name, row labels, primary button labels."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Default text."
+      },
+      "secondary": {
+        "displayName": "Secondary",
+        "purpose": "Meta lines, chip and field labels, links."
+      },
+      "helper": {
+        "displayName": "Helper",
+        "purpose": "Under fields, footers, map-pin labels."
+      },
+      "money": {
+        "displayName": "Money",
+        "purpose": "Held or charged totals; 32px in checkout. Tabular numerals."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Status and tier pills only; uppercase."
+      }
+    },
+    "shadows": [],
+    "depth": {
+      "model": "flat",
+      "note": "No shadows, blur or glass. Layers separate by a 1px border and by dimming the screen behind a sheet or dialog to 35% opacity. Over photos, text sits in a 60% black round pill."
+    },
+    "motion": [
+      {
+        "name": "duration-state",
+        "value": "150ms–250ms",
+        "purpose": "State-conveying transitions only; Reduce Motion honored."
+      },
+      {
+        "name": "status-crossfade",
+        "value": "opacity cross-fade, ~200ms",
+        "purpose": "The one authored moment: a lineup status pill changing state after a poll."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone",
+        "value": "390px"
+      }
+    ],
+    "sizes": {
+      "touch-min": "44px",
+      "button-primary": "52px",
+      "field": "48px",
+      "button-secondary": "48px",
+      "chip": "44px",
+      "pill-action": "44px",
+      "tab-bar": "64px",
+      "tab-active": "50px",
+      "icon-tab-inactive": "22px",
+      "icon-tab-active": "20px",
+      "icon-row": "18px",
+      "icon-chevron": "16px",
+      "grab-handle": "40px × 4px",
+      "event-thumb": "64px",
+      "event-cover": "150px"
+    },
+    "navigation": {
+      "memberTabs": [
+        "Home",
+        "Explore",
+        "Events",
+        "Me"
+      ],
+      "organizerTabs": [
+        "Home",
+        "Explore",
+        "Events",
+        "Manage",
+        "Me"
+      ],
+      "card": "Reached from Home (pass row) and Me, not a tab."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one 6px action on a screen or sheet; 52px tall.",
+      "html": "<button class=\"ds-btn-primary\">Browse talent</button>",
+      "css": ":root,:host{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--pressed:#7e22ce;--ring:#8b5cf6;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;--ok-bg:rgba(6,78,59,.4);--ok-fg:#6ee7b7;--warn-bg:rgba(120,53,15,.4);--warn-fg:#fcd34d;--err-bg:rgba(127,29,29,.4);--err-fg:#fca5a5}.ds-btn-primary{font-family:Inter,system-ui,sans-serif;height:52px;width:100%;max-width:350px;border:0;border-radius:6px;background:var(--brand);color:#fff;font-size:16px;font-weight:600;cursor:pointer;transition:background .15s}.ds-btn-primary:hover,.ds-btn-primary:active{background:var(--pressed)}.ds-btn-primary:focus-visible{outline:2px solid var(--ring);outline-offset:2px}.ds-btn-primary:disabled{opacity:.5}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Full-width 6px alternative with a 1px border.",
+      "html": "<button class=\"ds-btn-secondary\">Save as draft</button>",
+      "css": ":root,:host{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--pressed:#7e22ce;--ring:#8b5cf6;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;--ok-bg:rgba(6,78,59,.4);--ok-fg:#6ee7b7;--warn-bg:rgba(120,53,15,.4);--warn-fg:#fcd34d;--err-bg:rgba(127,29,29,.4);--err-fg:#fca5a5}.ds-btn-secondary{font-family:Inter,system-ui,sans-serif;height:48px;width:100%;max-width:350px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--fg);font-size:16px;font-weight:600;cursor:pointer;transition:background .15s}.ds-btn-secondary:hover{background:var(--card)}.ds-btn-secondary:focus-visible{outline:2px solid var(--ring);outline-offset:2px}"
+    },
+    {
+      "name": "Destructive Button",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "Filled red for Change date and Cancel.",
+      "html": "<button class=\"ds-btn-destructive\">Change date</button>",
+      "css": ":root,:host{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--pressed:#7e22ce;--ring:#8b5cf6;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;--ok-bg:rgba(6,78,59,.4);--ok-fg:#6ee7b7;--warn-bg:rgba(120,53,15,.4);--warn-fg:#fcd34d;--err-bg:rgba(127,29,29,.4);--err-fg:#fca5a5}.ds-btn-destructive{font-family:Inter,system-ui,sans-serif;height:52px;width:100%;max-width:350px;border:0;border-radius:6px;background:#ef4444;color:#fff;font-size:16px;font-weight:600;cursor:pointer}.ds-btn-destructive:hover{filter:brightness(.92)}.ds-btn-destructive:focus-visible{outline:2px solid var(--ring);outline-offset:2px}"
+    },
+    {
+      "name": "Pill Action",
+      "kind": "button",
+      "refersTo": "pill-action",
+      "description": "Round 44px secondary action inside a row or card (Add, Offer, Show card).",
+      "html": "<button class=\"ds-pill-action\">Add</button> <button class=\"ds-pill-action ds-pill-action--filled\">Manage</button>",
+      "css": ":root,:host{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--pressed:#7e22ce;--ring:#8b5cf6;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;--ok-bg:rgba(6,78,59,.4);--ok-fg:#6ee7b7;--warn-bg:rgba(120,53,15,.4);--warn-fg:#fcd34d;--err-bg:rgba(127,29,29,.4);--err-fg:#fca5a5}.ds-pill-action{font-family:Inter,system-ui,sans-serif;height:44px;padding:0 18px;border:1px solid var(--border);border-radius:999px;background:transparent;color:var(--fg);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s}.ds-pill-action:hover{background:var(--card)}.ds-pill-action--filled{border:0;background:var(--brand);color:#fff;font-size:13px;padding:0 14px}.ds-pill-action--filled:hover{background:var(--pressed)}.ds-pill-action:focus-visible{outline:2px solid var(--ring);outline-offset:2px}"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Round 44px filter chip; selected is purple tint, line and text.",
+      "html": "<button class=\"ds-chip ds-chip--selected\" aria-pressed=\"true\">House</button> <button class=\"ds-chip\">Techno</button> <button class=\"ds-chip\">$300 – $600</button>",
+      "css": ":root,:host{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--pressed:#7e22ce;--ring:#8b5cf6;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;--ok-bg:rgba(6,78,59,.4);--ok-fg:#6ee7b7;--warn-bg:rgba(120,53,15,.4);--warn-fg:#fcd34d;--err-bg:rgba(127,29,29,.4);--err-fg:#fca5a5}.ds-chip{font-family:Inter,system-ui,sans-serif;height:44px;padding:0 14px;border:1px solid var(--border);border-radius:999px;background:transparent;color:var(--fg);font-size:13px;font-weight:500;cursor:pointer;transition:background .15s}.ds-chip:hover{background:var(--card)}.ds-chip--selected{background:var(--tint);border-color:var(--line);color:var(--btext)}.ds-chip:focus-visible{outline:2px solid var(--ring);outline-offset:2px}"
+    },
+    {
+      "name": "Status Pill",
+      "kind": "custom",
+      "refersTo": "pill-status",
+      "description": "10px uppercase booking status in warning, tint, success or grey.",
+      "html": "<span class=\"ds-status ds-status--warn\">Payment needed</span> <span class=\"ds-status ds-status--tint\">Card held · waiting for the DJ</span> <span class=\"ds-status ds-status--ok\">Confirmed</span> <span class=\"ds-status ds-status--off\">Passed</span>",
+      "css": ":root,:host{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--pressed:#7e22ce;--ring:#8b5cf6;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;--ok-bg:rgba(6,78,59,.4);--ok-fg:#6ee7b7;--warn-bg:rgba(120,53,15,.4);--warn-fg:#fcd34d;--err-bg:rgba(127,29,29,.4);--err-fg:#fca5a5}.ds-status{font-family:Inter,system-ui,sans-serif;display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:5px 9px;transition:opacity .2s}.ds-status--warn{background:var(--warn-bg);color:var(--warn-fg)}.ds-status--tint{background:var(--tint);color:var(--btext)}.ds-status--ok{background:var(--ok-bg);color:var(--ok-fg)}.ds-status--off{background:var(--muted);color:var(--mf)}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "48px 6px field with 13px label and 12px helper.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field__label\">Your offer</span><span class=\"ds-field__wrap\"><span class=\"ds-field__prefix\">$</span><input class=\"ds-field__input\" value=\"450\"></span><span class=\"ds-field__help\">KOYO can accept, pass or come back with a new price.</span></label>",
+      "css": ":root,:host{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--pressed:#7e22ce;--ring:#8b5cf6;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;--ok-bg:rgba(6,78,59,.4);--ok-fg:#6ee7b7;--warn-bg:rgba(120,53,15,.4);--warn-fg:#fcd34d;--err-bg:rgba(127,29,29,.4);--err-fg:#fca5a5}.ds-field{font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column;gap:6px;max-width:350px;color:var(--fg)}.ds-field__label{font-size:13px;font-weight:500}.ds-field__wrap{position:relative;display:block}.ds-field__prefix{position:absolute;left:12px;top:12px;color:var(--mf);font-size:16px}.ds-field__input{font-family:Inter,system-ui,sans-serif;width:100%;height:48px;box-sizing:border-box;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--fg);padding:0 12px 0 26px;font-size:16px;font-weight:600;transition:border-color .15s}.ds-field__input:focus-visible{outline:none;border-color:var(--ring);box-shadow:0 0 0 1px var(--ring)}.ds-field__help{font-size:12px;color:var(--mf)}"
+    },
+    {
+      "name": "Lineup Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "16px card with avatar, name, meta, status pill and the hold line.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card__row\"><span class=\"ds-avatar\">BM</span><span class=\"ds-card__text\"><span class=\"ds-card__title\">BLKMTN</span><span class=\"ds-card__meta\">Offer $390 · opening set</span></span><span class=\"ds-card__pill\">Card held</span></div><div class=\"ds-card__meta\"><strong>$397.00</strong> held, not charged. Charged only if BLKMTN accepts.</div><a class=\"ds-card__link\" href=\"#\">Manage in Gelatin</a></div>",
+      "css": ":root,:host{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--pressed:#7e22ce;--ring:#8b5cf6;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;--ok-bg:rgba(6,78,59,.4);--ok-fg:#6ee7b7;--warn-bg:rgba(120,53,15,.4);--warn-fg:#fcd34d;--err-bg:rgba(127,29,29,.4);--err-fg:#fca5a5}.ds-card{font-family:Inter,system-ui,sans-serif;border:1px solid var(--border);border-radius:16px;background:var(--card);color:var(--fg);padding:14px;display:flex;flex-direction:column;gap:10px;max-width:350px;font-size:15px;line-height:1.45}.ds-card__row{display:flex;align-items:center;gap:12px}.ds-avatar{width:44px;height:44px;border-radius:999px;background:var(--tint);color:var(--btext);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}.ds-card__text{flex-grow:1;min-width:0}.ds-card__title{display:block;font-size:16px;font-weight:600}.ds-card__meta{font-size:13px;color:var(--mf)}.ds-card__meta strong{color:var(--fg);font-weight:600}.ds-card__pill{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:5px 9px;background:var(--tint);color:var(--btext)}.ds-card__link{font-size:14px;font-weight:600;color:var(--btext);text-decoration:none}.ds-card__link:hover{text-decoration:underline}"
+    },
+    {
+      "name": "Notice",
+      "kind": "custom",
+      "refersTo": "notice",
+      "description": "12px inset notice: muted, tint or error.",
+      "html": "<div class=\"ds-notice\">Your card is held, not charged.</div><div class=\"ds-notice ds-notice--tint\">Back from Gelatin. Your lineup is up to date.</div><div class=\"ds-notice ds-notice--err\">Talent is unavailable right now.</div>",
+      "css": ":root,:host{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--pressed:#7e22ce;--ring:#8b5cf6;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;--ok-bg:rgba(6,78,59,.4);--ok-fg:#6ee7b7;--warn-bg:rgba(120,53,15,.4);--warn-fg:#fcd34d;--err-bg:rgba(127,29,29,.4);--err-fg:#fca5a5}.ds-notice{font-family:Inter,system-ui,sans-serif;border-radius:12px;background:var(--muted);color:var(--mf);padding:12px 14px;font-size:13px;line-height:1.45;max-width:350px;margin-bottom:8px}.ds-notice--tint{background:var(--tint);border:1px solid var(--line);color:var(--btext)}.ds-notice--err{background:var(--err-bg);color:var(--err-fg)}"
+    },
+    {
+      "name": "Tab Bar",
+      "kind": "nav",
+      "refersTo": "tab-bar",
+      "description": "Floating 64px round bar; active item is a tint pill with icon and label.",
+      "html": "<nav class=\"ds-tabbar\" aria-label=\"Main\"><a class=\"ds-tab ds-tab--active\" href=\"#\" aria-current=\"page\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z\"/></svg>Home</a><a class=\"ds-tab\" href=\"#\" aria-label=\"Explore\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><polygon points=\"16.2 7.8 14.1 14.1 7.8 16.2 9.9 9.9\"/></svg></a><a class=\"ds-tab\" href=\"#\" aria-label=\"Events\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M16 2v4M8 2v4M3 10h18\"/></svg></a><a class=\"ds-tab\" href=\"#\" aria-label=\"Me\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\"/><circle cx=\"12\" cy=\"7\" r=\"4\"/></svg></a></nav>",
+      "css": ":root,:host{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--pressed:#7e22ce;--ring:#8b5cf6;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;--ok-bg:rgba(6,78,59,.4);--ok-fg:#6ee7b7;--warn-bg:rgba(120,53,15,.4);--warn-fg:#fcd34d;--err-bg:rgba(127,29,29,.4);--err-fg:#fca5a5}.ds-tabbar{font-family:Inter,system-ui,sans-serif;height:64px;box-sizing:border-box;max-width:358px;border-radius:999px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;padding:6px;gap:4px}.ds-tab{flex:1 1 0;height:50px;border-radius:999px;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--mf);text-decoration:none;font-size:13px;font-weight:600;transition:background .15s,color .15s}.ds-tab:hover{color:var(--fg)}.ds-tab--active{flex:1.6 1 0;background:var(--tint);color:var(--btext)}.ds-tab:focus-visible{outline:2px solid var(--ring);outline-offset:-2px}"
+    },
+    {
+      "name": "Bottom Sheet",
+      "kind": "custom",
+      "refersTo": "sheet",
+      "description": "24px-top sheet with grab handle over a screen dimmed to 35%.",
+      "html": "<div class=\"ds-sheet-stage\"><div class=\"ds-sheet-behind\">Screen content</div><div class=\"ds-sheet\" role=\"dialog\" aria-label=\"Your offer to KOYO\"><span class=\"ds-sheet__handle\"></span><div class=\"ds-sheet__title\">Your offer to KOYO</div><div class=\"ds-sheet__sub\">KOYO can accept, pass or come back with a new price.</div><button class=\"ds-sheet__cta\">Send offer</button></div></div>",
+      "css": ":root,:host{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--pressed:#7e22ce;--ring:#8b5cf6;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;--ok-bg:rgba(6,78,59,.4);--ok-fg:#6ee7b7;--warn-bg:rgba(120,53,15,.4);--warn-fg:#fcd34d;--err-bg:rgba(127,29,29,.4);--err-fg:#fca5a5}.ds-sheet-stage{font-family:Inter,system-ui,sans-serif;position:relative;width:100%;max-width:390px;height:300px;background:var(--bg);overflow:hidden;border-radius:12px;color:var(--fg)}.ds-sheet-behind{padding:20px;opacity:.35;font-size:15px}.ds-sheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--border);border-radius:24px 24px 0 0;padding:10px 20px 34px;display:flex;flex-direction:column;gap:14px}.ds-sheet__handle{width:40px;height:4px;border-radius:999px;background:var(--border);align-self:center}.ds-sheet__title{font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1.2}.ds-sheet__sub{font-size:14px;color:var(--mf)}.ds-sheet__cta{font-family:Inter,system-ui,sans-serif;height:52px;border:0;border-radius:6px;background:var(--brand);color:#fff;font-size:16px;font-weight:600;cursor:pointer}.ds-sheet__cta:hover{background:var(--pressed)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Memberly at Night",
+    "overview": "**Creative North Star: \"Memberly at Night\"**\n\nBlack ground, white type, one purple. The look of the current web app and of the rooms its organizers run: dark, confident, uncluttered, with money and status always legible at arm's length. The phone version keeps every Memberly token exactly and adds only what a phone needs: a floating round tab bar, bottom sheets for self-contained tasks, and round pills for the light actions that sit inside rows.\n\nAppearance: dark only in the design directions (decision 30 Oct 2026). A light theme exists in the web tokens and may be built later from the same roles.",
+    "keyCharacteristics": [
+      "Flat. 1px borders carry every edge; no shadows, no glass, no gradients.",
+      "One purple, used for actions, selection and state. Photography carries the warmth.",
+      "Two radii for controls: 6px for the primary thing on a screen, round for everything lighter.",
+      "Every dollar line says held, charged or released, in the money type.",
+      "Sentence case, second person, no eyebrow labels."
+    ],
+    "rules": [
+      {
+        "name": "The One Purple Rule",
+        "body": "Purple is for actions, selection and state. It never tints a surface for decoration; a tinted card means \"selected\", \"yours\" or \"held\".",
+        "section": "colors"
+      },
+      {
+        "name": "The Photo Scrim Rule",
+        "body": "The only wash in the system is `photo-scrim` (60% black) as a round pill under white text over a cover photo, or a cover photo itself dimmed to 35% behind a sheet. No gradient washes.",
+        "section": "colors"
+      },
+      {
+        "name": "The No Eyebrow Rule",
+        "body": "No kicker or eyebrow labels above headings. The only uppercase text is inside a 10px pill. Sentence case everywhere. Second person.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Money Rule",
+        "body": "Any amount above body size is 800 weight with `font-variant-numeric: tabular-nums`, and the line beside it says held, charged or released.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Rule",
+        "body": "No shadows anywhere, including the floating tab bar and sheets; they are separated by their 1px border and the dimmed screen behind them.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Two-Radius Rule",
+        "body": "Primary buttons, fields and sheet actions are 6px. Secondary actions inside a row or card, and chips, are round pills, so they read lighter than the primary action. Nothing tappable falls between.",
+        "section": "shapes"
+      },
+      {
+        "name": "The 44 Rule",
+        "body": "Every tappable control is at least 44px tall. Primary buttons are 52px, fields and secondary full-width buttons 48px, chips and in-row pills 44px. Smaller round icon buttons (36px) get a 44px hit area.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "**Do** give every tappable control at least 44px; primary buttons 52px, fields 48px.",
+      "**Do** use 6px for the primary action, fields and sheet actions, and round pills for chips and actions inside rows and cards.",
+      "**Do** separate layers with a 1px `border` and a dimmed (35%) screen, never a shadow.",
+      "**Do** set every amount above body size in 800 tabular Inter beside a line that says held, charged or released.",
+      "**Do** keep purple to actions, selection and state; let cover photos and avatars carry the warmth.",
+      "**Do** write status labels exactly as the product fixes them (see PRODUCT.md) in the matching status pill colour."
+    ],
+    "donts": [
+      "**Don't** add drop shadows, blur, glass or gradient washes anywhere, including the floating tab bar.",
+      "**Don't** put eyebrow or kicker labels above headings; the only uppercase text is a 10px pill.",
+      "**Don't** nest cards; use 1px rules between rows inside one card.",
+      "**Don't** show fees, offer history or booker details on public surfaces.",
+      "**Don't** use a fifth tab for members; the Card is reached from Home and Me, and Manage appears only for organizers.",
+      "**Don't** compute or style a total the client invented; the server's amount is the only number in Money type."
+    ]
+  }
+}

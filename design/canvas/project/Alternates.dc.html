@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>After a pass, other DJs open that night</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+.mem{--bg:#000;--fg:#fafafa;--card:#0d0d0d;--muted:#1f1f1f;--mf:#a1a1a1;--border:#292929;--brand:#9333ea;--tint:rgba(59,7,100,.4);--btext:#d8b4fe;--line:#6b21a8;font-family:Inter,system-ui,sans-serif;color:var(--fg);background:var(--bg);font-size:15px;line-height:1.45}
+.mem a{color:var(--btext);text-decoration:none}
+.mem button{font:inherit;color:inherit}
+.mem ::selection{background:#6b21a8;color:#fff}
+</style>
+</helmet>
+<div class="mem" style="width: 390px; height: 844px; box-sizing: border-box; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 60px 20px 0">
+
+  <div style="display: flex; align-items: center; gap: 12px">
+    <a href="LineupMotion.dc.html" aria-label="Back" style="width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--fg); flex-shrink: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg></a>
+    <div style="flex-grow: 1; min-width: 0"><h1 style="margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2">Lineup</h1><div style="font-size: 13px; color: var(--mf)">Warehouse Friday · Fri, Nov 20</div></div>
+  </div>
+
+  <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--card); padding: 14px; display: flex; flex-direction: column; gap: 8px">
+    <div style="display: flex; align-items: center; gap: 12px">
+      <img src="/_blob/b01b0c9e4f75b042e783748d8e3c206c" alt="" style="width: 44px; height: 44px; object-fit: cover; border-radius: 999px; flex-shrink: 0; display: block; filter: grayscale(1); opacity: .7">
+      <span style="flex-grow: 1; min-width: 0"><span style="display: block; font-size: 16px; font-weight: 600">KOYO</span><span style="display: block; font-size: 13px; color: var(--mf)">Headline · midnight to 2</span></span>
+      <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; border-radius: 999px; padding: 5px 9px; background: var(--muted); color: var(--mf); flex-shrink: 0">Passed</span>
+    </div>
+    <div style="font-size: 13px; color: var(--mf)">KOYO passed on this one. Your hold was released and you were not charged.</div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <div style="font-size: 17px; font-weight: 700; letter-spacing: -0.01em">Other DJs open that night</div>
+    <sc-for list="{{alts}}" as="a" hint-placeholder-count="3">
+      <div style="border: 1px solid var(--border); border-radius: 16px; background: var(--card); padding: 12px; display: flex; align-items: center; gap: 12px">
+        <sc-if value="{{a.hasPhoto}}" hint-placeholder-val="{{false}}"><img src="{{a.img}}" alt="" style="width: 44px; height: 44px; object-fit: cover; border-radius: 999px; flex-shrink: 0; display: block"></sc-if>
+        <sc-if value="{{a.noPhoto}}" hint-placeholder-val="{{true}}"><span style="width: 44px; height: 44px; border-radius: 999px; background: var(--tint); color: var(--btext); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0">{{a.initials}}</span></sc-if>
+        <span style="flex-grow: 1; min-width: 0"><span style="display: block; font-size: 15px; font-weight: 600">{{a.name}}</span><span style="display: block; font-size: 12px; color: var(--mf)">{{a.line}}</span></span>
+        <span style="font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: {{a.rateFg}}; flex-shrink: 0">{{a.rate}}</span>
+        <a href="LineupOffers.dc.html" style="height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); display: inline-flex; align-items: center; font-size: 13px; font-weight: 600; color: var(--fg); flex-shrink: 0">Offer</a>
+      </div>
+    </sc-for>
+    <a href="Browse.dc.html" style="min-height: 44px; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500">See everyone open on Nov 20<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg></a>
+  </div>
+
+  <div style="position: absolute; left: 20px; right: 20px; bottom: 34px; border: 1px dashed var(--border); border-radius: 16px; padding: 16px; text-align: center">
+    <div style="font-size: 15px; font-weight: 600">Nobody at this budget?</div>
+    <a href="DateTime.dc.html" style="min-height: 40px; display: inline-flex; align-items: center; font-size: 13px; font-weight: 500">Search another date</a>
+  </div>
+  <div style="position: absolute; left: 20px; right: 20px; bottom: 12px; font-size: 12px; color: var(--mf); text-align: center">DJs, availability and rates from Gelatin</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      alts: [
+        { initials: 'BM', noPhoto: true, hasPhoto: false, name: 'BLKMTN', line: 'Baile funk · Jersey club · draws 150–205', rate: '$390', rateFg: 'var(--fg)' },
+        { img: '/_blob/e4f2447886999b9fd6549c5500f55021', hasPhoto: true, noPhoto: false, name: 'NIGHTFORM', line: 'Techno · Bass · draws 240–330', rate: 'Private', rateFg: 'var(--mf)' },
+        { initials: 'SH', noPhoto: true, hasPhoto: false, name: 'Sable Hart', line: 'Soul · Disco · draw not yet established', rate: '$275', rateFg: 'var(--fg)' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

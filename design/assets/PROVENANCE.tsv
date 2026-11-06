@@ -1,0 +1,12 @@
+cover-warehouse.jpg	Artlist Nano Banana 2, 30 Oct 2026: "Candid documentary photo of a DJ mid-set at a packed warehouse party..."
+cover-rooftop.jpg	Artlist Nano Banana 2: "Night rooftop lounge in Atlanta..."
+cover-dinner.jpg	Artlist Nano Banana 2: "Upscale private dinner for a creative community..."
+cover-crowd.jpg	Artlist Nano Banana 2: "Crowd dancing at a live music event seen from the stage..."
+cover-dayparty.jpg	Artlist Nano Banana 2: "Sunny afternoon day party on a patio..."
+dj-koyo.jpg	Artlist Nano Banana 2: "Portrait of a confident Black woman DJ..."
+dj-nightform.jpg	Artlist Nano Banana 2: "Portrait of a Black man DJ in his thirties..."
+logo-memberly-white.png	Cropped from the Memberly sign-in screenshot CeD supplied on 30 Oct 2026; white wordmark on black. Replace with logo-full-memberly.svg when it lands in this folder.
+signin-reference.png	Screenshot of the current Memberly web sign-in, supplied by CeD 30 Oct 2026 (reference only).
+logo-memberly-white-t.png	Same crop as logo-memberly-white.png with the black background keyed to transparent (ffmpeg colorkey). Replace with logo-full-memberly.svg when it lands here.
+welcome-crowd.mp4 (app/assets/video)	Artlist image-to-video generation from this account, created 8 Sep 2026 (crowd with raised glasses, gold confetti, DJ booth). Recorded in Artlist download history 6 Nov 2026. Cropped to 9:19.5 portrait, 720x1560, audio removed, last 0.6s cross-faded into the first for a seamless 4.5s loop.
+welcome-crowd-poster.jpg (app/assets/images)	First frame of welcome-crowd.mp4, shown while the video loads and when Reduce Motion is on.
