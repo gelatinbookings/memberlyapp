@@ -4,12 +4,13 @@
  */
 import type { MemberlyRepository } from './repository';
 import { runExplore } from '@/features/explore/filters';
-import { addDays, endsNextMorning, formatIsoDate, zonedIso, type IsoDate } from '@/lib/dates';
+import { addDays, endsNextMorning, formatEventDate, formatIsoDate, zonedIso, type IsoDate } from '@/lib/dates';
 
-import { CatalogUnavailableError } from './errors';
+import { CatalogUnavailableError, RepositoryError } from './errors';
 import type {
   Booking,
   BudgetBand,
+  CardPass,
   City,
   Community,
   CommunityOverview,
@@ -24,6 +25,9 @@ import type {
   MyEvent,
   OrganizerEvent,
   OrganizerEventDetail,
+  PassOrder,
+  PassType,
+  PaymentSession,
   Preferences,
   Session,
   TalentPage,
@@ -251,6 +255,127 @@ let devTalentMode: TalentSimulation = 'ok';
 /** Dev-only switch for demos (see README): the next talent reads behave this way on every fake repository. */
 export function setFakeTalentMode(mode: TalentSimulation): void {
   devTalentMode = mode;
+}
+
+// ---------------------------------------------------------------------------
+// Offers, holds and passes (M5). The fake stands in for Memberly's backend,
+// Gelatin and the payment provider. It is the only place a total is produced.
+
+/** The Gelatin service fee on each booking, as the organizer is told on Lineup. */
+const SERVICE_FEE_CENTS = 700;
+
+/** How long a payment session lasts before the app has to ask for a new one. */
+const SESSION_TTL_MS = 30 * 60_000;
+
+/** A DJ who shows as open in Browse talent and is taken by the time an offer is sent (see README). */
+export const TAKEN_ON_SEND_DJ_ID = 'dj_oktave';
+
+/** How long a paid pass order takes to read `paid` in the design build, normally and when slow. */
+export const PASS_CONFIRM_MS = 1200;
+export const SLOW_PASS_CONFIRM_MS = 16_000;
+
+/** What a declined test card says, standing in for the payment provider's message. */
+export const DECLINED_MESSAGE = 'Your card was declined. Try a different card.';
+
+/** Edge states the fake can be put in, for demos (deep links, see README) and tests. */
+export type FakeSimulation = {
+  /** Calls fail as they do with no connection. */
+  offline: boolean;
+  /** The next offer answers `dj_unavailable`, once. */
+  djTakenNext: boolean;
+  /** The next offer is created but its response is lost, once: the app sees a timeout. */
+  timeoutNextOffer: boolean;
+  /** This many payment sessions come back already expired. */
+  expiredSessions: number;
+  /** Paid pass orders stay `pending` past the app's 10 seconds. */
+  slowPassOrder: boolean;
+  /** The next pass order finds the pass sold out, once. */
+  soldOutNext: boolean;
+  /** The next pass order finds a new price, once. */
+  priceChangeNext: boolean;
+};
+
+const NO_SIMULATION: FakeSimulation = {
+  offline: false,
+  djTakenNext: false,
+  timeoutNextOffer: false,
+  expiredSessions: 0,
+  slowPassOrder: false,
+  soldOutNext: false,
+  priceChangeNext: false,
+};
+
+export type FakePaymentOutcome = { status: 'succeeded' } | { status: 'failed'; message: string };
+
+/**
+ * What only the fake has: switches for edge states, and the part the payment
+ * provider plays. The test payment sheet calls `confirmPayment` where the real
+ * sheet would confirm with the provider and the backend would hear about it.
+ */
+export type FakeControls = {
+  simulate(patch: Partial<FakeSimulation>): void;
+  /** The payment went through: a hold moves its request to `requested`; a pass order heads for `paid`. */
+  confirmPayment(clientSecret: string): Promise<FakePaymentOutcome>;
+  /** A declined card. Nothing is held, charged or sent. */
+  declinePayment(clientSecret: string): Promise<FakePaymentOutcome>;
+  /** Mark every paid-for pass order `paid` now, as the backend's webhook would. */
+  settlePassOrders(): void;
+  /** How many booking requests exist on an event. */
+  requestCount(eventId: string): number;
+  /** How many pass orders exist. */
+  passOrderCount(): number;
+};
+
+export type FakeRepository = MemberlyRepository & { readonly fake: FakeControls };
+
+/** The fake's controls, or null for any other repository (the HTTP one in M8). */
+export function getFakeControls(repository: MemberlyRepository): FakeControls | null {
+  return (repository as Partial<FakeRepository>).fake ?? null;
+}
+
+type StoredOrder = {
+  orderId: string;
+  eventId: string;
+  passTypeId: string;
+  status: PassOrder['status'];
+  totalCents: number;
+  clientSecret: string | null;
+  /** The payment went through; the order is on its way to `paid`. */
+  paymentConfirmed: boolean;
+};
+
+/** What a payment session pays for. */
+type SessionTarget = { kind: 'hold'; requestId: string } | { kind: 'pass'; orderId: string };
+type StoredSession = SessionTarget & { expiresAt: number };
+
+const pass = (id: string, name: string, priceCents: number, included: string, extra: Partial<PassType> = {}): PassType => ({
+  id,
+  name,
+  priceCents,
+  included,
+  soldOut: false,
+  freeForMembers: false,
+  ...extra,
+});
+
+/** Invented pass setups. A members-free pass has no price to pay. */
+function seedPassTypes(): Record<string, PassType[]> {
+  return {
+    e_warehouse_friday: [
+      pass('pt_warehouse_general', 'General pass', 3000, 'Entry all night'),
+      pass('pt_warehouse_member', 'Member pass', 0, 'Entry before midnight for Second Sundays members', { freeForMembers: true }),
+    ],
+    e_rooftop_hours: [
+      pass('pt_rooftop_general', 'General pass', 3000, 'Entry all night and a welcome drink'),
+      pass('pt_rooftop_member', 'Member pass', 0, 'Entry before 11 PM for Rooftop Society members', { freeForMembers: true }),
+      pass('pt_rooftop_table', 'Table for four', 24000, 'A reserved table by the skyline', { soldOut: true }),
+    ],
+    e_night_service: [pass('pt_night_member', 'Member pass', 0, 'Entry all night for Bass Church members', { freeForMembers: true })],
+    e_long_table: [pass('pt_long_table_seat', 'Seat at the table', 8500, 'Five courses with wine pairings')],
+    e_daylight: [pass('pt_daylight_general', 'General pass', 2500, 'Entry from 2 PM')],
+    e_listening_session: [pass('pt_listening_general', 'General pass', 2000, 'A seat and the conversation after')],
+    e_clay_and_wine: [pass('pt_clay_general', 'General pass', 4500, 'Clay, a wheel and two glasses of wine')],
+  };
 }
 
 /** A booking that still holds the DJ for the night. */
@@ -649,9 +774,21 @@ export type FakeRepositoryOptions = {
   storage?: KeyValueStorage;
   /** How talent reads behave, asked on every call. Tests flip it; the app uses the dev switch. */
   talentMode?: () => TalentSimulation;
+  /** Edge states to start in. Change them later through `fake.simulate`. */
+  simulation?: Partial<FakeSimulation>;
+  /** DJs who are taken by the time an offer is sent. Defaults to the one sample DJ in the README. */
+  takenOnSend?: string[];
+  /**
+   * The server's figures for an offer. Tests pass their own to prove screens
+   * show what the server says, whatever it says.
+   */
+  quote?: (offerCents: number) => { serviceFeeCents: number; totalCents: number };
+  /** How long a paid pass order takes to read `paid`; Infinity leaves it pending until `fake.settlePassOrders()`. */
+  passConfirmMs?: number;
+  slowPassConfirmMs?: number;
 };
 
-export function createFakeRepository(options: FakeRepositoryOptions = {}): MemberlyRepository {
+export function createFakeRepository(options: FakeRepositoryOptions = {}): FakeRepository {
   const delay = options.delayMs ?? 250;
   const storage = options.storage ?? createMemoryStorage();
   // In memory: signing out stops the dev flag from signing straight back in until the next reload.
@@ -683,9 +820,125 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): Membe
   };
   const viewer = (): Viewer => ({ ...sampleViewer, ...profile });
   const events = seedEvents();
-  const bookingsByEvent: Record<string, Booking[]> = { e_warehouse_friday: bookings };
+  // Copies, so a hold in one repository never shows in another.
+  const bookingsByEvent: Record<string, Booking[]> = { e_warehouse_friday: bookings.map((b) => ({ ...b })) };
   const offersByEvent = seedDraftOffers();
   let nextId = 1;
+
+  // --- Offers, holds and passes -------------------------------------------
+  const sim: FakeSimulation = { ...NO_SIMULATION, ...options.simulation };
+  const takenOnSend = new Set(options.takenOnSend ?? [TAKEN_ON_SEND_DJ_ID]);
+  /** Nights a DJ turned out to be taken on, learnt when an offer was refused. */
+  const refusedNights = new Map<string, Set<IsoDate>>();
+  /** `<event>:<dj>:<client_offer_id>` → request id: the Idempotency-Key the backend sends Gelatin. */
+  const requestsByKey = new Map<string, string>();
+  const sessions = new Map<string, StoredSession>();
+  const passTypes = seedPassTypes();
+  const orders = new Map<string, StoredOrder>();
+  const ordersByKey = new Map<string, string>();
+  /** Event id → the pass the viewer holds. */
+  const passes = new Map<string, string>(
+    allEvents()
+      .filter((e) => e.viewerHasPass)
+      .map((e) => [e.id, 'General pass']),
+  );
+  const passConfirmMs = options.passConfirmMs ?? (delay === 0 ? 0 : PASS_CONFIRM_MS);
+  const slowPassConfirmMs = options.slowPassConfirmMs ?? SLOW_PASS_CONFIRM_MS;
+  let nextSecret = 1;
+
+  /** The server's sum, and the only one. */
+  const priced = (offerCents: number) =>
+    options.quote?.(offerCents) ?? { serviceFeeCents: SERVICE_FEE_CENTS, totalCents: offerCents + SERVICE_FEE_CENTS };
+
+  /** Every call from the app crosses the network. */
+  const network = async () => {
+    if (!sim.offline) return;
+    await later(undefined, delay);
+    throw new RepositoryError('offline');
+  };
+  const withPass = <T extends MemberEvent>(e: T): T => ({ ...e, viewerHasPass: passes.has(e.id) });
+  const findBooking = (requestId: string) => {
+    for (const [eventId, list] of Object.entries(bookingsByEvent)) {
+      const booking = list.find((b) => b.requestId === requestId);
+      if (booking) return { eventId, booking };
+    }
+    return null;
+  };
+  const setBookingStatus = (requestId: string, status: Booking['status']) => {
+    const found = findBooking(requestId);
+    if (!found) return;
+    bookingsByEvent[found.eventId] = bookingsByEvent[found.eventId].map((b) => (b.requestId === requestId ? { ...b, status } : b));
+  };
+  const newPaymentSession = (target: SessionTarget, totalCents: number): PaymentSession => {
+    // A simulated expired session is born in the past.
+    const bornExpired = sim.expiredSessions > 0;
+    if (bornExpired) sim.expiredSessions -= 1;
+    const expiresAt = Date.now() + (bornExpired ? -1000 : SESSION_TTL_MS);
+    const clientSecret = `pi_fake_${nextSecret}_secret_${Date.now().toString(36)}${nextSecret++}`;
+    sessions.set(clientSecret, { ...target, expiresAt });
+    return {
+      clientSecret,
+      // Not a real key: the fake never talks to a payment provider.
+      publishableKey: 'pk_test_fake',
+      totalCents,
+      merchantDisplayName: 'Memberly',
+      expiresAt: new Date(expiresAt).toISOString(),
+    };
+  };
+  const orderView = (o: StoredOrder, payment?: PaymentSession): PassOrder => ({
+    orderId: o.orderId,
+    status: o.status,
+    totalCents: o.totalCents,
+    ...(payment ? { payment } : null),
+  });
+  const settle = (o: StoredOrder) => {
+    if (o.status !== 'pending' || !o.paymentConfirmed) return;
+    o.status = 'paid';
+    const type = (passTypes[o.eventId] ?? []).find((t) => t.id === o.passTypeId);
+    passes.set(o.eventId, type?.name ?? 'Pass');
+  };
+  const cardPasses = (): CardPass[] =>
+    [...passes.entries()]
+      .map(([eventId, passName]) => ({ event: allEvents().find((e) => e.id === eventId), passName }))
+      .filter((p): p is { event: MemberEvent; passName: string } => !!p.event)
+      .sort((a, b) => a.event.startsAt.localeCompare(b.event.startsAt))
+      .map(({ event, passName }) => ({
+        eventId: event.id,
+        eventName: event.name,
+        passName,
+        whenLabel: formatEventDate(event.startsAt, event.timeZone),
+      }));
+
+  const controls: FakeControls = {
+    simulate: (patch) => {
+      Object.assign(sim, patch);
+    },
+    confirmPayment: async (clientSecret) => {
+      const session = sessions.get(clientSecret);
+      if (!session || session.expiresAt <= Date.now()) {
+        return later({ status: 'failed' as const, message: 'That checkout expired. Start a fresh one.' }, delay);
+      }
+      if (session.kind === 'hold') {
+        // The hold succeeded: Gelatin tells the DJ and the request reads `requested`.
+        if (findBooking(session.requestId)?.booking.status === 'authorization_required') setBookingStatus(session.requestId, 'requested');
+      } else {
+        const order = orders.get(session.orderId);
+        if (order && !order.paymentConfirmed) {
+          order.paymentConfirmed = true;
+          const wait = sim.slowPassOrder ? slowPassConfirmMs : passConfirmMs;
+          // The backend's webhook marks the order paid a moment later.
+          if (wait <= 0) settle(order);
+          else if (Number.isFinite(wait)) setTimeout(() => settle(order), wait);
+        }
+      }
+      sessions.delete(clientSecret);
+      return later({ status: 'succeeded' as const }, delay);
+    },
+    declinePayment: () => later({ status: 'failed' as const, message: DECLINED_MESSAGE }, delay),
+    settlePassOrders: () => orders.forEach(settle),
+    requestCount: (eventId) => (bookingsByEvent[eventId] ?? []).length,
+    passOrderCount: () => orders.size,
+  };
 
   const find = (id: string) => events.find((e) => e.id === id);
   const offers = (eventId: string) => (offersByEvent[eventId] ??= []);
@@ -705,7 +958,9 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): Membe
     const held = new Set(
       (bookingsByEvent[eventId] ?? []).filter((b) => OPEN_BOOKING.includes(b.status)).map((b) => b.dj.id),
     );
-    return sampleCatalog.filter((dj) => dj.city === city && !dj.takenOn?.includes(date) && !held.has(dj.id));
+    return sampleCatalog.filter(
+      (dj) => dj.city === city && !dj.takenOn?.includes(date) && !refusedNights.get(dj.id)?.has(date) && !held.has(dj.id),
+    );
   };
   /** Catalog reads: fail, stall or answer, as the simulation says. */
   const catalog = async <T,>(read: () => T, firstPage = false): Promise<T> => {
@@ -751,6 +1006,7 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): Membe
   });
 
   return {
+    fake: controls,
     now: () => DEMO_NOW,
 
     getSession: async () => {
@@ -812,7 +1068,7 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): Membe
     },
 
     explore: (query) =>
-      later(runExplore({ communities: sampleCommunities, events: allEvents() }, query, sampleViewer.city), delay),
+      later(runExplore({ communities: sampleCommunities, events: allEvents().map(withPass) }, query, sampleViewer.city), delay),
 
     getCard: () => {
       const memberships = cardMemberships();
@@ -820,6 +1076,7 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): Membe
         name: `${viewer().firstName} ${viewer().lastName}`.trim(),
         communityCount: memberships.filter((m) => m.status === 'active').length,
         memberships,
+        passes: cardPasses(),
         // Short-lived, as the door expects. Real clock: the demo clock only drives event grouping.
         qr: { token: `memberly:card:${sampleViewer.id}:${Date.now().toString(36)}`, expiresAt: new Date(Date.now() + 12 * 3600 * 1000).toISOString() },
       };
@@ -828,12 +1085,22 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): Membe
 
     getViewer: () => later(viewer(), delay),
     getTonight: (city) =>
-      later(sampleEvents.filter((e) => e.city === city).sort((a, b) => Number(b.viewerHasPass) - Number(a.viewerHasPass)), delay),
-    getEvent: (id) => later(allEvents().find((e) => e.id === id) ?? null, delay),
+      later(
+        sampleEvents
+          .filter((e) => e.city === city)
+          .map(withPass)
+          .sort((a, b) => Number(b.viewerHasPass) - Number(a.viewerHasPass)),
+        delay,
+      ),
+    getEvent: (id) => {
+      const e = allEvents().find((x) => x.id === id);
+      return later(e ? withPass(e) : null, delay);
+    },
     getMyEvents: (scope) => {
+      // A pass outranks going or saved, and puts the event on the list.
       const mine: MyEvent[] = allEvents()
-        .filter((e) => relations[e.id])
-        .map((e) => ({ ...e, relation: relations[e.id] }));
+        .filter((e) => relations[e.id] || passes.has(e.id))
+        .map((e) => ({ ...withPass(e), relation: passes.has(e.id) ? 'pass' : relations[e.id] }));
       const now = DEMO_NOW.getTime();
       const ended = (e: MyEvent) => new Date(e.endsAt).getTime() < now;
       const result =
@@ -912,6 +1179,136 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): Membe
       // Idempotent: asking twice for the same city is one entry.
       waitlist.add(city);
       return later(undefined, delay);
+    },
+
+    quoteOffer: async (_eventId, _djId, offerCents) => {
+      await network();
+      if (!Number.isInteger(offerCents) || offerCents <= 0) throw new RepositoryError('invalid_offer');
+      return later({ offerCents, ...priced(offerCents) }, delay);
+    },
+    createOffer: async (eventId, { djId, offerCents, note, clientOfferId }) => {
+      await network();
+      const key = `${eventId}:${djId}:${clientOfferId}`;
+      let requestId = requestsByKey.get(key);
+      if (!requestId) {
+        if (!Number.isInteger(offerCents) || offerCents <= 0) throw new RepositoryError('invalid_offer');
+        if (!find(eventId)) throw new RepositoryError('not_found');
+        const { date } = nightOf(eventId);
+        const row = sampleCatalog.find((c) => c.id === djId);
+        const dj = row ? publicDj(row) : offers(eventId).find((o) => o.dj.id === djId)?.dj;
+        if (!dj) throw new RepositoryError('not_found');
+        if (sim.djTakenNext || takenOnSend.has(djId) || row?.takenOn?.includes(date) || refusedNights.get(djId)?.has(date)) {
+          sim.djTakenNext = false;
+          // Nothing is stored and no reason is ever given.
+          refusedNights.set(djId, new Set([...(refusedNights.get(djId) ?? []), date]));
+          await later(undefined, delay);
+          throw new RepositoryError('dj_unavailable');
+        }
+        const open = (bookingsByEvent[eventId] ?? []).find((b) => b.dj.id === djId && OPEN_BOOKING.includes(b.status));
+        if (open) throw new RepositoryError('offer_open', { requestId: open.requestId });
+        requestId = `br_${dj.id.replace(/^dj_/, '')}_${nextId++}`;
+        const booking: Booking = {
+          requestId,
+          dj,
+          status: 'authorization_required',
+          offerCents,
+          totalCents: priced(offerCents).totalCents,
+          note,
+          setTime: '',
+        };
+        bookingsByEvent[eventId] = [...(bookingsByEvent[eventId] ?? []), booking];
+        // The offer is sent, so it is no longer a draft.
+        offersByEvent[eventId] = offers(eventId).filter((o) => o.dj.id !== djId);
+        requestsByKey.set(key, requestId);
+      }
+      if (sim.timeoutNextOffer) {
+        // The request exists, but the app never hears back.
+        sim.timeoutNextOffer = false;
+        await later(undefined, delay);
+        throw new RepositoryError('timeout');
+      }
+      return later({ ...findBooking(requestId)!.booking }, delay);
+    },
+    createPaymentSession: async (requestId) => {
+      await network();
+      const found = findBooking(requestId);
+      if (!found) throw new RepositoryError('not_found');
+      const { status, totalCents } = found.booking;
+      if (status !== 'authorization_required' && status !== 'reauthorization_required') throw new RepositoryError('not_payable');
+      return later(newPaymentSession({ kind: 'hold', requestId }, totalCents), delay);
+    },
+
+    getPassTypes: async (eventId) => {
+      await network();
+      return later((passTypes[eventId] ?? []).map((t) => ({ ...t })), delay);
+    },
+    createPassOrder: async (eventId, { passTypeId, quantity, idempotencyKey, expectedPriceCents }) => {
+      await network();
+      const existing = orders.get(ordersByKey.get(idempotencyKey) ?? '');
+      if (existing) {
+        // The same order and the same payment. Once paid for, there is nothing left to pay.
+        const unpaid = existing.status === 'pending' && !existing.paymentConfirmed && existing.clientSecret;
+        const session = unpaid ? sessions.get(existing.clientSecret!) : undefined;
+        const payment =
+          unpaid && session && session.expiresAt > Date.now()
+            ? {
+                clientSecret: existing.clientSecret!,
+                publishableKey: 'pk_test_fake',
+                totalCents: existing.totalCents,
+                merchantDisplayName: 'Memberly',
+                expiresAt: new Date(session.expiresAt).toISOString(),
+              }
+            : unpaid
+              ? newPaymentSession({ kind: 'pass', orderId: existing.orderId }, existing.totalCents)
+              : undefined;
+        if (payment) existing.clientSecret = payment.clientSecret;
+        return later(orderView(existing, payment), delay);
+      }
+      const type = (passTypes[eventId] ?? []).find((t) => t.id === passTypeId);
+      if (!type) throw new RepositoryError('not_found');
+      if (sim.soldOutNext) {
+        sim.soldOutNext = false;
+        type.soldOut = true;
+      }
+      if (sim.priceChangeNext && !type.freeForMembers) {
+        sim.priceChangeNext = false;
+        type.priceCents += 500;
+      }
+      if (type.soldOut) {
+        await later(undefined, delay);
+        throw new RepositoryError('pass_unavailable');
+      }
+      const totalCents = type.freeForMembers ? 0 : type.priceCents * Math.max(1, quantity);
+      if (!type.freeForMembers && expectedPriceCents !== type.priceCents) {
+        await later(undefined, delay);
+        throw new RepositoryError('price_changed', { totalCents });
+      }
+      const order: StoredOrder = {
+        orderId: `po_${nextId++}`,
+        eventId,
+        passTypeId,
+        status: 'pending',
+        totalCents,
+        clientSecret: null,
+        paymentConfirmed: false,
+      };
+      orders.set(order.orderId, order);
+      ordersByKey.set(idempotencyKey, order.orderId);
+      if (type.freeForMembers) {
+        // Claimed: no payment step.
+        order.paymentConfirmed = true;
+        settle(order);
+        return later(orderView(order), delay);
+      }
+      const payment = newPaymentSession({ kind: 'pass', orderId: order.orderId }, totalCents);
+      order.clientSecret = payment.clientSecret;
+      return later(orderView(order, payment), delay);
+    },
+    getPassOrder: async (orderId) => {
+      await network();
+      const order = orders.get(orderId);
+      if (!order) throw new RepositoryError('not_found');
+      return later(orderView(order), delay);
     },
   };
 }

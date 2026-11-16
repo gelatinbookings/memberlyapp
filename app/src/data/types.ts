@@ -186,6 +186,84 @@ export type DraftOffer = {
 
 export type DraftOfferPatch = Partial<Pick<DraftOffer, 'offerCents' | 'note'>>;
 
+// ---------------------------------------------------------------------------
+// Sending an offer and holding the card (GEL-1016, GEL-1018, GEL-1019)
+
+/**
+ * What an offer would hold, itemised by the server before anything is sent.
+ * The app shows these lines as given and never adds them up.
+ */
+export type OfferQuote = {
+  offerCents: number;
+  serviceFeeCents: number;
+  /** The amount held on the card. Server-calculated. */
+  totalCents: number;
+};
+
+/** Body of POST /app/events/:id/offers. Fee plus note only. */
+export type CreateOfferInput = {
+  djId: string;
+  offerCents: number;
+  note: string;
+  /**
+   * Generated on the device and kept in secure storage until the response
+   * arrives, so a retry after a timeout or a cold start is the same request.
+   */
+  clientOfferId: string;
+};
+
+/**
+ * What the native payment sheet needs, as Memberly's backend returns it for a
+ * card hold or a pass order. No customer and no ephemeral key: cards are never saved.
+ */
+export type PaymentSession = {
+  clientSecret: string;
+  /** Set per session, never bundled with the app. */
+  publishableKey: string;
+  stripeAccountId?: string;
+  /** Server-calculated. The only amount the payment sheet shows. */
+  totalCents: number;
+  merchantDisplayName: string;
+  /** ISO 8601. An expired session is replaced by asking for a new one. */
+  expiresAt: string;
+};
+
+// ---------------------------------------------------------------------------
+// Get a pass (GEL-1035, GEL-1036)
+
+export type PassType = {
+  id: string;
+  name: string;
+  /** From Memberly's pass setup. Shown as "$30". */
+  priceCents: number;
+  /** One line of what the pass includes. */
+  included: string;
+  soldOut: boolean;
+  /** Members claim it in one tap; there is no payment step. */
+  freeForMembers: boolean;
+};
+
+export type PassOrderStatus = 'pending' | 'paid' | 'failed';
+
+/** Body of POST /app/events/:id/pass-orders. */
+export type CreatePassOrderInput = {
+  passTypeId: string;
+  quantity: number;
+  /** Generated on the device and kept until the order settles, so a retry is the same order. */
+  idempotencyKey: string;
+  /** The price the member was shown. The server answers `price_changed` when it no longer holds. */
+  expectedPriceCents: number;
+};
+
+export type PassOrder = {
+  orderId: string;
+  status: PassOrderStatus;
+  /** Server-calculated; 0 for a members-free pass. */
+  totalCents: number;
+  /** Present while the order still needs paying. A members-free pass comes back `paid` with none. */
+  payment?: PaymentSession;
+};
+
 export type CommunityOverview = {
   community: Community;
   revenueMonthCents: number;
@@ -295,11 +373,23 @@ export type Membership = {
   status: 'active' | 'expired';
 };
 
+/** A pass on the member's card. */
+export type CardPass = {
+  eventId: string;
+  eventName: string;
+  /** "General pass" */
+  passName: string;
+  /** "Fri, Nov 20" */
+  whenLabel: string;
+};
+
 export type MemberCard = {
   name: string;
   /** Active memberships: "Member · 3 communities". */
   communityCount: number;
   memberships: Membership[];
+  /** Passes for upcoming events, newest first. Absent on a card cached before passes were listed. */
+  passes?: CardPass[];
   /** What the door scans. Short-lived; the app may show a cached one offline until it expires. */
   qr: { token: string; expiresAt: string };
 };

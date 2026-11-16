@@ -13,18 +13,20 @@ export type PillButtonProps = {
   filled?: boolean;
   icon?: ReactNode;
   disabled?: boolean;
+  /** A fuller spoken name when the label alone is not enough, e.g. "Get General pass, $30". */
+  accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
   testID?: string;
 };
 
 /** A light action inside a row or card (Add, Offer, Show card). Round, 44px. */
-export function PillButton({ label, onPress, filled = false, icon, disabled, style, testID }: PillButtonProps) {
+export function PillButton({ label, onPress, filled = false, icon, disabled, accessibilityLabel, style, testID }: PillButtonProps) {
   const c = useTheme();
   return (
     <Pressable
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}

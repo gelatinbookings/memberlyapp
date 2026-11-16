@@ -9,6 +9,10 @@ import { centsToDollarsField, dollarsToCents, FEE_MISSING_MESSAGE, sanitizeDolla
 import { useTheme } from '@/theme/theme';
 import { space } from '@/theme/tokens';
 
+/** A note is optional and short; the counter appears near the end. */
+export const NOTE_MAX = 280;
+export const NOTE_COUNTER_FROM = 240;
+
 /** A DJ added to the lineup with an offer not sent yet: Your offer and Note to [DJ]. Fee and note only. */
 export function AddedDjCard({
   offer,
@@ -82,9 +86,13 @@ export function AddedDjCard({
         label={`Note to ${dj.name}`}
         value={note}
         placeholder="Set time, the room, what you need"
-        maxLength={280}
-        onChangeText={setNote}
-        onEndEditing={() => onChange({ note })}
+        maxLength={NOTE_MAX}
+        // Saved as it is typed, so Send picks up a note even while the keyboard is still up.
+        onChangeText={(text) => {
+          setNote(text);
+          onChange({ note: text });
+        }}
+        helper={note.length >= NOTE_COUNTER_FROM ? `${note.length} of ${NOTE_MAX} characters` : undefined}
       />
       <Text variant="helper" tone="muted">
         {dj.name} can accept, pass or come back with a new price.

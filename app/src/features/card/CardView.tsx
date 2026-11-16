@@ -5,7 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import { ErrorState, GroupedList, IconButton, LoadingRows, Pill, Screen, SectionHeader, Text } from '@/components/ui';
-import type { MemberCard, Membership } from '@/data/types';
+import type { CardPass, MemberCard, Membership } from '@/data/types';
 import { useTheme } from '@/theme/theme';
 import { font, radius, size, space } from '@/theme/tokens';
 
@@ -31,6 +31,22 @@ function MembershipRow({ m }: { m: Membership }) {
         </Text>
       </View>
       <Pill label={active ? 'Active' : 'Expired'} tone={active ? 'success' : 'neutral'} style={styles.pill} />
+    </View>
+  );
+}
+
+function PassRow({ pass }: { pass: CardPass }) {
+  return (
+    <View style={styles.row} accessible accessibilityLabel={`${pass.eventName}, ${pass.passName}, ${pass.whenLabel}`}>
+      <View style={styles.flex}>
+        <Text variant="bodyStrong" numberOfLines={1}>
+          {pass.eventName}
+        </Text>
+        <Text variant="helper" tone="muted" numberOfLines={1}>
+          {pass.passName} · {pass.whenLabel}
+        </Text>
+      </View>
+      <Pill label="Pass" tone="success" style={styles.pill} />
     </View>
   );
 }
@@ -99,6 +115,16 @@ export function CardView() {
       {state.status === 'ready' ? (
         <>
           <TheCard card={state.card} offline={state.offline} />
+          {state.card.passes && state.card.passes.length > 0 ? (
+            <View style={styles.section} testID="card-passes">
+              <SectionHeader title="Your passes" />
+              <GroupedList>
+                {state.card.passes.map((p) => (
+                  <PassRow key={p.eventId} pass={p} />
+                ))}
+              </GroupedList>
+            </View>
+          ) : null}
           <View style={styles.section}>
             <SectionHeader title="Your memberships" />
             <GroupedList>

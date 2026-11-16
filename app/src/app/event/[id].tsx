@@ -5,7 +5,7 @@ import { ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar, Button, ErrorState, IconButton, LoadingRows, Text, TierPill } from '@/components/ui';
-import { useEvent } from '@/data/RepositoryProvider';
+import { useEvent, usePassTypes } from '@/data/RepositoryProvider';
 import type { LineupSlot } from '@/data/types';
 import { formatEventDate, formatEventRange } from '@/lib/dates';
 import { useTheme } from '@/theme/theme';
@@ -63,6 +63,9 @@ export default function EventScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const event = useEvent(id);
   const e = event.data;
+  // Sold out only when every pass type is; one left is still "Get a pass".
+  const passTypes = usePassTypes(e && !e.viewerHasPass ? e.id : undefined);
+  const soldOut = !!passTypes.data && passTypes.data.length > 0 && passTypes.data.every((t) => t.soldOut);
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -131,7 +134,7 @@ export default function EventScreen() {
               <>
                 <Text variant="title">You have a pass</Text>
                 <Text variant="helper" tone="muted">
-                  Show your Memberly Card at the door
+                  It’s on your Memberly Card
                 </Text>
               </>
             ) : (
@@ -144,11 +147,11 @@ export default function EventScreen() {
             )}
           </View>
           <Button
-            label={e.viewerHasPass ? 'Show card' : 'Get a pass'}
+            testID="event-cta"
+            label={e.viewerHasPass ? 'Show my pass' : soldOut ? 'Sold out' : 'Get a pass'}
+            disabled={!e.viewerHasPass && soldOut}
             onPress={() =>
-              e.viewerHasPass
-                ? router.push('/card')
-                : router.push({ pathname: '/later', params: { title: 'Get a pass', milestone: '4' } })
+              e.viewerHasPass ? router.push('/card') : router.push({ pathname: '/event/[id]/pass', params: { id: e.id } })
             }
             style={styles.cta}
           />

@@ -9,6 +9,7 @@ import type { MemberlyRepository } from '@/data/repository';
 import type { KeyValueStorage } from '@/data/types';
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { EventDraftProvider, type EventDraft } from '@/features/events/EventDraftProvider';
+import { PaymentsProvider } from '@/lib/payments';
 import { ThemeProvider } from '@/theme/theme';
 
 const metrics = {
@@ -37,7 +38,9 @@ export function renderWithProviders(
         <RepositoryProvider repository={repo} storage={storage}>
           <AuthProvider>
             <ThemeProvider>
-              <EventDraftProvider initial={draft}>{ui}</EventDraftProvider>
+              <PaymentsProvider>
+                <EventDraftProvider initial={draft}>{ui}</EventDraftProvider>
+              </PaymentsProvider>
             </ThemeProvider>
           </AuthProvider>
         </RepositoryProvider>

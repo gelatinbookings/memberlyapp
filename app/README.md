@@ -12,7 +12,7 @@ This is the **safe direction** chosen on 4 Nov 2026: Memberly at night (dark), a
 | 2 | App shell and navigation; sign-in, onboarding, Explore filters, Events, Memberly Card, Me (fake data) | Done |
 | 3 | Create New Event with the Lineup section (fake data) | Done |
 | 4 | Browse talent, filters, DJ cards, DJ profile, talent edge states (fake data) | Done |
-| 5 | Offer and card hold | |
+| 5 | Offer review, card hold, offer edge states and Get a pass, on a test payment sheet (fake data) | Done |
 | 6 | Status, alternates, hand-off to Gelatin | |
 | 7 | Public event lineup | |
 | 8 | Live API through Memberly's backend, Gelatin test environment only | |
@@ -39,6 +39,7 @@ src/
     card.tsx           My Memberly Card
     tonight.tsx        Tonight in the city: List / Map
     event/[id].tsx     Event page with the public lineup
+    event/[id]/pass.tsx  Get a pass: a bottom sheet over the event page (M5)
     organizer/events/  Create New Event, its sub-screens, Lineup and Published (M3)
     kit.tsx            Parts kit: every component in every state (dev only)
     later.tsx          Labelled stop for screens a later milestone builds
@@ -51,6 +52,8 @@ src/
     events/            Event rows, grouping, Create New Event (form, sections, calendar, draft context)
     lineup/            The Lineup section: blocked, empty, DJs added, in motion
     talent/            Browse talent: DJ cards, Filters sheet, DJ profile sheet, edge states, dev simulation
+    offers/            Sending offers: review sheet, card hold, Card held, DJ taken, payment failed, offline queue (M5)
+    passes/            Get a pass: pass types sheet, order, wait for paid, the order watcher (M5)
     navigation/        Labelled placeholders for later milestones
     auth/              Session context, the sign-in gate, code entry, sheets, Welcome video backdrop
     preferences/       The four preference steps and the minimum-three rule
@@ -60,7 +63,7 @@ src/
     launch/            The animated launch splash
     permissions/       OS permission prompts
   data/                Types, repository interface, fake repository, query hooks
-  lib/                 Query client, dates
+  lib/                 Query client, dates, payments (the payment sheet interface and its test stand-in)
   theme/               Tokens (from DESIGN.md) and the theme provider
 ```
 
@@ -129,7 +132,7 @@ Deep links work for each, for example `memberly://organizer/events/e_warehouse_f
 
 Sample events: **Warehouse Friday** has bookings in every in-motion state; **Long Table** has none (empty Lineup); **Late Service** is a draft with two DJs added and no offers sent (KOYO at the published rate, NIGHTFORM on a private rate with no fee yet); **River Street Social** (added in M4) is a draft in Savannah, where Gelatin has no DJs yet.
 
-Send offers, Pay now, Manage in Gelatin, Other DJs open that night and Access & passes open labelled placeholders for milestones 5 and 6, or the web page until it is native. Screenshots: `docs/screenshots/m3/`.
+Manage in Gelatin, Other DJs open that night and Access & passes open labelled placeholders for milestone 6, or the web page until it is native. Send offers and Pay now are built in milestone 5. Screenshots: `docs/screenshots/m3/`.
 
 ## Milestone 4: Browse talent (GEL-1012 to GEL-1015)
 
@@ -169,6 +172,84 @@ None of these states touches Save or Publish. Screenshots: `docs/screenshots/m4/
 ### What M8 needs for the live catalog
 
 `getTalent` → `GET /app/events/:id/talent?budget=&genre=&cursor=&limit=` (map `published_rate_cents`, `draw`, `next_cursor`, `city_supported`; throw `CatalogUnavailableError` on `503 catalog_unavailable`), `getTalentGenres` → `GET /app/talent/genres`, `joinCityWaitlist` → `POST /app/talent/city-waitlist`. Unsent offers (`addDraftOffer` and friends) have no endpoint in the issues yet.
+
+## Milestone 5: offers, the card hold and Get a pass (GEL-1018, GEL-1019, GEL-1020, GEL-1036)
+
+Still the fake repository. There is no backend, nothing calls Gelatin, **no payment is real and the Stripe SDK is not installed**. Where the payment sheet will be, a test payment sheet stands in (see "Where Stripe plugs in").
+
+| Route | Screen | Issue |
+|---|---|---|
+| `/organizer/events/[id]/lineup` | **Send N offers** opens the offer review sheet, one DJ at a time in the order added: the DJ's fee, the Gelatin service fee, **Held on your card** with the server's total, the three numbered lines, **Hold $457.00 and send**. Each note is saved as it is typed and counts characters from 240 of 280 | GEL-1018 |
+| (sheet on Lineup and Published) | The payment sheet for the hold, then **Card held** with the status the server gives. With more DJs to send it offers **Next: your offer to [DJ]**; on the last one, **Back to your lineup** and **Add another DJ**. **Pay now** on a Lineup card and on the Published screen runs the same hold | GEL-1019 |
+| (sheets on Lineup) | **DJ taken**: "[DJ] isn't available that night", nothing sent or held, never a reason, up to three DJs still open with **Offer**, and **See everyone open that night**. **Payment didn't go through** with **Try again**. Offline: "You're offline. Your offers are saved and will send when you're back." | GEL-1020 |
+| `/event/[id]/pass` | **Get a pass**: a bottom sheet over the event page with the event's pass types (name, price, what's included, **Sold out**, **Free for members**). A paid pass goes through the payment sheet; a members-free pass is claimed in one tap. Then "Your pass is on your card." and the event footer reads **Show my pass** | GEL-1036 |
+
+Deep links: `memberly://organizer/events/e_late_service/lineup`, `memberly://event/e_rooftop_hours/pass`.
+
+### How it works
+
+- **The server's total is the only total.** `quoteOffer` gives the review sheet its three figures before anything is sent; `createOffer` returns the request with `totalCents`; every later screen shows that number through `formatCents`. Nothing outside `src/data/fakeRepository.ts` adds a fee to an offer. `src/__tests__/noClientTotals.test.ts` reads the source and fails if feature, UI or route code adds, subtracts or multiplies amounts.
+- **One DJ, one request.** Before `createOffer` is called the app writes a `clientOfferId` to secure storage (`src/features/offers/pendingOffers.ts`: one key per event and DJ, plus an index). It stays there until an answer arrives, so a retry after a timeout or after the app is closed sends the same id and the server returns the original request. Pass orders keep their `idempotencyKey` the same way (`src/features/passes/pendingPassOrders.ts`).
+- **The server says how a payment ended.** After the payment sheet closes, whatever it reported, the app refetches the event's bookings and shows the status it finds. Card held appears only when the request has moved on from `authorization_required`. Booking status is not polled yet (milestone 6).
+- **Offline.** Offers sent with no connection are stored with their ids and marked queued. `PendingOfferSync`, mounted at the root, sends them when the app opens and whenever the connection returns; they come back as **Payment needed** with **Pay now**.
+- **Passes.** After the payment sheet succeeds the sheet asks for the order every second for up to 10 seconds. Still pending after that, it says "We're confirming your payment. Your pass will appear on your card shortly." and `PassOrderWatcher` (root) keeps asking every 3 seconds until the order settles, including after a restart. It only reads the order; it never starts a second payment. A new pass refreshes the event page, Home, Events and the Card (which now lists **Your passes**).
+
+### Reaching each state
+
+| State | How |
+|---|---|
+| Review, hold, Card held | Manage → **Late Service** → enter a fee for NIGHTFORM → **Send 2 offers** → **Hold $457.00 and send** → **Pay with test wallet** |
+| Several DJs, one left unpaid | As above, then **Next: your offer to NIGHTFORM** → **Hold $607.00 and send** → close the payment sheet. Lineup shows KOYO held and NIGHTFORM **Payment needed** with **Pay now** |
+| Payment cancelled | Close the test payment sheet (the round ✕, the dimmed screen, or pull it down). The card stays **Payment needed**; no error |
+| Payment failed | On the test payment sheet tap **Use a declined test card**, read the message, close the sheet. **Try again** asks for a fresh session |
+| DJ taken | Add **OKTAVE** to any event from Browse talent and send the offer (the sample DJ who is open in Browse and taken when the offer is sent), or `memberly://organizer/events/e_late_service/lineup?simulate=dj-taken` for whichever DJ is sent next |
+| Timeout, then the same id | `memberly://organizer/events/e_late_service/lineup?simulate=timeout`: the first **Hold and send** answers "That didn't go through"; tap it again and the same request comes back |
+| Offline, then sent on reconnect | `memberly://organizer/events/e_late_service/lineup?simulate=offline`, then **Send offers** within 30 seconds. The connection "returns" after 30 seconds and the offers send by themselves. On a device, airplane mode does the same |
+| Expired session | `memberly://organizer/events/e_late_service/lineup?simulate=expired-session`: the first session comes back expired and is replaced without a word |
+| Pay now from Published or Lineup | Manage → **Warehouse Friday** (NIGHTFORM is unpaid at $607.00) |
+| Get a pass: paid, free, sold out | Home → **Rooftop Hours** → **Get a pass**: General pass $30, Member pass (free for members), Table for four (sold out) |
+| Pass sold out while paying | `memberly://event/e_rooftop_hours/pass?simulate=sold-out`, then **Get** |
+| Price changed | `memberly://event/e_rooftop_hours/pass?simulate=price-changed`, then **Get**: the row shows $35 and asks to confirm again |
+| Payment still confirming | `memberly://event/e_rooftop_hours/pass?simulate=slow`, then **Get** and pay: after 10 seconds the "confirming" message; the pass lands about 6 seconds later |
+
+`simulate` works in development builds only and only acts on the fake repository (`src/features/offers/devSimulation.ts`, `src/features/passes/devSimulation.ts`). Tests set the same states through `createFakeRepository({ simulation })` and `repository.fake.simulate(…)`. The fake's state lives in memory: reload the app to start again. Screenshots: `docs/screenshots/m5/`.
+
+### Where Stripe plugs in (milestone 8)
+
+Card holds and pass checkout take payment through one interface, `src/lib/payments`:
+
+```ts
+interface PaymentSheet {
+  presentPaymentSheet(session: PaymentSheetSession): Promise<{ status: 'succeeded' | 'cancelled' | 'failed'; message?: string }>;
+}
+```
+
+`PaymentSheetSession` is what Memberly's backend returns (`clientSecret`, `publishableKey`, `stripeAccountId?`, `totalCents`, `merchantDisplayName`, `expiresAt`) plus a `purpose` so the sheet can name the DJ or the pass. `PaymentsProvider` (in `src/app/_layout.tsx`) supplies the implementation, and `usePayments()` hands it to `useOfferFlow` and `usePassPurchase`. Nothing else in the app knows how a payment is taken.
+
+Today the only implementation is the **test payment sheet** (`src/lib/payments/TestPaymentSheet.tsx`): a "Test payment" pill, the server's total, **Pay with test wallet**, **Use a declined test card**, and close. It has no card fields and never will. It is chosen only when the repository is the fake one. With any other repository and no implementation, a production build throws `PaymentsNotConfiguredError` when the provider mounts, and a development build throws it when a payment is asked for (`src/lib/payments/resolve.ts`).
+
+To add the real sheet:
+
+1. `npx expo install @stripe/stripe-react-native`, add its config plugin to `app.json` with the **Apple Pay merchant ID** (`merchantIdentifier`), and make a new development build. This is the one native change.
+2. Write `src/lib/payments/stripePaymentSheet.ts` implementing `PaymentSheet`. For each call: set the publishable key and connected account **from the session** (`initStripe({ publishableKey: session.publishableKey, stripeAccountId: session.stripeAccountId, merchantIdentifier })`; the key is per session and is never bundled), then `initPaymentSheet({ paymentIntentClientSecret: session.clientSecret, merchantDisplayName: session.merchantDisplayName, applePay: { merchantCountryCode: 'US' }, appearance: Memberly's dark theme, brand purple button, 6px radius, Inter })`, then `presentPaymentSheet()`.
+3. **No saved cards:** pass no `customerId` and no `customerEphemeralKeySecret`.
+4. Map the result: no error → `succeeded`; error code `Canceled` → `cancelled`; any other error → `failed` with Stripe's `message`.
+5. Pass it in: `<PaymentsProvider implementation={stripePaymentSheet}>`. `PaymentSheetOutlet` then renders nothing, because the native sheet presents itself over the app.
+
+Check the option names above against the version of `@stripe/stripe-react-native` that `npx expo install` picks; they are written from the SDK's documented API, not from an installed copy.
+
+The app still never marks a payment done: after `succeeded` it refetches the booking or the pass order, exactly as it does now.
+
+### What M8 needs for offers and passes
+
+`createOffer` → `POST /app/events/:id/offers {dj_id, offer_cents, note, client_offer_id}` (map `409 dj_unavailable`, `409 offer_open`, `400` to `RepositoryError`); `createPaymentSession` → `POST /app/bookings/:request_id/payment-session` (`409 not_payable`); `getPassTypes` → pass types for an event; `createPassOrder` → `POST /app/events/:id/pass-orders {pass_type_id, quantity, idempotency_key}` (`409 pass_unavailable`, `409 price_changed` with the new `total_cents`); `getPassOrder` → `GET /app/pass-orders/:id`. A request that never got an answer must surface as `RepositoryError('offline')` or `('timeout')`, which is what the queue and the retry act on.
+
+Open with the backend:
+
+- **A quote before sending.** The review sheet shows the total before the request exists, so the app calls `quoteOffer`. GEL-1016 returns `total_cents` only after `POST /offers`. Either add a quote endpoint, or the sheet changes to create the request first.
+- **Payment session shape** (contract gap C in GEL-1016/GEL-1019). `PaymentSession` follows the fields listed in GEL-1016 and will change with it.
+- **`price_changed`.** The app sends the price the member saw (`expectedPriceCents`) so the server can tell it changed. GEL-1035's request body does not carry it yet.
+- **A pass-types endpoint** is not named in GEL-1035.
 
 ## Setup
 
@@ -210,6 +291,8 @@ Covered so far: all eight booking statuses and their labels, actions and polling
 
 Milestone 3 adds: Create New Event completeness and the publish button's reason ("Add a date to publish"); "Ends the next morning" and the time-zone label ("Eastern Time, from the venue"), venue wall time to an instant across daylight saving; offer fee parsing and the fee-missing rule that disables **Send N offers**; the status money lines and the published-screen rows; save, publish and draft offers in the fake repository; and the Lineup screen rendering blocked, empty, DJs added and in motion (React Native Testing Library), plus the Create New Event form.
 
+Milestone 5 adds: the fake server's offers, sessions and pass orders (idempotent by `clientOfferId` and `idempotencyKey`, `dj_unavailable` with no reason, `offer_open`, `not_payable`, `pass_unavailable`, `price_changed`); the stored `clientOfferId` across a timeout and a cold start, with one request in the fake; the review sheet showing the quoted total (including a total that is not fee plus $7); hold success showing the server's status, and a lagging server leaving it "Payment needed"; cancel and failure; an expired session replaced silently; DJ taken with no reason text; the offline queue sending on reconnect with the same ids; two DJs in sequence with one left unpaid; Pay now from Lineup and Published; which payment sheet is chosen and that the test sheet has no card fields; pass purchase paid, free, sold out, price changed, slow confirmation and idempotent retry; the event footer; and the guard that fails if feature or UI code does arithmetic on amounts.
+
 Milestone 4 adds: the budget pills mapped to the API's band ids and the single-select filter state; the Filters sheet applying, resetting and changing nothing when dismissed; the too-tight state and its one-tap loosening; adding and removing across pages and the Lineup showing the result; `Private rate` and `Draw not yet established`; each card as one VoiceOver sentence; the DJ profile's add and remove; loading skeletons, the city with no coverage and Notify me called once, catalog unavailable with Try again, offline recovering on reconnect; and the fake repository deriving the city and the night from the saved event, paging by cursor and keeping private-rate DJs in their band.
 
 ## The test-mode booking flow (milestones 3–8)
@@ -218,7 +301,7 @@ Milestone 4 adds: the budget pills mapped to the API's band ids and the single-s
 2. **Browse talent** lists DJs open that night in that city, from Gelatin.
 3. The organizer adds DJs and enters a fee and an optional note for each. Each DJ is a separate booking with its own card hold.
 4. Memberly's backend creates the booking request with an idempotency key. The app shows the server's total, for example $457.00 for a $450 offer.
-5. The card hold runs on Gelatin's checkout in an in-app browser sheet (Stripe test cards and Apple Pay in test mode). The DJ sees nothing until the hold succeeds.
+5. The card hold runs in the native payment sheet inside the app (decided 6 Nov 2026; Stripe test cards and Apple Pay in test mode from milestone 8, a test payment sheet until then). The DJ sees nothing until the hold succeeds.
 6. The Lineup section polls status through Memberly's backend every 5 seconds while the DJ is deciding, and shows each status in plain words.
 7. Counters, new prices, changes and refunds open in Gelatin's portal through a single-use link, and return to the app.
 8. Publishing never waits on talent; an event can go live with no lineup.

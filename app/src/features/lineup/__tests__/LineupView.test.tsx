@@ -143,6 +143,23 @@ describe('Lineup screen', () => {
     expect(screen.getByRole('button', { name: 'Send 2 offers' })).toBeDisabled();
   });
 
+  it('saves the note as it is typed, and counts characters from 240 of 280', async () => {
+    const repository = createFakeRepository({ delayMs: 0 });
+    await renderWithProviders(<LineupView eventId="e_late_service" />, { repository });
+    const note = await screen.findByTestId('note-dj_koyo');
+    expect(note.props.maxLength).toBe(280);
+
+    await fireEvent.changeText(note, 'Headline set, midnight to 2.');
+    expect(screen.queryByText(/of 280 characters/)).toBeNull();
+    // No blur needed: Send picks the note up even with the keyboard still open.
+    await waitFor(async () =>
+      expect((await repository.getDraftOffers('e_late_service'))[0].note).toBe('Headline set, midnight to 2.'),
+    );
+
+    await fireEvent.changeText(note, 'x'.repeat(240));
+    expect(screen.getByText('240 of 280 characters')).toBeTruthy();
+  });
+
   it('removes a DJ and updates the count', async () => {
     await renderWithProviders(<LineupView eventId="e_late_service" />);
     await fireEvent.press(await screen.findByRole('button', { name: 'Remove NIGHTFORM' }));

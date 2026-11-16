@@ -4,8 +4,12 @@ import { StyleSheet, View } from 'react-native';
 
 import { Avatar, Button, ErrorState, GroupedList, LoadingRows, Notice, Screen, Text } from '@/components/ui';
 import { useEventBookings, useOrganizerEvent } from '@/data/RepositoryProvider';
+import type { Booking, OrganizerEventDetail } from '@/data/types';
 import { firstUnpaid, openBookingRows } from '@/features/booking/statusLine';
-import { openLater } from '@/features/navigation/later';
+import { CONFIRMING_HOLD, PAYMENT_UNAVAILABLE } from '@/features/offers/copy';
+import { OfferFlowHost } from '@/features/offers/OfferFlowHost';
+import { useOfferFlow } from '@/features/offers/useOfferFlow';
+import { formatIsoDate } from '@/lib/dates';
 import { radius, space } from '@/theme/tokens';
 
 export const NO_LINEUP_PUBLISHED =
@@ -38,82 +42,102 @@ export function PublishedScreen({ eventId }: { eventId: string }) {
     );
   }
 
-  const all = bookings.data ?? [];
+  return <Published event={e} bookings={bookings.data ?? NO_BOOKINGS} />;
+}
+
+const NO_BOOKINGS: Booking[] = [];
+const NO_OFFERS: never[] = [];
+
+function Published({ event: e, bookings: all }: { event: OrganizerEventDetail; bookings: Booking[] }) {
+  // Pay now runs the same card hold as Lineup, for the first DJ still unpaid.
+  const flow = useOfferFlow({ eventId: e.id, eventName: e.name, bookings: all, offers: NO_OFFERS });
+  const toLineup = () => router.push({ pathname: '/organizer/events/[id]/lineup', params: { id: e.id } });
+  const toBrowse = () => {
+    // Lineup first, then Browse talent over it, so closing Browse lands on the lineup.
+    toLineup();
+    router.push({ pathname: '/organizer/events/[id]/browse', params: { id: e.id } });
+  };
   const rows = openBookingRows(all);
   const unpaid = firstUnpaid(all);
   const byId = new Map(all.map((b) => [b.requestId, b]));
 
   const second =
     all.length === 0 ? (
-      <Button
-        label="Add talent"
-        // Lineup first, then Browse talent over it, so closing Browse lands on the lineup.
-        onPress={() => {
-          router.push({ pathname: '/organizer/events/[id]/lineup', params: { id: e.id } });
-          router.push({ pathname: '/organizer/events/[id]/browse', params: { id: e.id } });
-        }}
-        style={styles.action}
-      />
+      <Button label="Add talent" onPress={toBrowse} style={styles.action} />
     ) : unpaid ? (
-      <Button label="Pay now" onPress={() => openLater(`Pay for ${unpaid.dj.name}`, 'offer')} style={styles.action} />
-    ) : (
       <Button
-        label="See lineup"
-        onPress={() => router.push({ pathname: '/organizer/events/[id]/lineup', params: { id: e.id } })}
+        testID="published-pay"
+        label="Pay now"
+        loading={flow.payingId === unpaid.requestId}
+        onPress={() => flow.pay(unpaid)}
         style={styles.action}
       />
+    ) : (
+      <Button label="See lineup" onPress={toLineup} style={styles.action} />
     );
 
   return (
-    <Screen
-      testID="published"
-      footer={
-        <View style={styles.actions}>
-          <Button label="Done" variant="secondary" onPress={toManage} style={styles.action} />
-          {second}
-        </View>
-      }>
-      <View style={styles.center}>
-        {e.cover ? <Image source={e.cover} style={styles.cover} contentFit="cover" accessibilityLabel={`${e.name} cover`} /> : null}
-        <View style={styles.text}>
-          <Text variant="display" align="center" accessibilityRole="header">
-            {e.name} is live
-          </Text>
-          <Text tone="muted" align="center">
-            Your event page is published and passes are on sale.
-          </Text>
-        </View>
-        {all.length === 0 ? (
-          <Notice title="Published with no lineup." center>
-            {NO_LINEUP_PUBLISHED}
-          </Notice>
-        ) : null}
-        {rows.length > 0 ? (
-          <GroupedList>
-            {rows.map((r) => {
-              const dj = byId.get(r.requestId)?.dj;
-              return (
-                <View key={r.requestId} style={styles.row} testID={`open-${r.requestId}`}>
-                  {dj ? <Avatar source={dj.photo} initials={dj.initials} size={36} /> : null}
-                  <View style={styles.flex}>
-                    <Text variant="bodyStrong" tone={r.warning ? 'warning' : 'default'}>
-                      {r.title}
-                    </Text>
-                    <Text variant="helper" tone="muted">
-                      {r.detail}
-                    </Text>
+    <View style={styles.fill}>
+      <Screen
+        testID="published"
+        footer={
+          <View style={styles.actions}>
+            <Button label="Done" variant="secondary" onPress={toManage} style={styles.action} />
+            {second}
+          </View>
+        }>
+        <View style={styles.center}>
+          {e.cover ? <Image source={e.cover} style={styles.cover} contentFit="cover" accessibilityLabel={`${e.name} cover`} /> : null}
+          <View style={styles.text}>
+            <Text variant="display" align="center" accessibilityRole="header">
+              {e.name} is live
+            </Text>
+            <Text tone="muted" align="center">
+              Your event page is published and passes are on sale.
+            </Text>
+          </View>
+          {all.length === 0 ? (
+            <Notice title="Published with no lineup." center>
+              {NO_LINEUP_PUBLISHED}
+            </Notice>
+          ) : null}
+          {flow.notice ? <Notice>{flow.notice === 'confirming' ? CONFIRMING_HOLD : PAYMENT_UNAVAILABLE}</Notice> : null}
+          {rows.length > 0 ? (
+            <GroupedList>
+              {rows.map((r) => {
+                const dj = byId.get(r.requestId)?.dj;
+                return (
+                  <View key={r.requestId} style={styles.row} testID={`open-${r.requestId}`}>
+                    {dj ? <Avatar source={dj.photo} initials={dj.initials} size={36} /> : null}
+                    <View style={styles.flex}>
+                      <Text variant="bodyStrong" tone={r.warning ? 'warning' : 'default'}>
+                        {r.title}
+                      </Text>
+                      <Text variant="helper" tone="muted">
+                        {r.detail}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              );
-            })}
-          </GroupedList>
-        ) : null}
-      </View>
-    </Screen>
+                );
+              })}
+            </GroupedList>
+          ) : null}
+        </View>
+      </Screen>
+      <OfferFlowHost
+        flow={flow}
+        eventId={e.id}
+        eventName={e.name}
+        day={e.date ? formatIsoDate(e.date) : ''}
+        onBackToLineup={toLineup}
+        onBrowse={toBrowse}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', gap: 18 },
   cover: { width: '100%', height: 180, borderRadius: radius.card },
   text: { gap: space.sm, paddingHorizontal: space.sm },

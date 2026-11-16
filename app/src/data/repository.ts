@@ -4,6 +4,8 @@ import type {
   City,
   Community,
   CommunityOverview,
+  CreateOfferInput,
+  CreatePassOrderInput,
   DraftOffer,
   DraftOfferPatch,
   Dj,
@@ -14,7 +16,11 @@ import type {
   MemberEvent,
   MyEvent,
   MyEventsScope,
+  OfferQuote,
   OrganizerEventDetail,
+  PassOrder,
+  PassType,
+  PaymentSession,
   Preferences,
   SaveEventInput,
   SendCodeInput,
@@ -116,4 +122,43 @@ export interface MemberlyRepository {
   getTalentGenres(eventId: string, budget: BudgetBand | null): Promise<string[]>;
   /** Notify me when Gelatin opens in a city. Idempotent per organizer and city. HTTP: POST /app/talent/city-waitlist {city} */
   joinCityWaitlist(city: string): Promise<void>;
+
+  // Organizer: offers and the card hold (GEL-1016, GEL-1018 to GEL-1020)
+
+  /**
+   * What an offer would hold, before it is sent: the fee, the Gelatin service
+   * fee and the server's total. The review sheet shows these; the app never
+   * works a total out. HTTP: not in GEL-1016 yet (see README, open questions).
+   */
+  quoteOffer(eventId: string, djId: string, offerCents: number): Promise<OfferQuote>;
+  /**
+   * Create the booking request for one DJ. Idempotent by `clientOfferId`: a
+   * repeat returns the original request. The request starts
+   * `authorization_required`; the DJ sees nothing until the card is held.
+   * HTTP: POST /app/events/:id/offers {dj_id, offer_cents, note, client_offer_id}
+   * Throws RepositoryError `dj_unavailable` (409, never with a reason),
+   * `offer_open` (409, another offer to this DJ is open), `invalid_offer` (400).
+   */
+  createOffer(eventId: string, input: CreateOfferInput): Promise<Booking>;
+  /**
+   * What the payment sheet needs to hold the card for one request. Each call
+   * returns a fresh session. HTTP: POST /app/bookings/:request_id/payment-session
+   * Throws RepositoryError `not_payable` (409) unless the request is
+   * `authorization_required` or `reauthorization_required`.
+   */
+  createPaymentSession(requestId: string): Promise<PaymentSession>;
+
+  // Member: Get a pass (GEL-1035, GEL-1036)
+
+  /** The event's pass types, from Memberly's pass setup. HTTP: GET /app/events/:id/pass-types */
+  getPassTypes(eventId: string): Promise<PassType[]>;
+  /**
+   * Order a pass. Idempotent by `idempotencyKey`: a repeat returns the same
+   * order and payment. A members-free pass comes back `paid` with no payment.
+   * HTTP: POST /app/events/:id/pass-orders {pass_type_id, quantity, idempotency_key}
+   * Throws RepositoryError `pass_unavailable` (409) and `price_changed` (409, with the new total).
+   */
+  createPassOrder(eventId: string, input: CreatePassOrderInput): Promise<PassOrder>;
+  /** HTTP: GET /app/pass-orders/:id */
+  getPassOrder(orderId: string): Promise<PassOrder>;
 }

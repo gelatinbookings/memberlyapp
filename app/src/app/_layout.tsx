@@ -12,6 +12,9 @@ import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { useAuthGate } from '@/features/auth/useAuthGate';
 import { EventDraftProvider } from '@/features/events/EventDraftProvider';
 import { AnimatedSplash, LaunchProvider } from '@/features/launch/AnimatedSplash';
+import { PendingOfferSync } from '@/features/offers/sync';
+import { PassOrderWatcher } from '@/features/passes/passOrders';
+import { PaymentsProvider } from '@/lib/payments';
 import { createQueryClient, useAppStateFocus, useOnlineSync } from '@/lib/queryClient';
 import { ThemeProvider } from '@/theme/theme';
 import { darkPalette, font } from '@/theme/tokens';
@@ -71,6 +74,8 @@ function Screens() {
       <Stack.Screen name="card" />
       <Stack.Screen name="tonight" />
       <Stack.Screen name="event/[id]" />
+      {/* Get a pass rises over the event page, which stays visible behind the dimmed sheet. */}
+      <Stack.Screen name="event/[id]/pass" options={{ presentation: 'transparentModal', animation: 'none', contentStyle: { backgroundColor: 'transparent' } }} />
       {/* Browse talent rises over Lineup as its own full-screen modal and closes back to it. */}
       <Stack.Screen name="organizer/events/[id]/browse" options={{ presentation: 'fullScreenModal' }} />
       <Stack.Screen name="later" />
@@ -100,10 +105,16 @@ export default function RootLayout() {
         <RepositoryProvider>
           <AuthProvider>
             <ThemeProvider appearance="dark">
-              <EventDraftProvider>
-                <StatusBar style="light" />
-                <AppNavigator />
-              </EventDraftProvider>
+              {/* The test payment sheet until M8; see "Where Stripe plugs in" in README.md. */}
+              <PaymentsProvider>
+                <EventDraftProvider>
+                  <StatusBar style="light" />
+                  {/* Queued offers send on reconnect; pass orders still confirming are followed until they settle. */}
+                  <PendingOfferSync />
+                  <PassOrderWatcher />
+                  <AppNavigator />
+                </EventDraftProvider>
+              </PaymentsProvider>
             </ThemeProvider>
           </AuthProvider>
         </RepositoryProvider>

@@ -47,6 +47,16 @@ describe('My Memberly Card', () => {
     expect(await loadCachedCard(storage)).not.toBeNull();
   });
 
+  it('lists the member’s passes, and a new pass after it is claimed', async () => {
+    const repository = createFakeRepository({ delayMs: 0 });
+    await repository.createPassOrder('e_rooftop_hours', { passTypeId: 'pt_rooftop_member', quantity: 1, idempotencyKey: 'k', expectedPriceCents: 0 });
+    await renderWithProviders(<CardView />, { repository });
+    expect(await screen.findByText('Your passes')).toBeTruthy();
+    expect(screen.getByText('Warehouse Friday')).toBeTruthy();
+    expect(screen.getByText('Rooftop Hours')).toBeTruthy();
+    expect(screen.getByText('Member pass · Fri, Nov 20')).toBeTruthy();
+  });
+
   it('shows the cached token with “Shown offline” when the server can’t be reached', async () => {
     const storage = createMemoryStorage({ [CARD_CACHE_KEY]: JSON.stringify(cached(3600_000)) });
     await renderWithProviders(<CardView />, { storage, repository: offlineRepo() });

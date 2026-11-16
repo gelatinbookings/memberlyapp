@@ -1,10 +1,28 @@
-import { useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
-import { AlertCircle, Check, ChevronRight, Music, Pencil, Plus, RefreshCw } from 'lucide-react-native';
-import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useQueryClient } from "@tanstack/react-query";
+import { router } from "expo-router";
+import {
+  AlertCircle,
+  Check,
+  ChevronRight,
+  Music,
+  Pencil,
+  Plus,
+  RefreshCw,
+  WifiOff,
+} from "lucide-react-native";
+import { useState, type ReactNode } from "react";
+import { Keyboard, Pressable, StyleSheet, View } from "react-native";
 
-import { Button, ErrorState, IconButton, LoadingRows, Notice, Screen, ScreenHeader, Text } from '@/components/ui';
+import {
+  Button,
+  ErrorState,
+  IconButton,
+  LoadingRows,
+  Notice,
+  Screen,
+  ScreenHeader,
+  Text,
+} from "@/components/ui";
 import {
   queryKeys,
   useDraftOfferActions,
@@ -13,38 +31,60 @@ import {
   useOrganizerEvent,
   useRepository,
   useSaveEvent,
-} from '@/data/RepositoryProvider';
-import type { Booking, DraftOffer, EventFields } from '@/data/types';
-import { lineupSummary } from '@/features/booking/lineupSummary';
-import { canSendOffers, sendOffersLabel } from '@/features/booking/offers';
-import { shouldPoll } from '@/features/booking/status';
-import { addedSummary, lineupUnlocked, locationSummary, whenSummary } from '@/features/events/completeness';
-import { useDraftFor, useEventDraft } from '@/features/events/EventDraftProvider';
-import { openLater } from '@/features/navigation/later';
-import { formatIsoDate } from '@/lib/dates';
-import { useTheme } from '@/theme/theme';
-import { radius, space } from '@/theme/tokens';
+} from "@/data/RepositoryProvider";
+import type { Booking, DraftOffer, EventFields } from "@/data/types";
+import { lineupSummary } from "@/features/booking/lineupSummary";
+import { canSendOffers, sendOffersLabel } from "@/features/booking/offers";
+import { shouldPoll } from "@/features/booking/status";
+import {
+  addedSummary,
+  lineupUnlocked,
+  locationSummary,
+  whenSummary,
+} from "@/features/events/completeness";
+import {
+  useDraftFor,
+  useEventDraft,
+} from "@/features/events/EventDraftProvider";
+import {
+  CONFIRMING_HOLD,
+  OFFLINE_OFFERS_NOTICE,
+  PAYMENT_UNAVAILABLE,
+} from "@/features/offers/copy";
+import { OfferFlowHost } from "@/features/offers/OfferFlowHost";
+import { useOfferFlow } from "@/features/offers/useOfferFlow";
+import { formatIsoDate } from "@/lib/dates";
+import { useTheme } from "@/theme/theme";
+import { radius, space } from "@/theme/tokens";
 
-import { AddedDjCard } from './AddedDjCard';
-import { BookingCard } from './BookingCard';
+import { AddedDjCard } from "./AddedDjCard";
+import { BookingCard } from "./BookingCard";
 
-export const FEE_FOOTER = 'Each DJ is a separate booking with its own card hold. A $7 Gelatin service fee is added to each one.';
-export const ATTRIBUTION = 'DJs, availability and rates from Gelatin';
-export const POLL_LINE = 'Updates every few seconds while a DJ is deciding.';
+export const FEE_FOOTER =
+  "Each DJ is a separate booking with its own card hold. A $7 Gelatin service fee is added to each one.";
+export const ATTRIBUTION = "DJs, availability and rates from Gelatin";
+export const POLL_LINE = "Updates every few seconds while a DJ is deciding.";
 
-export const SAVES_DRAFT_LINE = 'Browsing talent saves this event as a draft first, so Gelatin knows the night and city.';
-export const SAVE_FIRST_NOTICE = 'Save your new date or city first. Talent is matched to the night and city saved on this event.';
-export const SAVE_FAILED_NOTICE = 'Couldn’t save your draft, so talent can’t load yet. Try again.';
+export const SAVES_DRAFT_LINE =
+  "Browsing talent saves this event as a draft first, so Gelatin knows the night and city.";
+export const SAVE_FIRST_NOTICE =
+  "Save your new date or city first. Talent is matched to the night and city saved on this event.";
+export const SAVE_FAILED_NOTICE =
+  "Couldn’t save your draft, so talent can’t load yet. Try again.";
 
-export type LineupState = 'blocked' | 'empty' | 'lineup';
+export type LineupState = "blocked" | "empty" | "lineup";
 
 /** What the Browse talent buttons need: the action, whether a save is running, and anything to say first. */
 type Browse = { open: () => void; pending: boolean; notice: string | null };
 
 /** Which Lineup screen to show: any booking or added DJ wins; otherwise the night and city decide. */
-export function lineupState(fields: Pick<EventFields, 'date' | 'city'>, bookings: unknown[], added: unknown[]): LineupState {
-  if (bookings.length > 0 || added.length > 0) return 'lineup';
-  return lineupUnlocked(fields) ? 'empty' : 'blocked';
+export function lineupState(
+  fields: Pick<EventFields, "date" | "city">,
+  bookings: unknown[],
+  added: unknown[],
+): LineupState {
+  if (bookings.length > 0 || added.length > 0) return "lineup";
+  return lineupUnlocked(fields) ? "empty" : "blocked";
 }
 
 /**
@@ -52,11 +92,17 @@ export function lineupState(fields: Pick<EventFields, 'date' | 'city'>, bookings
  * `eventId` is "new" for an event not saved yet; its date and city come from
  * the Create New Event draft. `fromForm` is true when opened from that form.
  */
-export function LineupView({ eventId, fromForm = false }: { eventId: string; fromForm?: boolean }) {
+export function LineupView({
+  eventId,
+  fromForm = false,
+}: {
+  eventId: string;
+  fromForm?: boolean;
+}) {
   // A new event gets its id the first time Browse talent saves it as a draft.
   const [savedAs, setSavedAs] = useState<string | null>(null);
   const id = savedAs ?? eventId;
-  const isNew = id === 'new';
+  const isNew = id === "new";
   const saved = isNew ? undefined : id;
   const draft = useDraftFor(id);
   const { rekey } = useEventDraft();
@@ -70,7 +116,8 @@ export function LineupView({ eventId, fromForm = false }: { eventId: string; fro
 
   // The open draft wins over the saved event; the saved one only says what Gelatin will be asked for.
   const fields: EventFields | null = draft?.fields ?? event.data ?? null;
-  const loading = (!draft && event.isLoading) || bookingsQ.isLoading || offersQ.isLoading;
+  const loading =
+    (!draft && event.isLoading) || bookingsQ.isLoading || offersQ.isLoading;
 
   if (loading) {
     return (
@@ -100,7 +147,10 @@ export function LineupView({ eventId, fromForm = false }: { eventId: string; fro
     return (
       <Screen>
         <ScreenHeader title="Lineup" />
-        <ErrorState title="This event isn’t available" detail="It may have been removed." />
+        <ErrorState
+          title="This event isn’t available"
+          detail="It may have been removed."
+        />
       </Screen>
     );
   }
@@ -111,31 +161,57 @@ export function LineupView({ eventId, fromForm = false }: { eventId: string; fro
 
   // Date & time lives in the form. From Manage, open the form first so the change is saved with it.
   const editWhen = () => {
-    if (draft) router.push('/organizer/events/when');
-    else router.push({ pathname: '/organizer/events/[id]/edit', params: { id, open: 'when' } });
+    if (draft) router.push("/organizer/events/when");
+    else
+      router.push({
+        pathname: "/organizer/events/[id]/edit",
+        params: { id, open: "when" },
+      });
   };
 
   // From Manage, a round pencil opens Create New Event for this event; from the form, Back does.
-  const onEdit = !fromForm && !isNew ? () => router.push({ pathname: '/organizer/events/[id]/edit', params: { id } }) : undefined;
-  const edit = onEdit ? <EditButton name={fields.name} onPress={onEdit} /> : undefined;
+  const onEdit =
+    !fromForm && !isNew
+      ? () =>
+          router.push({
+            pathname: "/organizer/events/[id]/edit",
+            params: { id },
+          })
+      : undefined;
+  const edit = onEdit ? (
+    <EditButton name={fields.name} onPress={onEdit} />
+  ) : undefined;
 
   // Browse talent (GEL-1012) reads the night and city from the saved event, so an unsaved one is saved as a draft first.
-  const toBrowse = (to: string) => router.push({ pathname: '/organizer/events/[id]/browse', params: { id: to } });
+  const toBrowse = (to: string) =>
+    router.push({
+      pathname: "/organizer/events/[id]/browse",
+      params: { id: to },
+    });
   const openBrowse = async () => {
     if (!draft) return toBrowse(id);
     if (!isNew) {
       const stored = event.data;
-      const nightChanged = !!stored && (stored.date !== draft.fields.date || stored.city?.id !== draft.fields.city?.id);
+      const nightChanged =
+        !!stored &&
+        (stored.date !== draft.fields.date ||
+          stored.city?.id !== draft.fields.city?.id);
       if (!nightChanged) return toBrowse(id);
       // A live event's date is never changed behind the organizer's back.
-      if (stored.status === 'published') return setSaveFirst(true);
+      if (stored.status === "published") return setSaveFirst(true);
     }
     // A new event belongs to the organizer's community, as it does when the form saves it.
     const communityId =
       draft.communityId ||
       (await qc
-        .ensureQueryData({ queryKey: queryKeys.organized, queryFn: () => repo.getOrganizedCommunities() })
-        .then((list) => list[0]?.id ?? '', () => ''));
+        .ensureQueryData({
+          queryKey: queryKeys.organized,
+          queryFn: () => repo.getOrganizedCommunities(),
+        })
+        .then(
+          (list) => list[0]?.id ?? "",
+          () => "",
+        ));
     save.mutate(
       { id: saved, communityId, fields: draft.fields, publish: false },
       {
@@ -150,14 +226,90 @@ export function LineupView({ eventId, fromForm = false }: { eventId: string; fro
   const browse: Browse = {
     open: openBrowse,
     pending: save.isPending,
-    notice: save.isError ? SAVE_FAILED_NOTICE : saveFirst ? SAVE_FIRST_NOTICE : null,
+    notice: save.isError
+      ? SAVE_FAILED_NOTICE
+      : saveFirst
+        ? SAVE_FIRST_NOTICE
+        : null,
   };
 
-  if (state === 'blocked') {
-    return <BlockedLineup fields={fields} isDraft={!event.data || event.data.status === 'draft'} onFix={editWhen} edit={edit} />;
-  }
-  if (state === 'empty') return <EmptyLineup fields={fields} edit={edit} browse={browse} savesDraft={isNew} />;
-  return <ActiveLineup eventId={id} bookings={bookings} offers={offers} edit={edit} browse={browse} />;
+  const other =
+    state === "blocked" ? (
+      <BlockedLineup
+        fields={fields}
+        isDraft={!event.data || event.data.status === "draft"}
+        onFix={editWhen}
+        edit={edit}
+      />
+    ) : state === "empty" ? (
+      <EmptyLineup
+        fields={fields}
+        edit={edit}
+        browse={browse}
+        savesDraft={isNew}
+      />
+    ) : null;
+  // An unsaved event has no offers to send yet.
+  if (isNew && other) return other;
+  return (
+    <LineupWithOffers
+      eventId={id}
+      fields={fields}
+      bookings={bookings}
+      offers={offers}
+      edit={edit}
+      browse={browse}
+      other={other}
+    />
+  );
+}
+
+/**
+ * A saved event's Lineup in any state, with the offer flow above it. The flow
+ * sits here, not in the list, so its sheets (Card held, DJ taken) survive the
+ * list emptying underneath them, as it does when the only DJ's draft goes.
+ */
+function LineupWithOffers({
+  eventId,
+  fields,
+  bookings,
+  offers,
+  edit,
+  browse,
+  other,
+}: {
+  eventId: string;
+  fields: EventFields;
+  bookings: Booking[];
+  offers: DraftOffer[];
+  edit?: ReactNode;
+  browse: Browse;
+  /** The blocked or empty screen, when there is nothing in the lineup. */
+  other: ReactNode;
+}) {
+  const eventName = fields.name.trim() || "New event";
+  const flow = useOfferFlow({ eventId, eventName, bookings, offers });
+  return (
+    <View style={styles.fill}>
+      {other ?? (
+        <ActiveLineup
+          eventId={eventId}
+          bookings={bookings}
+          offers={offers}
+          edit={edit}
+          browse={browse}
+          flow={flow}
+        />
+      )}
+      <OfferFlowHost
+        flow={flow}
+        eventId={eventId}
+        eventName={eventName}
+        day={fields.date ? formatIsoDate(fields.date) : ""}
+        onBrowse={browse.open}
+      />
+    </View>
+  );
 }
 
 function EditButton({ name, onPress }: { name: string; onPress: () => void }) {
@@ -182,23 +334,37 @@ function BlockedLineup({
   onFix: () => void;
   edit?: ReactNode;
 }) {
-  const name = fields.name.trim() || 'New event';
+  const name = fields.name.trim() || "New event";
   return (
     <Screen
       testID="lineup-blocked"
-      footer={<Notice>You can still save or publish this event. Talent can be added any time before the night.</Notice>}>
-      <ScreenHeader title="Lineup" subtitle={isDraft ? `${name} · draft` : name} right={edit} />
+      footer={
+        <Notice>
+          You can still save or publish this event. Talent can be added any time
+          before the night.
+        </Notice>
+      }
+    >
+      <ScreenHeader
+        title="Lineup"
+        subtitle={isDraft ? `${name} · draft` : name}
+        right={edit}
+      />
       <View style={styles.center}>
         <View style={styles.centerText}>
           <Text variant="headline" align="center" accessibilityRole="header">
             Set the night and the city first
           </Text>
           <Text tone="muted" align="center">
-            Gelatin shows DJs who are open on your event’s night in your event’s city. Add both, then come back here.
+            Gelatin shows DJs who are open on your event’s night in your event’s
+            city. Add both, then come back here.
           </Text>
         </View>
         <ChecklistCard fields={fields} onFix={onFix} />
-        <Button label={fields.date ? 'Add a location' : 'Add a date'} onPress={onFix} />
+        <Button
+          label={fields.date ? "Add a location" : "Add a date"}
+          onPress={onFix}
+        />
         <Text variant="helper" tone="muted" align="center">
           Browse talent unlocks as soon as both are set.
         </Text>
@@ -207,48 +373,90 @@ function BlockedLineup({
   );
 }
 
-function ChecklistCard({ fields, onFix }: { fields: EventFields; onFix: () => void }) {
+function ChecklistCard({
+  fields,
+  onFix,
+}: {
+  fields: EventFields;
+  onFix: () => void;
+}) {
   const c = useTheme();
   const rows = [
     {
-      title: 'Date & time',
+      title: "Date & time",
       done: !!fields.date,
-      meta: fields.date ? whenSummary(fields) : 'Add a date to see who’s open',
+      meta: fields.date ? whenSummary(fields) : "Add a date to see who’s open",
     },
     {
-      title: 'Location',
+      title: "Location",
       done: !!fields.city,
-      meta: fields.city ? locationSummary(fields) : 'Add a city to see who’s open',
+      meta: fields.city
+        ? locationSummary(fields)
+        : "Add a city to see who’s open",
     },
   ];
   return (
-    <View style={[styles.checklist, { borderColor: c.border, backgroundColor: c.card }]}>
+    <View
+      style={[
+        styles.checklist,
+        { borderColor: c.border, backgroundColor: c.card },
+      ]}
+    >
       {rows.map((r, i) => {
         const content = (
           <>
-            <View style={[styles.tick, { backgroundColor: r.done ? c.successBg : c.warningBg }]}>
+            <View
+              style={[
+                styles.tick,
+                { backgroundColor: r.done ? c.successBg : c.warningBg },
+              ]}
+            >
               {r.done ? (
                 <Check size={14} color={c.successText} strokeWidth={2.5} />
               ) : (
-                <AlertCircle size={14} color={c.warningText} strokeWidth={2.5} />
+                <AlertCircle
+                  size={14}
+                  color={c.warningText}
+                  strokeWidth={2.5}
+                />
               )}
             </View>
             <View style={styles.flex}>
               <Text variant="bodyStrong">{r.title}</Text>
-              <Text variant="secondary" tone={r.done ? 'muted' : 'warning'} numberOfLines={1}>
+              <Text
+                variant="secondary"
+                tone={r.done ? "muted" : "warning"}
+                numberOfLines={1}
+              >
                 {r.meta}
               </Text>
             </View>
-            {r.done ? null : <ChevronRight size={16} color={c.mutedText} strokeWidth={2} />}
+            {r.done ? null : (
+              <ChevronRight size={16} color={c.mutedText} strokeWidth={2} />
+            )}
           </>
         );
-        const rowStyle = [styles.checkRow, i > 0 ? { borderTopWidth: 1, borderTopColor: c.border } : null];
+        const rowStyle = [
+          styles.checkRow,
+          i > 0 ? { borderTopWidth: 1, borderTopColor: c.border } : null,
+        ];
         return r.done ? (
-          <View key={r.title} style={rowStyle} accessible accessibilityLabel={`${r.title}, done. ${r.meta}`}>
+          <View
+            key={r.title}
+            style={rowStyle}
+            accessible
+            accessibilityLabel={`${r.title}, done. ${r.meta}`}
+          >
             {content}
           </View>
         ) : (
-          <Pressable key={r.title} accessibilityRole="button" accessibilityLabel={`${r.title}. ${r.meta}`} onPress={onFix} style={rowStyle}>
+          <Pressable
+            key={r.title}
+            accessibilityRole="button"
+            accessibilityLabel={`${r.title}. ${r.meta}`}
+            onPress={onFix}
+            style={rowStyle}
+          >
             {content}
           </Pressable>
         );
@@ -277,10 +485,16 @@ function EmptyLineup({
       testID="lineup-empty"
       footer={
         <Notice title="No lineup right now?">
-          Create the event without talent and add DJs later. Nothing is sent and nothing is charged.
+          Create the event without talent and add DJs later. Nothing is sent and
+          nothing is charged.
         </Notice>
-      }>
-      <ScreenHeader title="Lineup" subtitle={[fields.name.trim() || 'New event', day, city].join(' · ')} right={edit} />
+      }
+    >
+      <ScreenHeader
+        title="Lineup"
+        subtitle={[fields.name.trim() || "New event", day, city].join(" · ")}
+        right={edit}
+      />
       <View style={styles.center}>
         <View style={[styles.badge, { backgroundColor: c.tint }]}>
           <Music size={30} color={c.brandText} strokeWidth={2} />
@@ -290,12 +504,17 @@ function EmptyLineup({
             No talent booked yet
           </Text>
           <Text tone="muted" align="center">
-            See which DJs are open on {day} in {city}. You offer a fee and hold your card, and you’re only charged if the
-            DJ accepts.
+            See which DJs are open on {day} in {city}. You offer a fee and hold
+            your card, and you’re only charged if the DJ accepts.
           </Text>
         </View>
         {browse.notice ? <Notice tone="warning">{browse.notice}</Notice> : null}
-        <Button label="Browse talent" loading={browse.pending} onPress={browse.open} style={styles.full} />
+        <Button
+          label="Browse talent"
+          loading={browse.pending}
+          onPress={browse.open}
+          style={styles.full}
+        />
         {savesDraft ? (
           <Text variant="helper" tone="muted" align="center">
             {SAVES_DRAFT_LINE}
@@ -315,17 +534,20 @@ function ActiveLineup({
   offers,
   edit,
   browse,
+  flow,
 }: {
   eventId: string;
   bookings: Booking[];
   offers: DraftOffer[];
   edit?: ReactNode;
   browse: Browse;
+  flow: ReturnType<typeof useOfferFlow>;
 }) {
   const c = useTheme();
   const actions = useDraftOfferActions(eventId);
   const polling = bookings.some((b) => shouldPoll(b.status));
-  const subtitle = bookings.length > 0 ? lineupSummary(bookings) : addedSummary(offers.length);
+  const subtitle =
+    bookings.length > 0 ? lineupSummary(bookings) : addedSummary(offers.length);
   const ready = canSendOffers(offers);
 
   const footer =
@@ -337,9 +559,15 @@ function ActiveLineup({
         <Button
           testID="send-offers"
           label={sendOffersLabel(offers.length)}
-          disabled={!ready}
-          accessibilityHint={ready ? undefined : 'Enter a fee for every DJ first'}
-          onPress={() => openLater('Review your offers', 'offer')}
+          disabled={!ready || flow.queued}
+          accessibilityHint={
+            ready ? undefined : "Enter a fee for every DJ first"
+          }
+          onPress={() => {
+            // The fee field may still have the keyboard up.
+            Keyboard.dismiss();
+            flow.start(offers);
+          }}
         />
         <Text variant="helper" tone="muted" align="center">
           {ATTRIBUTION}
@@ -348,7 +576,11 @@ function ActiveLineup({
     ) : undefined;
 
   return (
-    <Screen testID={bookings.length > 0 ? 'lineup-motion' : 'lineup-added'} footer={footer} contentStyle={styles.tight}>
+    <Screen
+      testID={bookings.length > 0 ? "lineup-motion" : "lineup-added"}
+      footer={footer}
+      contentStyle={styles.tight}
+    >
       <View style={styles.header}>
         <ScreenHeader
           title="Lineup"
@@ -366,8 +598,26 @@ function ActiveLineup({
         />
       </View>
       {browse.notice ? <Notice tone="warning">{browse.notice}</Notice> : null}
+      {flow.queued ? (
+        <Notice
+          icon={<WifiOff size={16} color={c.mutedText} strokeWidth={2} />}
+        >
+          {OFFLINE_OFFERS_NOTICE}
+        </Notice>
+      ) : null}
+      {flow.notice ? (
+        <Notice>
+          {flow.notice === "confirming" ? CONFIRMING_HOLD : PAYMENT_UNAVAILABLE}
+        </Notice>
+      ) : null}
       {bookings.map((b) => (
-        <BookingCard key={b.requestId} booking={b} />
+        <BookingCard
+          key={b.requestId}
+          booking={b}
+          onPay={() => flow.pay(b)}
+          paying={flow.payingId === b.requestId}
+          paymentFailed={flow.paymentFailed(b.requestId)}
+        />
       ))}
       {polling ? (
         <View style={styles.poll} testID="poll-line">
@@ -391,15 +641,44 @@ function ActiveLineup({
 
 const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
-  center: { flex: 1, justifyContent: 'center', gap: space.md },
-  centerText: { gap: space.sm, paddingHorizontal: space.sm, alignItems: 'center' },
-  badge: { width: 72, height: 72, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
-  full: { alignSelf: 'stretch' },
-  checklist: { borderWidth: 1, borderRadius: radius.card, overflow: 'hidden' },
-  checkRow: { flexDirection: 'row', alignItems: 'center', gap: space.row, padding: space.card, minHeight: 44 },
-  tick: { width: 28, height: 28, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  fill: { flex: 1 },
+  center: { flex: 1, justifyContent: "center", gap: space.md },
+  centerText: {
+    gap: space.sm,
+    paddingHorizontal: space.sm,
+    alignItems: "center",
+  },
+  badge: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+  },
+  full: { alignSelf: "stretch" },
+  checklist: { borderWidth: 1, borderRadius: radius.card, overflow: "hidden" },
+  checkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.row,
+    padding: space.card,
+    minHeight: 44,
+  },
+  tick: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   header: { marginBottom: space.sm },
-  headActions: { flexDirection: 'row', gap: space.sm },
-  poll: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  headActions: { flexDirection: "row", gap: space.sm },
+  poll: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
   tight: { gap: space.stack },
 });

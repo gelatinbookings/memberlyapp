@@ -2,7 +2,6 @@ import { router } from 'expo-router';
 
 /** What each later milestone brings, for the labelled stops still to build. */
 export const LATER = {
-  offer: { milestone: '5', note: 'The offer review and the card hold. Each DJ is a separate booking with its own hold.' },
   status: { milestone: '6', note: 'Booking status, other DJs open that night, and the hand-off to Gelatin.' },
   web: { milestone: '', note: 'Opens the existing Memberly web page in a browser sheet until a native version exists.' },
 } as const;

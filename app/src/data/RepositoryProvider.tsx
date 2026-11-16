@@ -77,6 +77,8 @@ export const queryKeys = {
   talentCount: (eventId: string, f: TalentFilters) => ['talent-count', eventId, f.budget, f.genre] as const,
   talentGenres: (eventId: string, budget: BudgetBand | null) => ['talent-genres', eventId, budget] as const,
   cityWaitlist: (city: string) => ['city-waitlist', city] as const,
+  offerQuote: (eventId: string, djId: string, offerCents: number) => ['offer-quote', eventId, djId, offerCents] as const,
+  passTypes: (eventId: string) => ['pass-types', eventId] as const,
 };
 
 export function useViewer() {
@@ -325,4 +327,33 @@ export function useCityWaitlist(city: string | undefined) {
       join.mutate();
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Offers and passes (GEL-1018, GEL-1036)
+
+/**
+ * The server's figures for one offer before it is sent: fee, Gelatin service
+ * fee and the total to hold. Asked again whenever the fee changes.
+ */
+export function useOfferQuote(eventId: string, djId: string | undefined, offerCents: number | null | undefined) {
+  const repo = useRepository();
+  const ready = !!djId && offerCents != null && offerCents > 0;
+  return useQuery({
+    queryKey: queryKeys.offerQuote(eventId, djId ?? '', offerCents ?? 0),
+    queryFn: () => repo.quoteOffer(eventId, djId!, offerCents!),
+    enabled: ready,
+    staleTime: 60_000,
+    retry: false,
+  });
+}
+
+/** The event's pass types, for the Get a pass sheet and the footer's Sold out. */
+export function usePassTypes(eventId: string | undefined) {
+  const repo = useRepository();
+  return useQuery({
+    queryKey: queryKeys.passTypes(eventId ?? ''),
+    queryFn: () => repo.getPassTypes(eventId ?? ''),
+    enabled: !!eventId,
+  });
 }

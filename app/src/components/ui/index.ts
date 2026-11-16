@@ -8,6 +8,7 @@ export { IconButton } from './IconButton';
 export { ListRow } from './ListRow';
 export { MoneySummary } from './MoneySummary';
 export { Notice } from './Notice';
+export { OverlaySheet } from './OverlaySheet';
 export { PassPill, Pill } from './Pill';
 export { PillButton } from './PillButton';
 export { Screen, useTabBarClearance } from './Screen';
