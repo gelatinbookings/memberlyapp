@@ -1,16 +1,25 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { AlertCircle, Check, ChevronRight, Music, Pencil, Plus, RefreshCw } from 'lucide-react-native';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button, ErrorState, IconButton, LoadingRows, Notice, Screen, ScreenHeader, Text } from '@/components/ui';
-import { useDraftOfferActions, useDraftOffers, useEventBookings, useOrganizerEvent } from '@/data/RepositoryProvider';
+import {
+  queryKeys,
+  useDraftOfferActions,
+  useDraftOffers,
+  useEventBookings,
+  useOrganizerEvent,
+  useRepository,
+  useSaveEvent,
+} from '@/data/RepositoryProvider';
 import type { Booking, DraftOffer, EventFields } from '@/data/types';
 import { lineupSummary } from '@/features/booking/lineupSummary';
 import { canSendOffers, sendOffersLabel } from '@/features/booking/offers';
 import { shouldPoll } from '@/features/booking/status';
 import { addedSummary, lineupUnlocked, locationSummary, whenSummary } from '@/features/events/completeness';
-import { useDraftFor } from '@/features/events/EventDraftProvider';
+import { useDraftFor, useEventDraft } from '@/features/events/EventDraftProvider';
 import { openLater } from '@/features/navigation/later';
 import { formatIsoDate } from '@/lib/dates';
 import { useTheme } from '@/theme/theme';
@@ -23,7 +32,14 @@ export const FEE_FOOTER = 'Each DJ is a separate booking with its own card hold.
 export const ATTRIBUTION = 'DJs, availability and rates from Gelatin';
 export const POLL_LINE = 'Updates every few seconds while a DJ is deciding.';
 
+export const SAVES_DRAFT_LINE = 'Browsing talent saves this event as a draft first, so Gelatin knows the night and city.';
+export const SAVE_FIRST_NOTICE = 'Save your new date or city first. Talent is matched to the night and city saved on this event.';
+export const SAVE_FAILED_NOTICE = 'Couldn’t save your draft, so talent can’t load yet. Try again.';
+
 export type LineupState = 'blocked' | 'empty' | 'lineup';
+
+/** What the Browse talent buttons need: the action, whether a save is running, and anything to say first. */
+type Browse = { open: () => void; pending: boolean; notice: string | null };
 
 /** Which Lineup screen to show: any booking or added DJ wins; otherwise the night and city decide. */
 export function lineupState(fields: Pick<EventFields, 'date' | 'city'>, bookings: unknown[], added: unknown[]): LineupState {
@@ -37,15 +53,24 @@ export function lineupState(fields: Pick<EventFields, 'date' | 'city'>, bookings
  * the Create New Event draft. `fromForm` is true when opened from that form.
  */
 export function LineupView({ eventId, fromForm = false }: { eventId: string; fromForm?: boolean }) {
-  const isNew = eventId === 'new';
-  const saved = isNew ? undefined : eventId;
-  const draft = useDraftFor(eventId);
-  const event = useOrganizerEvent(draft ? undefined : saved);
+  // A new event gets its id the first time Browse talent saves it as a draft.
+  const [savedAs, setSavedAs] = useState<string | null>(null);
+  const id = savedAs ?? eventId;
+  const isNew = id === 'new';
+  const saved = isNew ? undefined : id;
+  const draft = useDraftFor(id);
+  const { rekey } = useEventDraft();
+  const event = useOrganizerEvent(saved);
   const bookingsQ = useEventBookings(saved);
   const offersQ = useDraftOffers(saved);
+  const repo = useRepository();
+  const qc = useQueryClient();
+  const save = useSaveEvent();
+  const [saveFirst, setSaveFirst] = useState(false);
 
+  // The open draft wins over the saved event; the saved one only says what Gelatin will be asked for.
   const fields: EventFields | null = draft?.fields ?? event.data ?? null;
-  const loading = event.isLoading || bookingsQ.isLoading || offersQ.isLoading;
+  const loading = (!draft && event.isLoading) || bookingsQ.isLoading || offersQ.isLoading;
 
   if (loading) {
     return (
@@ -55,7 +80,7 @@ export function LineupView({ eventId, fromForm = false }: { eventId: string; fro
       </Screen>
     );
   }
-  if (event.isError || bookingsQ.isError || offersQ.isError) {
+  if ((!draft && event.isError) || bookingsQ.isError || offersQ.isError) {
     return (
       <Screen>
         <ScreenHeader title="Lineup" />
@@ -87,18 +112,52 @@ export function LineupView({ eventId, fromForm = false }: { eventId: string; fro
   // Date & time lives in the form. From Manage, open the form first so the change is saved with it.
   const editWhen = () => {
     if (draft) router.push('/organizer/events/when');
-    else router.push({ pathname: '/organizer/events/[id]/edit', params: { id: eventId, open: 'when' } });
+    else router.push({ pathname: '/organizer/events/[id]/edit', params: { id, open: 'when' } });
   };
 
   // From Manage, a round pencil opens Create New Event for this event; from the form, Back does.
-  const onEdit = !fromForm && !isNew ? () => router.push({ pathname: '/organizer/events/[id]/edit', params: { id: eventId } }) : undefined;
+  const onEdit = !fromForm && !isNew ? () => router.push({ pathname: '/organizer/events/[id]/edit', params: { id } }) : undefined;
   const edit = onEdit ? <EditButton name={fields.name} onPress={onEdit} /> : undefined;
+
+  // Browse talent (GEL-1012) reads the night and city from the saved event, so an unsaved one is saved as a draft first.
+  const toBrowse = (to: string) => router.push({ pathname: '/organizer/events/[id]/browse', params: { id: to } });
+  const openBrowse = async () => {
+    if (!draft) return toBrowse(id);
+    if (!isNew) {
+      const stored = event.data;
+      const nightChanged = !!stored && (stored.date !== draft.fields.date || stored.city?.id !== draft.fields.city?.id);
+      if (!nightChanged) return toBrowse(id);
+      // A live event's date is never changed behind the organizer's back.
+      if (stored.status === 'published') return setSaveFirst(true);
+    }
+    // A new event belongs to the organizer's community, as it does when the form saves it.
+    const communityId =
+      draft.communityId ||
+      (await qc
+        .ensureQueryData({ queryKey: queryKeys.organized, queryFn: () => repo.getOrganizedCommunities() })
+        .then((list) => list[0]?.id ?? '', () => ''));
+    save.mutate(
+      { id: saved, communityId, fields: draft.fields, publish: false },
+      {
+        onSuccess: (e) => {
+          rekey(e.id);
+          setSavedAs(e.id);
+          toBrowse(e.id);
+        },
+      },
+    );
+  };
+  const browse: Browse = {
+    open: openBrowse,
+    pending: save.isPending,
+    notice: save.isError ? SAVE_FAILED_NOTICE : saveFirst ? SAVE_FIRST_NOTICE : null,
+  };
 
   if (state === 'blocked') {
     return <BlockedLineup fields={fields} isDraft={!event.data || event.data.status === 'draft'} onFix={editWhen} edit={edit} />;
   }
-  if (state === 'empty') return <EmptyLineup fields={fields} edit={edit} />;
-  return <ActiveLineup eventId={eventId} bookings={bookings} offers={offers} edit={edit} />;
+  if (state === 'empty') return <EmptyLineup fields={fields} edit={edit} browse={browse} savesDraft={isNew} />;
+  return <ActiveLineup eventId={id} bookings={bookings} offers={offers} edit={edit} browse={browse} />;
 }
 
 function EditButton({ name, onPress }: { name: string; onPress: () => void }) {
@@ -198,7 +257,18 @@ function ChecklistCard({ fields, onFix }: { fields: EventFields; onFix: () => vo
   );
 }
 
-function EmptyLineup({ fields, edit }: { fields: EventFields; edit?: ReactNode }) {
+function EmptyLineup({
+  fields,
+  edit,
+  browse,
+  savesDraft,
+}: {
+  fields: EventFields;
+  edit?: ReactNode;
+  browse: Browse;
+  /** True for an event not saved yet: Browse talent saves it as a draft first. */
+  savesDraft: boolean;
+}) {
   const c = useTheme();
   const day = formatIsoDate(fields.date!);
   const city = fields.city!.name;
@@ -224,7 +294,13 @@ function EmptyLineup({ fields, edit }: { fields: EventFields; edit?: ReactNode }
             DJ accepts.
           </Text>
         </View>
-        <Button label="Browse talent" onPress={() => openLater('Browse talent', 'browse')} style={styles.full} />
+        {browse.notice ? <Notice tone="warning">{browse.notice}</Notice> : null}
+        <Button label="Browse talent" loading={browse.pending} onPress={browse.open} style={styles.full} />
+        {savesDraft ? (
+          <Text variant="helper" tone="muted" align="center">
+            {SAVES_DRAFT_LINE}
+          </Text>
+        ) : null}
         <Text variant="helper" tone="muted" align="center">
           {ATTRIBUTION}
         </Text>
@@ -238,11 +314,13 @@ function ActiveLineup({
   bookings,
   offers,
   edit,
+  browse,
 }: {
   eventId: string;
   bookings: Booking[];
   offers: DraftOffer[];
   edit?: ReactNode;
+  browse: Browse;
 }) {
   const c = useTheme();
   const actions = useDraftOfferActions(eventId);
@@ -281,12 +359,13 @@ function ActiveLineup({
               <IconButton
                 accessibilityLabel="Add more talent"
                 icon={<Plus size={18} color={c.foreground} strokeWidth={2} />}
-                onPress={() => openLater('Browse talent', 'browse')}
+                onPress={browse.open}
               />
             </View>
           }
         />
       </View>
+      {browse.notice ? <Notice tone="warning">{browse.notice}</Notice> : null}
       {bookings.map((b) => (
         <BookingCard key={b.requestId} booking={b} />
       ))}

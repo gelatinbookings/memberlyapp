@@ -77,6 +77,33 @@ export type Dj = {
   genres: string[];
   publishedRateCents: number | null;
   draw: Draw;
+  /** A short bio, when the catalog has one. */
+  bio?: string | null;
+};
+
+// ---------------------------------------------------------------------------
+// Talent catalog (GEL-1011, GEL-1012). Proxied from Gelatin by Memberly's backend.
+
+/** Gelatin's budget bands, exactly as the API accepts them. Private-rate DJs still sit in a band. */
+export type BudgetBand = 'under_300' | '300_to_600' | '600_to_1000' | '1000_plus';
+
+/** One budget band or any; one genre or any. */
+export type TalentFilters = { budget: BudgetBand | null; genre: string | null };
+
+export type TalentQuery = Partial<TalentFilters> & {
+  /** Opaque; from the previous page's `nextCursor`. */
+  cursor?: string | null;
+};
+
+/** One page of DJs open on the event's night in the event's city. */
+export type TalentPage = {
+  djs: Dj[];
+  /** Null on the last page. */
+  nextCursor: string | null;
+  /** False when Gelatin has no coverage in the event's city (`city_supported`). */
+  citySupported: boolean;
+  /** How many DJs match in all, when the server counts them. */
+  total?: number;
 };
 
 export type Booking = {

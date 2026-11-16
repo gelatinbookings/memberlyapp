@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/theme/theme';
@@ -20,10 +20,13 @@ export function BottomSheetFrame({
   children,
   style,
   padBottom = true,
+  grab,
 }: {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   padBottom?: boolean;
+  /** Touch handlers for the handle, when the sheet can be pulled down to close (see useSwipeToClose). */
+  grab?: ViewProps;
 }) {
   const c = useTheme();
   const insets = useSafeAreaInsets();
@@ -38,7 +41,14 @@ export function BottomSheetFrame({
         },
         style,
       ]}>
-      <SheetHandle />
+      {grab ? (
+        // A taller target around the 4px handle; the negative margins keep the layout as it was.
+        <View {...grab} style={styles.grab}>
+          <SheetHandle />
+        </View>
+      ) : (
+        <SheetHandle />
+      )}
       {children}
     </View>
   );
@@ -46,6 +56,7 @@ export function BottomSheetFrame({
 
 const styles = StyleSheet.create({
   handle: { width: 40, height: 4, borderRadius: radius.pill, alignSelf: 'center' },
+  grab: { paddingVertical: 10, marginVertical: -10 },
   sheet: {
     borderTopLeftRadius: radius.sheet,
     borderTopRightRadius: radius.sheet,

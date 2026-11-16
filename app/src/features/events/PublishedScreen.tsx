@@ -45,7 +45,15 @@ export function PublishedScreen({ eventId }: { eventId: string }) {
 
   const second =
     all.length === 0 ? (
-      <Button label="Add talent" onPress={() => openLater('Browse talent', 'browse')} style={styles.action} />
+      <Button
+        label="Add talent"
+        // Lineup first, then Browse talent over it, so closing Browse lands on the lineup.
+        onPress={() => {
+          router.push({ pathname: '/organizer/events/[id]/lineup', params: { id: e.id } });
+          router.push({ pathname: '/organizer/events/[id]/browse', params: { id: e.id } });
+        }}
+        style={styles.action}
+      />
     ) : unpaid ? (
       <Button label="Pay now" onPress={() => openLater(`Pay for ${unpaid.dj.name}`, 'offer')} style={styles.action} />
     ) : (

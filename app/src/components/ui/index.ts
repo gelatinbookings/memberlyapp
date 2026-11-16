@@ -18,6 +18,6 @@ export { Text } from './Text';
 export { TierPill } from './TierPill';
 export { ScreenHeader } from './ScreenHeader';
 export { SelectField } from './SelectField';
-export { Sheet } from './Sheet';
+export { Sheet, useSwipeToClose } from './Sheet';
 export { TextField } from './TextField';
 export { Toggle } from './Toggle';

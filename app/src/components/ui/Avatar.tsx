@@ -26,7 +26,8 @@ export function Avatar({ source, initials, size = 44, muted = false, accessibili
       <Image
         source={source}
         accessibilityLabel={accessibilityLabel}
-        style={[dims, muted ? styles.muted : null]}
+        // Muted ground while the photo loads.
+        style={[dims, { backgroundColor: c.muted }, muted ? styles.muted : null]}
         contentFit="cover"
       />
     );
@@ -37,7 +38,13 @@ export function Avatar({ source, initials, size = 44, muted = false, accessibili
       style={[styles.initials, dims, { backgroundColor: muted ? c.muted : c.tint }]}>
       <Text
         variant="secondaryStrong"
-        style={{ color: muted ? c.mutedText : c.brandText, fontFamily: font.bold, fontSize: Math.round(size * 0.3) }}>
+        // The line height follows the size, so large initials are not cut off.
+        style={{
+          color: muted ? c.mutedText : c.brandText,
+          fontFamily: font.bold,
+          fontSize: Math.round(size * 0.3),
+          lineHeight: Math.round(size * 0.3 * 1.3),
+        }}>
         {initials}
       </Text>
     </View>

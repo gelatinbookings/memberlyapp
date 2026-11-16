@@ -2,7 +2,7 @@
 
 The Memberly app for iPhone (Android to follow), built in React Native with Expo. Members find what's on tonight, get passes and show their Memberly Card at the door. Organizers run their community, create events and book DJs from Gelatin in the **Lineup** section of Create New Event.
 
-**Status, 6 Nov 2026:** milestones 1–3 run on the iPhone simulator with sample data. The organizer booking flow is in place up to the point where it calls the real backend. Nothing talks to a live service yet.
+**Status, 16 Nov 2026:** milestones 1–4 run on the iPhone simulator with sample data. An organizer can create an event, browse DJs for its night and city, and line up offers; sending offers and holding a card come next (M5). Nothing talks to a live service yet.
 
 ## Where to look
 
@@ -24,7 +24,7 @@ npx expo run:ios        # builds the development app into the iPhone simulator
 npx expo start --dev-client
 ```
 
-Sign-in is fake until the backend exists: any email works, code `1234` signs in, `0000` shows the expired message. Set `EXPO_PUBLIC_FAKE_SIGNED_IN=1` to skip sign-in. Checks: `npx tsc --noEmit`, `npx expo lint`, `npx jest` (133 tests).
+Sign-in is fake until the backend exists: any email works, code `1234` signs in, `0000` shows the expired message. Set `EXPO_PUBLIC_FAKE_SIGNED_IN=1` to skip sign-in. Checks: `npx tsc --noEmit`, `npx expo lint`, `npx jest` (180 tests).
 
 ## Projected delivery
 
@@ -39,7 +39,7 @@ gantt
     M1 Design tokens and components          :done,   m1, 2026-11-04, 2026-11-13
     M2 Shell, first run, member screens      :active, m2, 2026-11-04, 2026-11-27
     M3 Create New Event and Lineup           :done,   m3, 2026-11-04, 2026-12-04
-    M4 Browse talent, filters, DJ cards      :        m4, 2026-12-04, 2026-12-11
+    M4 Browse talent, filters, DJ cards      :done,   m4, 2026-11-14, 2026-12-11
     M5 Offer, card hold, pass checkout       :crit,   m5, 2026-12-11, 2026-12-18
     Holidays                                 :        hol, 2026-12-19, 2027-01-04
     M6 Status, alternates, Gelatin hand-off  :        m6, 2027-01-04, 2027-01-08
@@ -60,14 +60,14 @@ gantt
 | M1 Design tokens and shared components | 13 Nov | **Built**, in review |
 | M2 App shell, first run, member screens | 27 Nov | **Screens built** (Welcome with motion and video, sign-in, preferences, Home, Explore, Events, Card, Me). Face ID and token refresh to do |
 | M3 Create New Event with the Lineup section | 4 Dec | **Built**, in review |
-| M4 Browse talent, filters and DJ cards | 11 Dec | Next |
-| M5 Offer and card hold, native pass checkout | 18 Dec | Needs one answer from Gelatin (below) |
+| M4 Browse talent, filters and DJ cards | 11 Dec | **Built**, in review |
+| M5 Offer and card hold, native pass checkout | 18 Dec | Next. Needs one answer from Gelatin (below) |
 | M6 Status, alternates and the Gelatin hand-off | 8 Jan | |
 | M7 Public event lineup | 15 Jan | |
 | M8 Live through Memberly's backend (test mode) | 29 Jan | Needs the backend endpoints |
 | M9 Store readiness and the Atlanta pilot | **12 Feb 2027** | |
 
-**What sets the date.** The app is about three weeks ahead of plan on sample data. Pilot readiness on **12 Feb 2027** now depends on two things outside the app:
+**What sets the date.** The app is more than three weeks ahead of plan on sample data. Pilot readiness on **12 Feb 2027** now depends on two things outside the app:
 
 1. **Memberly's backend endpoints** (auth, member reads, organizer events, and the talent, booking and status proxies). They're specified in Linear with acceptance criteria, and need to start by mid-November to land before M8.
 2. **One answer from Gelatin before M5:** what `payment-sessions` returns for the native Stripe payment sheet (a PaymentIntent client secret, the publishable key and the account). The app and backend won't build against a guessed shape.

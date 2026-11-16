@@ -11,7 +11,7 @@ This is the **safe direction** chosen on 4 Nov 2026: Memberly at night (dark), a
 | 1 | Design tokens and shared components | Done |
 | 2 | App shell and navigation; sign-in, onboarding, Explore filters, Events, Memberly Card, Me (fake data) | Done |
 | 3 | Create New Event with the Lineup section (fake data) | Done |
-| 4 | Browse talent, filters, DJ cards | |
+| 4 | Browse talent, filters, DJ cards, DJ profile, talent edge states (fake data) | Done |
 | 5 | Offer and card hold | |
 | 6 | Status, alternates, hand-off to Gelatin | |
 | 7 | Public event lineup | |
@@ -50,6 +50,7 @@ src/
     booking/           Status mapping, money formatting, lineup summary, offer validation, status lines
     events/            Event rows, grouping, Create New Event (form, sections, calendar, draft context)
     lineup/            The Lineup section: blocked, empty, DJs added, in motion
+    talent/            Browse talent: DJ cards, Filters sheet, DJ profile sheet, edge states, dev simulation
     navigation/        Labelled placeholders for later milestones
     auth/              Session context, the sign-in gate, code entry, sheets, Welcome video backdrop
     preferences/       The four preference steps and the minimum-three rule
@@ -126,9 +127,48 @@ All run on the fake repository. Nothing calls Gelatin, nothing is charged.
 
 Deep links work for each, for example `memberly://organizer/events/e_warehouse_friday/lineup`.
 
-Sample events: **Warehouse Friday** has bookings in every in-motion state; **Long Table** has none (empty Lineup); **Late Service** is a draft with two DJs added and no offers sent (KOYO at his published rate, NIGHTFORM on a private rate with no fee yet).
+Sample events: **Warehouse Friday** has bookings in every in-motion state; **Long Table** has none (empty Lineup); **Late Service** is a draft with two DJs added and no offers sent (KOYO at the published rate, NIGHTFORM on a private rate with no fee yet); **River Street Social** (added in M4) is a draft in Savannah, where Gelatin has no DJs yet.
 
-Browse talent, Send offers, Pay now, Manage in Gelatin, Other DJs open that night and Access & passes open labelled placeholders for milestones 4, 5 and 6, or the web page until it is native. Screenshots: `docs/screenshots/m3/`.
+Send offers, Pay now, Manage in Gelatin, Other DJs open that night and Access & passes open labelled placeholders for milestones 5 and 6, or the web page until it is native. Screenshots: `docs/screenshots/m3/`.
+
+## Milestone 4: Browse talent (GEL-1012 to GEL-1015)
+
+Still the fake repository. Nothing calls Gelatin, nothing is sent to a DJ and nothing is charged.
+
+| Route | Screen | Issue |
+|---|---|---|
+| `/organizer/events/[id]/browse` | Browse talent, a full-screen modal over Lineup, opened by Lineup's **Browse talent** and **+** (and **Add talent** after publishing). DJ cards with photo or initials, tier, genres, draw, rate and **Add** / **Added**; Budget and Genre chips; pages of four by cursor with a quiet spinner row; **Done · N added** closes back to Lineup, which shows the added DJs with their offer fields | GEL-1012 |
+| (sheet on Browse) | Filters: the event's city and night shown locked, one budget band, one genre, **Show N DJs**, **Reset**. Dismissing the sheet (tap outside or pull down) changes nothing. When nothing matches, Browse says so and offers **Any budget · N**, **Any genre · N** and **Show all N** | GEL-1013 |
+| (sheet on Browse) | DJ profile: tap a card (not its button). Large photo, name, tier, genres, published rate or Private rate, 90-day draw, a short bio when there is one. **Add to lineup** adds and closes; once added the button reads **Added** and removes | GEL-1014 |
+| (states of Browse) | Loading skeletons, no DJs in this city with **Notify me**, catalog unavailable and offline with **Try again** | GEL-1015 |
+
+Deep link: `memberly://organizer/events/e_long_table/browse`.
+
+The screen only names the event. The repository works out the city and the night from the saved event (`getTalent(eventId, { budget, genre, cursor })`), which is how the backend will do it. So an event that has never been saved is saved as a draft the first time Browse talent opens from its Lineup, and a live event with an unsaved date or city change is asked to save first.
+
+### Sample catalog
+
+Ten invented Atlanta DJs across the four tiers and four budget bands, two with a private rate and two with no draw yet (`sampleCatalog` in `src/data/fakeRepository.ts`). KOYO and NIGHTFORM have photos; the rest show initials. The fake leaves out a DJ who is taken that night (OKTAVE on Sun, Nov 22) or who already holds a booking on the event, and never says why.
+
+### Reaching each state
+
+| State | How |
+|---|---|
+| Browse list, paging | Manage → **Long Table** → **Browse talent**. Scroll to load the next four |
+| Already added | Manage → **Late Service** → **+** (KOYO and NIGHTFORM show **Added**) |
+| Filters too tight | Filters → pick **Techno**, then **Under $300** → **Show 0 DJs** |
+| No DJs in this city | Manage → **River Street Social** (a draft in Savannah) → **Browse talent**, or `memberly://organizer/events/e_river_street/browse` |
+| Loading skeletons | `memberly://organizer/events/e_long_table/browse?simulate=loading` (holds for 12 seconds, then loads) |
+| Catalog unavailable | `memberly://organizer/events/e_long_table/browse?simulate=unavailable` (**Try again** keeps failing; close Browse and open it normally to recover) |
+| Offline | `memberly://organizer/events/e_long_table/browse?simulate=offline` (reconnects after 12 seconds and loads by itself). On a device, airplane mode does the same through `expo-network` |
+
+`simulate` works in development builds only and only acts on the fake repository (`src/features/talent/devSimulation.ts`). Open a deep link on the simulator with `xcrun simctl openurl booted "<link>"`. Tests set the same states through `createFakeRepository({ talentMode })`.
+
+None of these states touches Save or Publish. Screenshots: `docs/screenshots/m4/`.
+
+### What M8 needs for the live catalog
+
+`getTalent` → `GET /app/events/:id/talent?budget=&genre=&cursor=&limit=` (map `published_rate_cents`, `draw`, `next_cursor`, `city_supported`; throw `CatalogUnavailableError` on `503 catalog_unavailable`), `getTalentGenres` → `GET /app/talent/genres`, `joinCityWaitlist` → `POST /app/talent/city-waitlist`. Unsent offers (`addDraftOffer` and friends) have no endpoint in the issues yet.
 
 ## Setup
 
@@ -169,6 +209,8 @@ Milestone 2 adds: the sign-in gate's routing decision (signed out, needs onboard
 Covered so far: all eight booking statuses and their labels, actions and polling rule; money formatting (the app shows the server's total and never computes one); event times in the venue's time zone; the fake repository; and the StatusPill, Button and MoneySummary components.
 
 Milestone 3 adds: Create New Event completeness and the publish button's reason ("Add a date to publish"); "Ends the next morning" and the time-zone label ("Eastern Time, from the venue"), venue wall time to an instant across daylight saving; offer fee parsing and the fee-missing rule that disables **Send N offers**; the status money lines and the published-screen rows; save, publish and draft offers in the fake repository; and the Lineup screen rendering blocked, empty, DJs added and in motion (React Native Testing Library), plus the Create New Event form.
+
+Milestone 4 adds: the budget pills mapped to the API's band ids and the single-select filter state; the Filters sheet applying, resetting and changing nothing when dismissed; the too-tight state and its one-tap loosening; adding and removing across pages and the Lineup showing the result; `Private rate` and `Draw not yet established`; each card as one VoiceOver sentence; the DJ profile's add and remove; loading skeletons, the city with no coverage and Notify me called once, catalog unavailable with Try again, offline recovering on reconnect; and the fake repository deriving the city and the night from the saved event, paging by cursor and keeping private-rate DJs in their band.
 
 ## The test-mode booking flow (milestones 3–8)
 

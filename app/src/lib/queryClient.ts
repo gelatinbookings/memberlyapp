@@ -1,6 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
-import { focusManager, QueryClient } from '@tanstack/react-query';
+import { focusManager, onlineManager, QueryClient } from '@tanstack/react-query';
+
+import { subscribeOnline } from './network';
 
 export function createQueryClient(): QueryClient {
   return new QueryClient({
@@ -32,4 +34,22 @@ export function useAppStateFocus(): void {
     const sub = AppState.addEventListener('change', onAppStateChange);
     return () => sub.remove();
   }, []);
+}
+
+/**
+ * Ties TanStack Query's notion of "online" to the device's connection: reads
+ * pause while offline and run again by themselves when the connection returns.
+ */
+export function useOnlineSync(): void {
+  useEffect(() => {
+    onlineManager.setEventListener((setOnline) => subscribeOnline(setOnline));
+  }, []);
+}
+
+const subscribeToOnline = (onChange: () => void) => onlineManager.subscribe(onChange);
+const isOnline = () => onlineManager.isOnline();
+
+/** Whether reads can run right now, as TanStack Query sees it. */
+export function useQueryOnline(): boolean {
+  return useSyncExternalStore(subscribeToOnline, isOnline, isOnline);
 }

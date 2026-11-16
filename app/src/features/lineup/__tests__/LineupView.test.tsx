@@ -1,15 +1,79 @@
-import { fireEvent, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 
 import { createFakeRepository, sampleCities, sampleDjs } from '@/data/fakeRepository';
 import { EMPTY_FIELDS } from '@/features/events/completeness';
 import { renderWithProviders } from '@/test-utils/renderWithProviders';
 
-import { FEE_FOOTER, LineupView, POLL_LINE } from '../LineupView';
+import { FEE_FOOTER, LineupView, POLL_LINE, SAVE_FIRST_NOTICE, SAVES_DRAFT_LINE } from '../LineupView';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), dismissTo: jest.fn(), canGoBack: () => true },
   useLocalSearchParams: () => ({}),
 }));
+
+const { router } = jest.requireMock('expo-router') as { router: { push: jest.Mock } };
+
+describe('Lineup → Browse talent', () => {
+  beforeEach(() => router.push.mockClear());
+
+  it('opens Browse talent for the event from the empty state', async () => {
+    await renderWithProviders(<LineupView eventId="e_long_table" />);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Browse talent' }));
+    expect(router.push).toHaveBeenCalledWith({ pathname: '/organizer/events/[id]/browse', params: { id: 'e_long_table' } });
+    expect(screen.queryByText(SAVES_DRAFT_LINE)).toBeNull();
+  });
+
+  it('opens Browse talent from + once DJs are added', async () => {
+    await renderWithProviders(<LineupView eventId="e_late_service" />);
+    await fireEvent.press(await screen.findByRole('button', { name: 'Add more talent' }));
+    expect(router.push).toHaveBeenCalledWith({ pathname: '/organizer/events/[id]/browse', params: { id: 'e_late_service' } });
+  });
+
+  it('saves a new event as a draft first, so the night and city come from the saved event', async () => {
+    const repository = createFakeRepository({ delayMs: 0 });
+    await renderWithProviders(<LineupView eventId="new" fromForm />, {
+      repository,
+      draft: {
+        key: 'new',
+        communityId: '',
+        session: 't',
+        fields: { ...EMPTY_FIELDS, name: 'Day One', date: '2026-12-05', city: sampleCities[0] },
+      },
+    });
+    expect(await screen.findByText(SAVES_DRAFT_LINE)).toBeTruthy();
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Browse talent' })));
+    await waitFor(() => expect(router.push).toHaveBeenCalledTimes(1));
+    const { params } = router.push.mock.calls[0][0] as { params: { id: string } };
+    expect(params.id).not.toBe('new');
+    // The Lineup carries on under the saved id.
+    expect(await screen.findByText(/open on Sat, Dec 5 in Atlanta/)).toBeTruthy();
+    await act(async () => {
+      const saved = await repository.getOrganizerEvent(params.id);
+      expect(saved).toMatchObject({ name: 'Day One', status: 'draft', date: '2026-12-05', communityId: 'c_second_sundays' });
+      expect((await repository.getTalent(params.id)).citySupported).toBe(true);
+    });
+  });
+
+  it('asks a live event to save a changed night first, and never saves it silently', async () => {
+    const repository = createFakeRepository({ delayMs: 0 });
+    const saveEvent = jest.fn(repository.saveEvent);
+    await renderWithProviders(<LineupView eventId="e_long_table" fromForm />, {
+      repository: { ...repository, saveEvent },
+      draft: {
+        key: 'e_long_table',
+        communityId: 'c_second_sundays',
+        session: 't',
+        // Long Table is live on Sun, Nov 22; the open form has moved it a week.
+        fields: { ...EMPTY_FIELDS, name: 'Long Table', date: '2026-11-29', city: sampleCities[0], venue: 'Inman Park loft' },
+      },
+    });
+    const browse = await screen.findByRole('button', { name: 'Browse talent' });
+    await act(async () => fireEvent.press(browse));
+    expect(await screen.findByText(SAVE_FIRST_NOTICE)).toBeTruthy();
+    expect(saveEvent).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
+  });
+});
 
 describe('Lineup screen', () => {
   it('is blocked until the event has a night and a city', async () => {

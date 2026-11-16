@@ -1,5 +1,5 @@
 // expo-network's jest mock has no listener; tests are online unless they say otherwise.
-jest.mock('@/lib/network', () => ({ useOnline: jest.fn(() => true) }));
+jest.mock('@/lib/network', () => ({ useOnline: jest.fn(() => true), subscribeOnline: jest.fn(() => () => {}) }));
 
 // expo-video has no native player in Jest. A stand-in player records what the screen asks of it.
 jest.mock('expo-video', () => {

@@ -6,6 +6,8 @@ import type {
   CommunityOverview,
   DraftOffer,
   DraftOfferPatch,
+  Dj,
+  BudgetBand,
   ExploreQuery,
   ExploreResult,
   MemberCard,
@@ -18,6 +20,8 @@ import type {
   SendCodeInput,
   SendCodeResult,
   Session,
+  TalentPage,
+  TalentQuery,
   VerifyCodeResult,
   Viewer,
 } from './types';
@@ -91,6 +95,25 @@ export interface MemberlyRepository {
   getEventBookings(eventId: string): Promise<Booking[]>;
   /** DJs added to the lineup whose offers are not sent yet (fee and note). */
   getDraftOffers(eventId: string): Promise<DraftOffer[]>;
+  /** Add a DJ from Browse talent. The offer starts at the published rate, or empty for a private rate. */
+  addDraftOffer(eventId: string, dj: Dj): Promise<DraftOffer[]>;
   updateDraftOffer(eventId: string, djId: string, patch: DraftOfferPatch): Promise<DraftOffer[]>;
   removeDraftOffer(eventId: string, djId: string): Promise<DraftOffer[]>;
+
+  // Organizer: Browse talent (GEL-1011 to GEL-1015)
+
+  /**
+   * DJs open on the event's night in the event's city, one page at a time.
+   * The city and the date come from the stored event, never from the caller.
+   * HTTP: GET /app/events/:id/talent?budget=&genre=&cursor=&limit=
+   * Throws CatalogUnavailableError on 503 catalog_unavailable.
+   */
+  getTalent(eventId: string, query?: TalentQuery): Promise<TalentPage>;
+  /**
+   * Genres to offer in the Filters sheet, for the event's city and one budget band (or any).
+   * HTTP: GET /app/talent/genres?city=&budget=, the city resolved from the event.
+   */
+  getTalentGenres(eventId: string, budget: BudgetBand | null): Promise<string[]>;
+  /** Notify me when Gelatin opens in a city. Idempotent per organizer and city. HTTP: POST /app/talent/city-waitlist {city} */
+  joinCityWaitlist(city: string): Promise<void>;
 }

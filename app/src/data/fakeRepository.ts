@@ -4,10 +4,12 @@
  */
 import type { MemberlyRepository } from './repository';
 import { runExplore } from '@/features/explore/filters';
-import { addDays, endsNextMorning, formatIsoDate, zonedIso } from '@/lib/dates';
+import { addDays, endsNextMorning, formatIsoDate, zonedIso, type IsoDate } from '@/lib/dates';
 
+import { CatalogUnavailableError } from './errors';
 import type {
   Booking,
+  BudgetBand,
   City,
   Community,
   CommunityOverview,
@@ -24,6 +26,7 @@ import type {
   OrganizerEventDetail,
   Preferences,
   Session,
+  TalentPage,
   Viewer,
 } from './types';
 
@@ -95,6 +98,7 @@ export const sampleDjs: Record<string, Dj> = {
     genres: ['House', 'Afrobeats'],
     publishedRateCents: 45000,
     draw: { min: 180, max: 260, average: 215 },
+    bio: 'Atlanta resident with 6 years on the circuit. Peak-time sets that move between house, Afrobeats and amapiano without losing the floor.',
   },
   nightform: {
     id: 'dj_nightform',
@@ -105,6 +109,7 @@ export const sampleDjs: Record<string, Dj> = {
     genres: ['Techno', 'Bass'],
     publishedRateCents: null,
     draw: { min: 240, max: 330, average: 281 },
+    bio: 'Warehouse techno and heavy low end. Builds long, patient sets for rooms that stay late.',
   },
   blkmtn: {
     id: 'dj_blkmtn',
@@ -123,8 +128,133 @@ export const sampleDjs: Record<string, Dj> = {
     genres: ['Soul', 'Disco'],
     publishedRateCents: 27500,
     draw: null,
+    bio: 'Soul and disco on vinyl. New to the catalog, with a growing Sunday following.',
   },
 };
+
+/** A catalog row: the DJ plus what Gelatin knows and the app never sees (city, band, nights already taken). */
+type CatalogDj = Dj & {
+  city: string;
+  /** Gelatin assigns the band, so a private-rate DJ still sits in one. */
+  band: BudgetBand;
+  /** Nights this DJ is not open. The app is never told why. */
+  takenOn?: IsoDate[];
+};
+
+/** Cities the fake catalog covers. Anywhere else answers `citySupported: false`. */
+export const TALENT_CITIES = ['Atlanta'];
+
+/** DJs per page. Small, so paging shows with ten DJs. The backend caps a page at 20. */
+export const TALENT_PAGE_SIZE = 4;
+
+const inAtlanta = (dj: Dj, band: BudgetBand, takenOn?: IsoDate[]): CatalogDj => ({ ...dj, city: 'Atlanta', band, ...(takenOn ? { takenOn } : null) });
+
+/** Ten invented Atlanta DJs across tiers, bands and genres, with two private rates and two unknown draws. */
+export const sampleCatalog: CatalogDj[] = [
+  inAtlanta(sampleDjs.koyo, '300_to_600'),
+  inAtlanta(sampleDjs.nightform, '600_to_1000'),
+  inAtlanta(sampleDjs.blkmtn, '300_to_600'),
+  inAtlanta(sampleDjs.sable, 'under_300'),
+  inAtlanta(
+    {
+      id: 'dj_mara_sol',
+      name: 'Mara Sol',
+      initials: 'MS',
+      tier: 'Verified',
+      genres: ['Amapiano', 'Afrobeats'],
+      publishedRateCents: 25000,
+      draw: { min: 60, max: 110, average: 85 },
+      bio: 'Daytime amapiano and Afrobeats. Warm-up sets that fill a patio early.',
+    },
+    'under_300',
+  ),
+  inAtlanta(
+    {
+      id: 'dj_oktave',
+      name: 'OKTAVE',
+      initials: 'OK',
+      tier: 'Resident',
+      genres: ['House', 'Disco'],
+      publishedRateCents: 55000,
+      draw: { min: 140, max: 190, average: 160 },
+    },
+    '300_to_600',
+    // Not open on the Sunday of Long Table.
+    ['2026-11-22'],
+  ),
+  inAtlanta(
+    {
+      id: 'dj_juno_vale',
+      name: 'Juno Vale',
+      initials: 'JV',
+      tier: 'Top performer',
+      genres: ['R&B', 'Soul'],
+      publishedRateCents: 70000,
+      draw: { min: 200, max: 280, average: 240 },
+      bio: 'R&B edits and deep soul cuts, mixed for rooms that want to sing along.',
+    },
+    '600_to_1000',
+  ),
+  inAtlanta(
+    {
+      id: 'dj_lowtide',
+      name: 'LOWTIDE',
+      initials: 'LT',
+      tier: 'City pillar',
+      genres: ['Techno', 'House'],
+      publishedRateCents: 120000,
+      draw: { min: 320, max: 450, average: 390 },
+      bio: 'Fifteen years of Atlanta warehouse nights. Closes the room.',
+    },
+    '1000_plus',
+  ),
+  inAtlanta(
+    {
+      id: 'dj_priya_nox',
+      name: 'Priya Nox',
+      initials: 'PN',
+      tier: 'Verified',
+      genres: ['Bass', 'Jersey club'],
+      publishedRateCents: null,
+      draw: null,
+    },
+    'under_300',
+  ),
+  inAtlanta(
+    {
+      id: 'dj_caro_lumen',
+      name: 'Caro Lumen',
+      initials: 'CL',
+      tier: 'Top performer',
+      genres: ['Afrobeats', 'Amapiano'],
+      publishedRateCents: 150000,
+      draw: { min: 400, max: 520, average: 465 },
+      bio: 'Festival-scale Afrobeats and amapiano, scaled down for a club floor.',
+    },
+    '1000_plus',
+  ),
+];
+
+/** What the app receives: the catalog row without Gelatin's private columns. */
+function publicDj({ city: _city, band: _band, takenOn: _takenOn, ...dj }: CatalogDj): Dj {
+  return dj;
+}
+
+/** `ok` answers; `unavailable` is 503 catalog_unavailable; `loading` holds the answer back for a while. */
+export type TalentSimulation = 'ok' | 'unavailable' | 'loading';
+
+/** How long `loading` keeps the skeletons up, in the design build. */
+export const TALENT_LOADING_HOLD_MS = 12_000;
+
+let devTalentMode: TalentSimulation = 'ok';
+
+/** Dev-only switch for demos (see README): the next talent reads behave this way on every fake repository. */
+export function setFakeTalentMode(mode: TalentSimulation): void {
+  devTalentMode = mode;
+}
+
+/** A booking that still holds the DJ for the night. */
+const OPEN_BOOKING: Booking['status'][] = ['authorization_required', 'requested', 'negotiating', 'reauthorization_required', 'confirmed'];
 
 export const sampleEvents: MemberEvent[] = [
   {
@@ -373,6 +503,7 @@ export const sampleCities: City[] = [
 ];
 
 const atlanta = sampleCities[0];
+const savannah = sampleCities[1];
 
 type StoredEvent = {
   id: string;
@@ -437,6 +568,24 @@ function seedEvents(): StoredEvent[] {
         city: atlanta,
       },
     },
+    {
+      // A draft in a city Gelatin does not book yet: Browse talent answers "No DJs in Savannah yet".
+      id: 'e_river_street',
+      communityId: 'c_second_sundays',
+      status: 'draft',
+      salesLabel: null,
+      fields: {
+        name: 'River Street Social',
+        tagline: '',
+        description: '',
+        cover: img.rooftop,
+        date: '2026-12-05',
+        startTime: '20:00',
+        endTime: '01:00',
+        venue: 'River Street loft',
+        city: savannah,
+      },
+    },
   ];
 }
 
@@ -498,6 +647,8 @@ export type FakeRepositoryOptions = {
   signedIn?: boolean;
   /** Where the session is kept: expo-secure-store in the app, memory in tests. */
   storage?: KeyValueStorage;
+  /** How talent reads behave, asked on every call. Tests flip it; the app uses the dev switch. */
+  talentMode?: () => TalentSimulation;
 };
 
 export function createFakeRepository(options: FakeRepositoryOptions = {}): MemberlyRepository {
@@ -538,6 +689,36 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): Membe
 
   const find = (id: string) => events.find((e) => e.id === id);
   const offers = (eventId: string) => (offersByEvent[eventId] ??= []);
+  const waitlist = new Set<string>();
+
+  /** The night and city of a stored event. Talent is always read through this, never from the caller. */
+  const nightOf = (eventId: string) => {
+    const e = find(eventId);
+    if (!e) throw new Error(`No event ${eventId}`);
+    const { date, city } = e.fields;
+    if (!date || !city) throw new Error('Set the night and the city first');
+    return { date, city: city.name };
+  };
+  /** DJs open on the event's night in its city, before budget and genre. */
+  const openDjs = (eventId: string): CatalogDj[] => {
+    const { date, city } = nightOf(eventId);
+    const held = new Set(
+      (bookingsByEvent[eventId] ?? []).filter((b) => OPEN_BOOKING.includes(b.status)).map((b) => b.dj.id),
+    );
+    return sampleCatalog.filter((dj) => dj.city === city && !dj.takenOn?.includes(date) && !held.has(dj.id));
+  };
+  /** Catalog reads: fail, stall or answer, as the simulation says. */
+  const catalog = async <T,>(read: () => T, firstPage = false): Promise<T> => {
+    const mode = options.talentMode?.() ?? devTalentMode;
+    if (mode === 'unavailable') {
+      await later(undefined, delay);
+      throw new CatalogUnavailableError();
+    }
+    // Only the first page stalls, so the skeletons show and paging stays quick.
+    if (mode === 'loading' && firstPage) await later(undefined, TALENT_LOADING_HOLD_MS);
+    // A touch slower than the rest, so the paging row is visible.
+    return later(read(), delay * 2);
+  };
 
   const organizerRow = (e: StoredEvent): OrganizerEvent => ({
     id: e.id,
@@ -686,6 +867,15 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): Membe
 
     getEventBookings: (eventId) => later([...(bookingsByEvent[eventId] ?? [])], delay),
     getDraftOffers: (eventId) => later([...offers(eventId)], delay),
+    addDraftOffer: (eventId, dj) => {
+      if (!offers(eventId).some((o) => o.dj.id === dj.id)) {
+        // The rate comes from the catalog, not from what the caller sent.
+        const row = sampleCatalog.find((c) => c.id === dj.id);
+        const listed = row ? publicDj(row) : dj;
+        offersByEvent[eventId] = [...offers(eventId), { dj: listed, offerCents: listed.publishedRateCents, note: '' }];
+      }
+      return later([...offers(eventId)], delay);
+    },
     updateDraftOffer: (eventId, djId, patch) => {
       offersByEvent[eventId] = offers(eventId).map((o) => (o.dj.id === djId ? { ...o, ...patch } : o));
       return later([...offersByEvent[eventId]], delay);
@@ -693,6 +883,35 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): Membe
     removeDraftOffer: (eventId, djId) => {
       offersByEvent[eventId] = offers(eventId).filter((o) => o.dj.id !== djId);
       return later([...offersByEvent[eventId]], delay);
+    },
+
+    getTalent: (eventId, { budget = null, genre = null, cursor = null } = {}) =>
+      catalog((): TalentPage => {
+        const { city } = nightOf(eventId);
+        if (!TALENT_CITIES.includes(city)) return { djs: [], nextCursor: null, citySupported: false, total: 0 };
+        const matches = openDjs(eventId).filter(
+          (dj) => (!budget || dj.band === budget) && (!genre || dj.genres.includes(genre)),
+        );
+        // The cursor is opaque to the app; here it is just where the next page starts.
+        const start = cursor ? Number(cursor.replace('after:', '')) || 0 : 0;
+        const end = start + TALENT_PAGE_SIZE;
+        return {
+          djs: matches.slice(start, end).map(publicDj),
+          nextCursor: end < matches.length ? `after:${end}` : null,
+          citySupported: true,
+          total: matches.length,
+        };
+      }, !cursor),
+    getTalentGenres: (eventId, budget) =>
+      catalog(() => {
+        const { city } = nightOf(eventId);
+        const inBand = sampleCatalog.filter((dj) => dj.city === city && (!budget || dj.band === budget));
+        return [...new Set(inBand.flatMap((dj) => dj.genres))];
+      }),
+    joinCityWaitlist: (city) => {
+      // Idempotent: asking twice for the same city is one entry.
+      waitlist.add(city);
+      return later(undefined, delay);
     },
   };
 }

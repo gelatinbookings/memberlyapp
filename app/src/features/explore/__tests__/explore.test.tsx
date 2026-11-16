@@ -52,7 +52,11 @@ describe('explore filter counts', () => {
 
   it('shows the live count in the sheet and Reset brings it back', async () => {
     await renderWithProviders(<ExploreScreen />);
-    await act(async () => fireEvent.press(await screen.findByTestId('explore-filter-button')));
+    // The sheet starts from the member's city, so let the screen load before opening it.
+    await screen.findByText('Top communities this week');
+    // Wait first, then press: a wait inside act() cannot see updates that act() is holding back.
+    const filterButton = await screen.findByTestId('explore-filter-button');
+    await act(async () => fireEvent.press(filterButton));
     const sheet = await screen.findByTestId('explore-filters');
     expect(await within(sheet).findByRole('button', { name: 'Show 12 communities' })).toBeTruthy();
     expect(within(sheet).getAllByText('Any').length).toBe(3);
@@ -69,10 +73,13 @@ describe('explore filter counts', () => {
 describe('explore filters sheet, applied', () => {
   it('applies the picks to a results list and reopens with them', async () => {
     await renderWithProviders(<ExploreScreen />);
-    await act(async () => await fireEvent.press(await screen.findByTestId('explore-filter-button')));
+    await screen.findByText('Top communities this week');
+    const filterButton = await screen.findByTestId('explore-filter-button');
+    await act(async () => await fireEvent.press(filterButton));
     let sheet = await screen.findByTestId('explore-filters');
     await act(async () => await fireEvent.press(within(sheet).getByRole('button', { name: 'Techno' })));
-    await act(async () => await fireEvent.press(await within(sheet).findByRole('button', { name: 'Show 1 community' })));
+    const show = await within(sheet).findByRole('button', { name: 'Show 1 community' });
+    await act(async () => await fireEvent.press(show));
     expect(await screen.findByTestId('community-row-c_bass_church')).toBeTruthy();
     await act(async () => await fireEvent.press(screen.getByTestId('explore-filter-button')));
     sheet = await screen.findByTestId('explore-filters');

@@ -12,7 +12,7 @@ import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { useAuthGate } from '@/features/auth/useAuthGate';
 import { EventDraftProvider } from '@/features/events/EventDraftProvider';
 import { AnimatedSplash, LaunchProvider } from '@/features/launch/AnimatedSplash';
-import { createQueryClient, useAppStateFocus } from '@/lib/queryClient';
+import { createQueryClient, useAppStateFocus, useOnlineSync } from '@/lib/queryClient';
 import { ThemeProvider } from '@/theme/theme';
 import { darkPalette, font } from '@/theme/tokens';
 
@@ -71,6 +71,8 @@ function Screens() {
       <Stack.Screen name="card" />
       <Stack.Screen name="tonight" />
       <Stack.Screen name="event/[id]" />
+      {/* Browse talent rises over Lineup as its own full-screen modal and closes back to it. */}
+      <Stack.Screen name="organizer/events/[id]/browse" options={{ presentation: 'fullScreenModal' }} />
       <Stack.Screen name="later" />
       <Stack.Screen name="kit" />
     </Stack>
@@ -80,6 +82,7 @@ function Screens() {
 export default function RootLayout() {
   const [queryClient] = useState(createQueryClient);
   useAppStateFocus();
+  useOnlineSync();
 
   const [fontsLoaded, fontError] = useFonts({
     [font.regular]: require('@/assets/fonts/Inter-Regular.ttf'),

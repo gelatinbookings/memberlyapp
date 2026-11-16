@@ -26,7 +26,10 @@ export function renderWithProviders(
     signedIn = true,
   }: { repository?: MemberlyRepository; draft?: EventDraft | null; storage?: KeyValueStorage; signedIn?: boolean } = {},
 ) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  // No garbage-collection timers (queries or mutations), so nothing outlives a test run.
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { gcTime: Infinity } },
+  });
   const repo = repository ?? createFakeRepository({ delayMs: 0, storage, signedIn });
   return render(
     <SafeAreaProvider initialMetrics={metrics}>
