@@ -51,8 +51,7 @@ export default function TonightScreen() {
   }
 
   return (
-    <Screen>
-      {header}
+    <Screen header={header}>
       <View style={styles.titles}>
         <Text variant="display" accessibilityRole="header">
           Tonight{city ? ` in ${city}` : ''}

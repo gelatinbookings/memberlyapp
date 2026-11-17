@@ -11,7 +11,7 @@ export { Notice } from './Notice';
 export { OverlaySheet } from './OverlaySheet';
 export { PassPill, Pill } from './Pill';
 export { PillButton } from './PillButton';
-export { Screen, useTabBarClearance } from './Screen';
+export { Screen, useScrollIntoView, useTabBarClearance } from './Screen';
 export { SectionHeader } from './SectionHeader';
 export { ErrorState, LoadingRows, Skeleton, Spinner } from './StateViews';
 export { Fab, FAB_SIZE } from './Fab';

@@ -272,7 +272,48 @@ export type EventFields = {
   endTime: WallTime | null;
   venue: string;
   city: City | null;
+  /**
+   * The venue picked from search, from Gelatin's list or Google's. It fills in
+   * the address and the city, and the city brings the time zone. Null or
+   * missing for a venue typed by hand, which takes its city from the picker.
+   */
+  place?: Venue | null;
+  /** How the event repeats from its date. Null or missing: it happens once. */
+  recurrence?: Recurrence | null;
 };
+
+/**
+ * weekly: same weekday every week. biweekly: every other week.
+ * monthly: same weekday position each month, e.g. the third Friday.
+ */
+export type RecurrenceFrequency = 'weekly' | 'biweekly' | 'monthly';
+
+export type Recurrence = {
+  frequency: RecurrenceFrequency;
+  /** How many dates in all, counting the first. Null: no end date. */
+  count: number | null;
+};
+
+/** Where a venue in search came from: Gelatin's database, or Google's public places. */
+export type VenueSource = 'gelatin' | 'google';
+
+/** A venue from search. The backend fills it in; the app never geocodes. */
+export type Venue = {
+  /** Gelatin's venue id, or the Google place id. */
+  id: string;
+  source: VenueSource;
+  name: string;
+  /** The street line, e.g. "540 Mitchell St SW". */
+  street: string;
+  /** City, state and IANA time zone of the venue. */
+  city: City;
+  postalCode: string;
+  /** Gelatin venues only, when known. */
+  capacity?: number;
+};
+
+/** A venue search: Gelatin's matches first, then Google's, at most five each. */
+export type VenueResults = { gelatin: Venue[]; google: Venue[] };
 
 export type OrganizerEventDetail = EventFields & {
   id: string;
@@ -301,9 +342,15 @@ export type DraftOffer = {
   /** Whole dollars in cents; null until the organizer enters a fee. */
   offerCents: number | null;
   note: string;
+  /**
+   * The set, wall clock at the venue. Missing until the organizer sets one;
+   * until then Lineup suggests sets from the event's start.
+   */
+  setStart?: WallTime | null;
+  setEnd?: WallTime | null;
 };
 
-export type DraftOfferPatch = Partial<Pick<DraftOffer, 'offerCents' | 'note'>>;
+export type DraftOfferPatch = Partial<Pick<DraftOffer, 'offerCents' | 'note' | 'setStart' | 'setEnd'>>;
 
 // ---------------------------------------------------------------------------
 // Sending an offer and holding the card (GEL-1016, GEL-1018, GEL-1019)
@@ -324,6 +371,9 @@ export type CreateOfferInput = {
   djId: string;
   offerCents: number;
   note: string;
+  /** The set, wall clock at the venue; the booking's `setTime` is worded from it. */
+  setStart?: WallTime | null;
+  setEnd?: WallTime | null;
   /**
    * Generated on the device and kept in secure storage until the response
    * arrives, so a retry after a timeout or a cold start is the same request.
@@ -388,6 +438,80 @@ export type PassOrder = {
 
 /** A task on Manage's "Finish setting up" card. */
 export type SetupTask = { id: string; title: string; detail: string; actionLabel: string };
+
+/** `past_due`: the last renewal failed and Stripe is retrying. */
+export type MemberStatus = 'active' | 'past_due';
+
+/** One member as the organizer sees them. Labels are worded by the server. */
+export type CommunityMember = {
+  id: string;
+  name: string;
+  initials: string;
+  photo?: ImageAsset | null;
+  /** The tier they hold, e.g. "Inner Circle". */
+  tier: string;
+  /** "Joined Oct 12", "Joined Mar 2025". */
+  joinedLabel: string;
+  status: MemberStatus;
+  /** The organizer themself. */
+  isYou?: boolean;
+};
+
+export type MembersQuery = { query?: string; tier?: string | null; cursor?: string | null };
+
+export type CommunityMembers = {
+  /** Everyone in the community, whatever the filter. */
+  total: number;
+  /** How many hold each tier, for the filter chips. */
+  tiers: { name: string; count: number }[];
+  /** How many match the search and tier filter. */
+  matching: number;
+  members: CommunityMember[];
+  /** Null on the last page. */
+  nextCursor: string | null;
+};
+
+/** A message sent to members (push and email), as the server words it. */
+export type Announcement = {
+  id: string;
+  body: string;
+  /** "All members" or a tier name. */
+  audienceLabel: string;
+  /** "Sent to 1,204 members". */
+  reachLabel: string;
+  /** "Today, 2:14 PM", "Nov 9". */
+  sentLabel: string;
+};
+
+export type CommunityMarketing = {
+  /** The community's public page. */
+  pageUrl: string;
+  announcements: Announcement[];
+};
+
+export type SendAnnouncementInput = {
+  body: string;
+  /** Null sends to every member; a tier name sends to that tier only. */
+  tier: string | null;
+  idempotencyKey: string;
+};
+
+/**
+ * A community's Stripe account for payouts (Stripe Connect, Express).
+ * `incomplete`: onboarding was started and left before the end.
+ */
+export type StripeAccountStatus = 'not_connected' | 'incomplete' | 'connected';
+
+export type StripeAccount = {
+  status: StripeAccountStatus;
+  /** Where payouts go, worded by the server: "STRIPE TEST BANK ••••6789". Null until connected. */
+  payoutsTo: string | null;
+  /** Worded by the server: "Weekly, on Mondays". Null until connected. */
+  payoutSchedule: string | null;
+};
+
+/** A one-time Stripe onboarding link (an Account Link). It expires in minutes and opens once. */
+export type StripeOnboardingLink = { url: string; expiresAt: string };
 
 /** How people join: free, or a named membership at a monthly price. */
 /** One paid membership tier, as the organizer sets it up. */

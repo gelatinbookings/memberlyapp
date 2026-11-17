@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Clock, Image as ImageIcon, MapPin, Music, Ticket } from 'lucide-react-native';
+import { Clock, Image as ImageIcon, MapPin, Ticket } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -8,7 +8,6 @@ import { Button, ErrorState, LoadingRows, Notice, Screen, ScreenHeader, Sheet } 
 import { isRepositoryError } from '@/data/errors';
 import {
   fetchEventBookings,
-  useDraftOffers,
   useEventBookings,
   useOrganizedCommunities,
   useOrganizerEvent,
@@ -26,7 +25,6 @@ import {
   detailsComplete,
   detailsSummary,
   EMPTY_FIELDS,
-  lineupCardSummary,
   locationComplete,
   locationSummary,
   publishBlocker,
@@ -39,12 +37,9 @@ import { DateChangeHost, useDateChangeGuard } from './DateChangeGuard';
 import { useEventDraft } from './EventDraftProvider';
 import { SectionCard } from './SectionCard';
 
-export const NO_LINEUP_NOTICE =
-  'You can publish without a lineup. Nothing is sent to a DJ and nothing is charged until you pay for an offer.';
-
 function fieldsOf(e: OrganizerEventDetail): EventFields {
-  const { name, tagline, description, cover, date, startTime, endTime, venue, city } = e;
-  return { name, tagline, description, cover, date, startTime, endTime, venue, city };
+  const { name, tagline, description, cover, date, startTime, endTime, venue, city, place, recurrence } = e;
+  return { name, tagline, description, cover, date, startTime, endTime, venue, city, place: place ?? null, recurrence: recurrence ?? null };
 }
 
 function backToManage() {
@@ -60,8 +55,9 @@ export const ACCESS_EMPTY_SUMMARY = 'Who can come, and what it costs';
 
 /**
  * Create New Event (GEL-1008), shared by /organizer/events/new and
- * /organizer/events/[id]/edit. Five sections; Lineup and Access & passes never
- * block publishing. `open="when"` jumps straight to Date & time. A new event
+ * /organizer/events/[id]/edit. Four sections; Access & passes never blocks
+ * publishing. Lineup is not part of creating an event: it is an add-on, opened
+ * from the event's row in Manage or from Published once the event exists. `open="when"` jumps straight to Date & time. A new event
  * is saved under `communityId` (chosen in the Create sheet), or the
  * organizer's first community.
  */
@@ -96,7 +92,6 @@ export function EventFormScreen({ eventId, open, communityId }: { eventId?: stri
   const key = draft?.key;
   const savedId = key && key !== 'new' ? key : undefined;
   const bookings = useEventBookings(savedId);
-  const offers = useDraftOffers(savedId);
   const passes = useOrganizerEventPasses(savedId);
   // Date & time stops a date change that a booking forbids. This is for the save the server still turns down.
   const storedDate = persisted.data?.date ?? null;
@@ -116,24 +111,21 @@ export function EventFormScreen({ eventId, open, communityId }: { eventId?: stri
 
   if (eventId && persisted.isError) {
     return (
-      <Screen>
-        {header}
+      <Screen header={header}>
         <ErrorState title="Couldn’t load this event" onRetry={() => persisted.refetch()} />
       </Screen>
     );
   }
   if (eventId && persisted.isSuccess && !persisted.data) {
     return (
-      <Screen>
-        {header}
+      <Screen header={header}>
         <ErrorState title="This event isn’t available" detail="It may have been removed." />
       </Screen>
     );
   }
   if (!started || !draft) {
     return (
-      <Screen>
-        {header}
+      <Screen header={header}>
         <LoadingRows count={5} label="Loading the event" />
       </Screen>
     );
@@ -142,7 +134,6 @@ export function EventFormScreen({ eventId, open, communityId }: { eventId?: stri
   const f = draft.fields;
   const blocker = publishBlocker(f);
   const isLive = persisted.data?.status === 'published';
-  const lineupKey = draft.key;
 
   const passList = passes.data ?? [];
   // Passes belong to a saved event: a new one is saved as a draft first, as Browse talent does.
@@ -191,6 +182,7 @@ export function EventFormScreen({ eventId, open, communityId }: { eventId?: stri
   return (
     <View style={styles.fill}>
     <Screen
+      header={header}
       testID="event-form"
       contentStyle={styles.content}
       footer={
@@ -223,7 +215,6 @@ export function EventFormScreen({ eventId, open, communityId }: { eventId?: stri
           </View>
         </>
       }>
-      {header}
       <View style={styles.sections}>
         <SectionCard
           testID="section-details"
@@ -250,25 +241,15 @@ export function EventFormScreen({ eventId, open, communityId }: { eventId?: stri
           onPress={() => router.push({ pathname: '/organizer/events/when', params: { focus: 'location' } })}
         />
         <SectionCard
-          testID="section-lineup"
-          title={SECTION_TITLES.lineup}
-          summary={lineupCardSummary(f, bookings.data ?? [], offers.data ?? [])}
-          Icon={Music}
-          state="new"
-          onPress={() =>
-            router.push({ pathname: '/organizer/events/[id]/lineup', params: { id: lineupKey, from: 'form' } })
-          }
-        />
-        <SectionCard
           testID="section-access"
           title={SECTION_TITLES.access}
           summary={passesSummary(passList) ?? ACCESS_EMPTY_SUMMARY}
           Icon={Ticket}
           state={passList.some((p) => p.active) ? 'done' : 'todo'}
+          optional
           onPress={openPasses}
         />
       </View>
-      <Notice>{NO_LINEUP_NOTICE}</Notice>
 
       <Sheet
         visible={!!holdNotice}

@@ -76,3 +76,18 @@ export const TwoAdded: Story = {
   ),
   parameters: storyDoc('The Lineup of a draft with two DJs added and nothing sent: one priced, one waiting for a fee.'),
 };
+
+/** A note close to the limit, so the character count shows. Story copy, not sample data. */
+const LONG_NOTE =
+  'Headline set, midnight to 2. The room holds about 300 and the crowd is there for house and Afrobeats, so keep it warm early and build after 1. ' +
+  'There’s a full booth with monitors; bring your own headphones and a backup USB. Load-in is from 10 through the side door on Foundry St.';
+
+export const LongNote: Story = {
+  name: 'Long note',
+  render: (args) => (
+    <Sample name="drafts" load={(repo) => repo.getDraftOffers('e_late_service')}>
+      {(offers) => <AddedDjCard {...args} offer={{ ...offers[0], note: LONG_NOTE }} />}
+    </Sample>
+  ),
+  parameters: storyDoc('A note near the 280-character limit: the helper under it counts the characters used.'),
+};

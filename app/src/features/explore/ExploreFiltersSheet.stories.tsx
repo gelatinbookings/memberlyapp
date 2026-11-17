@@ -113,6 +113,13 @@ export const EventsWithPicks: Story = {
   parameters: storyDoc('Switched to events with two genres and a vibe picked: the counts and the button narrow.'),
 };
 
+export const Counting: Story = {
+  parameters: {
+    memberly: { pending: ['explore'] },
+    ...storyDoc('While the count for the current picks is read: the button says “Counting…” and is disabled.'),
+  },
+};
+
 export const NothingMatches: Story = {
   name: 'Nothing matches',
   render: () => <Filters make={(city) => ({ ...defaultFilters(city), communityTypes: ['Wellness'], genres: ['Techno'], vibes: ['Upscale'] })} />,

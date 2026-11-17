@@ -11,9 +11,12 @@ export type ListRowProps = {
   label: string;
   /** An 18px icon; it sits in a 36px muted tile. */
   icon?: ReactNode;
+  /** Muted text on the right, such as the current setting. */
   value?: string;
   onPress?: () => void;
+  /** The muted chevron on the right. On by default when the row has `onPress`. */
   chevron?: boolean;
+  /** The label’s colour: `error` for Sign out, otherwise the default foreground. */
   tone?: TextTone;
   testID?: string;
 };

@@ -264,7 +264,7 @@ export default function CommunityScreen() {
               <>
                 <Text variant="title">{p.viewerMembership.owner ? 'You run this community' : 'You’re a member'}</Text>
                 <Text variant="helper" tone="muted" numberOfLines={1}>
-                  {p.viewerMembership.owner ? 'Manage it from the Manage tab' : p.viewerMembership.tierLabel}
+                  {p.viewerMembership.owner ? 'Manage it from Me' : p.viewerMembership.tierLabel}
                 </Text>
               </>
             ) : (

@@ -11,6 +11,7 @@ import { BrowseTalentScreen } from '../BrowseTalentScreen';
 import { TALENT_ATTRIBUTION } from '../BrowseStates';
 import { PRIVATE_RATE_HELPER } from '../DjProfileSheet';
 import { LOCKED_HELPER } from '../TalentFiltersSheet';
+import { comingSoonLine } from '../talentTypes';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), dismissTo: jest.fn(), canGoBack: () => true },
@@ -52,6 +53,16 @@ describe('Browse talent', () => {
     expect(screen.getByText('Any genre')).toBeTruthy();
     expect(screen.getByText(TALENT_ATTRIBUTION)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Done' })).toBeTruthy();
+  });
+
+  it('lists every kind of talent with DJs chosen; the others say they are coming soon', async () => {
+    await renderWithProviders(<BrowseTalentScreen eventId={EVENT} />);
+    const types = within(await screen.findByTestId('talent-types'));
+    expect(types.getByRole('button', { name: 'DJs, selected' })).toBeTruthy();
+    expect(screen.queryByTestId('talent-type-soon')).toBeNull();
+    await press(types.getByRole('button', { name: 'Live bands, coming soon' }));
+    expect(screen.getByTestId('talent-type-soon')).toHaveTextContent(comingSoonLine('Live bands'));
+    expect(types.getByRole('button', { name: 'DJs, selected' })).toBeTruthy();
   });
 
   it('shows Private rate and Draw not yet established exactly as the catalog has them', async () => {

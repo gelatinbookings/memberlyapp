@@ -57,14 +57,15 @@ export default function KitScreen() {
   ];
 
   return (
-    <Screen>
-      <View style={styles.headerRow}>
-        <IconButton accessibilityLabel="Back" icon={<ArrowLeft size={18} color={c.foreground} strokeWidth={2} />} onPress={() => router.back()} />
-        <Text variant="headline" accessibilityRole="header">
-          Parts kit
-        </Text>
-      </View>
-
+    <Screen
+      header={
+        <View style={styles.headerRow}>
+          <IconButton accessibilityLabel="Back" icon={<ArrowLeft size={18} color={c.foreground} strokeWidth={2} />} onPress={() => router.back()} />
+          <Text variant="headline" accessibilityRole="header">
+            Parts kit
+          </Text>
+        </View>
+      }>
       <View style={styles.section}>
         <SectionHeader title="Status pills" />
         <View style={styles.wrap}>

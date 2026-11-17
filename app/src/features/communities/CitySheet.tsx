@@ -2,12 +2,9 @@ import { Check } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { GroupedList, Sheet, Text } from '@/components/ui';
-import { useCities } from '@/data/RepositoryProvider';
-import type { City } from '@/data/types';
 import { useTheme } from '@/theme/theme';
 import { space } from '@/theme/tokens';
 
-import { DEFAULT_COUNTRY } from './communityForm';
 
 /** The countries the web offers first. */
 export const COUNTRIES = ['United States', 'Canada', 'United Kingdom'] as const;
@@ -51,44 +48,6 @@ export function CountrySheet({
           <OptionRow key={name} testID={`country-${name}`} label={name} on={selected === name} onPress={() => onPick(name)} />
         ))}
       </GroupedList>
-    </Sheet>
-  );
-}
-
-/** Choose the city a community is based in, in the chosen country. Closing it changes nothing. */
-export function CitySheet({
-  visible,
-  country = DEFAULT_COUNTRY,
-  selected,
-  onPick,
-  onClose,
-}: {
-  visible: boolean;
-  country?: string;
-  selected: City | null;
-  onPick: (city: City) => void;
-  onClose: () => void;
-}) {
-  const cities = (useCities().data ?? []).filter((city) => (city.country ?? DEFAULT_COUNTRY) === country);
-  return (
-    <Sheet visible={visible} onClose={onClose} title="City" subtitle="Puts your events in front of people searching that city." testID="city-sheet">
-      {cities.length === 0 ? (
-        <Text variant="secondary" tone="muted">
-          {`No cities listed for ${country} yet. City is optional.`}
-        </Text>
-      ) : (
-        <GroupedList>
-          {cities.map((city) => (
-            <OptionRow
-              key={city.id}
-              testID={`city-${city.id}`}
-              label={`${city.name}, ${city.region}`}
-              on={selected?.id === city.id}
-              onPress={() => onPick(city)}
-            />
-          ))}
-        </GroupedList>
-      )}
     </Sheet>
   );
 }

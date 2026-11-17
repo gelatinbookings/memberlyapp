@@ -2,14 +2,13 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ChevronRight, Plus, TriangleAlert } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Button, Card, Chip, ErrorState, LoadingRows, PillButton, Screen, SectionHeader, Text } from '@/components/ui';
+import { Button, Card, Chip, ErrorState, LoadingRows, PillButton, Screen, ScreenHeader, SectionHeader, Text } from '@/components/ui';
 import { useCommunityOverview, useOrganizedCommunities } from '@/data/RepositoryProvider';
 import type { OrganizerEvent } from '@/data/types';
 import { formatCents } from '@/features/booking/money';
 import { lineupNeedsAction, lineupSummary } from '@/features/booking/lineupSummary';
 import { addedSummary } from '@/features/events/completeness';
 import { CommunityThumb } from '@/features/communities/CommunityThumb';
-import { openLater } from '@/features/navigation/later';
 import { openConnectStripe } from '@/features/passSetup/PassListScreen';
 import { openNewEvent } from '@/features/passSetup/routes';
 import { useTheme } from '@/theme/theme';
@@ -18,7 +17,7 @@ import { radius, space } from '@/theme/tokens';
 export const SAMPLE_NUMBERS_LINE = 'Sample numbers until your community is live';
 export const NO_NUMBERS_LINE = 'No sales or new members yet. Your numbers start here once there are.';
 export const NO_EVENTS_TITLE = 'No events yet';
-export const NO_EVENTS_LINE = 'Create your first event. You can book a lineup while you set it up, or add it later.';
+export const NO_EVENTS_LINE = 'Create your first event. Once it’s published, add a lineup from its page here.';
 export const NO_COMMUNITY_TITLE = 'You don’t run a community yet';
 export const NO_COMMUNITY_LINE = 'When you start one, its events, members and lineup are managed here.';
 
@@ -72,6 +71,9 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+const backToMe = () => (router.canGoBack() ? router.back() : router.replace('/me'));
+
+/** Manage, opened from Me under You organize (no longer a tab). */
 export default function ManageScreen() {
   const c = useTheme();
   // `?community=` opens one community: the one just created, or the one chosen on Me.
@@ -86,7 +88,7 @@ export default function ManageScreen() {
   const noCommunity = organized.isSuccess && !communityId;
 
   return (
-    <Screen tabs testID="manage">
+    <Screen header={<ScreenHeader title="Manage" onBack={backToMe} />} testID="manage">
       {noCommunity ? (
         <View style={styles.none} testID="manage-no-community">
           <Text variant="headline" accessibilityRole="header">
@@ -148,7 +150,7 @@ export default function ManageScreen() {
                     testID={`setup-${t.id}`}
                     label={t.actionLabel}
                     filled
-                    onPress={() => (t.id === 'stripe' ? openConnectStripe() : router.push({ pathname: '/later', params: { title: t.title, milestone: '8' } }))}
+                    onPress={() => (t.id === 'stripe' ? openConnectStripe(o.community.id) : router.push({ pathname: '/later', params: { title: t.title, milestone: '8' } }))}
                   />
                 </View>
               ))}
@@ -200,14 +202,24 @@ export default function ManageScreen() {
           </View>
 
           <View style={styles.links}>
-            <PillButton label="Members" style={styles.link} onPress={() => openLater('Members', 'web')} />
+            <PillButton
+              testID="manage-members"
+              label="Members"
+              style={styles.link}
+              onPress={() => router.push({ pathname: '/organizer/communities/[id]/members', params: { id: o.community.id } })}
+            />
             <PillButton
               testID="manage-tiers"
               label="Tiers"
               style={styles.link}
               onPress={() => router.push({ pathname: '/organizer/communities/[id]/passes', params: { id: o.community.id } })}
             />
-            <PillButton label="Marketing" style={styles.link} onPress={() => openLater('Marketing', 'web')} />
+            <PillButton
+              testID="manage-marketing"
+              label="Marketing"
+              style={styles.link}
+              onPress={() => router.push({ pathname: '/organizer/communities/[id]/marketing', params: { id: o.community.id } })}
+            />
           </View>
         </>
       ) : null}

@@ -27,8 +27,11 @@ export function DjCard({
   onOpen,
 }: {
   dj: Dj;
+  /** The DJ is on the lineup: the card turns purple and Add becomes a filled Added. */
   added: boolean;
+  /** Add, or remove when already added. */
   onToggle: () => void;
+  /** Opens the DJ’s profile sheet. */
   onOpen: () => void;
 }) {
   const c = useTheme();

@@ -81,6 +81,7 @@ import { useTheme } from "@/theme/theme";
 import { radius, space } from "@/theme/tokens";
 
 import { AddedDjCard } from "./AddedDjCard";
+import { setTimesFor, withSetTimes } from "./setTimes";
 import { AlternatesSheet } from "./AlternatesSheet";
 import { BookingCard } from "./BookingCard";
 
@@ -178,8 +179,7 @@ export function LineupView({
 
   if (loading) {
     return (
-      <Screen>
-        <ScreenHeader title="Lineup" />
+      <Screen header={<ScreenHeader title="Lineup" />}>
         <LoadingRows count={3} label="Loading your lineup" />
       </Screen>
     );
@@ -191,8 +191,7 @@ export function LineupView({
     (offersQ.isError && !offersQ.data)
   ) {
     return (
-      <Screen>
-        <ScreenHeader title="Lineup" />
+      <Screen header={<ScreenHeader title="Lineup" />}>
         <ErrorState
           title="Couldn’t load your lineup"
           detail="Your event is safe and nothing was sent."
@@ -207,8 +206,7 @@ export function LineupView({
   }
   if (!fields) {
     return (
-      <Screen>
-        <ScreenHeader title="Lineup" />
+      <Screen header={<ScreenHeader title="Lineup" />}>
         <ErrorState
           title="This event isn’t available"
           detail="It may have been removed."
@@ -381,6 +379,7 @@ function LineupWithOffers({
       {other ?? (
         <ActiveLineup
           eventId={eventId}
+          fields={fields}
           bookings={bookings}
           offers={offers}
           edit={edit}
@@ -454,6 +453,13 @@ function BlockedLineup({
   const name = fields.name.trim() || "New event";
   return (
     <Screen
+      header={
+        <ScreenHeader
+          title="Lineup"
+          subtitle={isDraft ? `${name} · draft` : name}
+          right={edit}
+        />
+      }
       testID="lineup-blocked"
       footer={
         <Notice>
@@ -462,11 +468,6 @@ function BlockedLineup({
         </Notice>
       }
     >
-      <ScreenHeader
-        title="Lineup"
-        subtitle={isDraft ? `${name} · draft` : name}
-        right={edit}
-      />
       <View style={styles.center}>
         <View style={styles.centerText}>
           <Text variant="headline" align="center" accessibilityRole="header">
@@ -599,6 +600,13 @@ function EmptyLineup({
   const city = fields.city!.name;
   return (
     <Screen
+      header={
+        <ScreenHeader
+          title="Lineup"
+          subtitle={[fields.name.trim() || "New event", day, city].join(" · ")}
+          right={edit}
+        />
+      }
       testID="lineup-empty"
       footer={
         <Notice title="No lineup right now?">
@@ -607,11 +615,6 @@ function EmptyLineup({
         </Notice>
       }
     >
-      <ScreenHeader
-        title="Lineup"
-        subtitle={[fields.name.trim() || "New event", day, city].join(" · ")}
-        right={edit}
-      />
       <View style={styles.center}>
         <View style={[styles.badge, { backgroundColor: c.tint }]}>
           <Music size={30} color={c.brandText} strokeWidth={2} />
@@ -647,6 +650,7 @@ function EmptyLineup({
 
 function ActiveLineup({
   eventId,
+  fields,
   bookings,
   offers,
   edit,
@@ -658,6 +662,8 @@ function ActiveLineup({
   freshness,
 }: {
   eventId: string;
+  /** The event's times, which the suggested sets start from. */
+  fields: EventFields;
   bookings: Booking[];
   offers: DraftOffer[];
   edit?: ReactNode;
@@ -673,6 +679,8 @@ function ActiveLineup({
 }) {
   const c = useTheme();
   const actions = useDraftOfferActions(eventId);
+  // Each added DJ's set: chosen, or suggested back to back from the event's start.
+  const sets = setTimesFor(offers, fields);
   // Bookings still in play come first, then DJs added but not sent, then bookings that are over.
   const ended = (b: Booking) => statusUi(b.status).action === "other_djs";
   const card = (b: Booking) => (
@@ -708,7 +716,7 @@ function ActiveLineup({
           onPress={() => {
             // The fee field may still have the keyboard up.
             Keyboard.dismiss();
-            flow.start(offers);
+            flow.start(withSetTimes(offers, fields));
           }}
         />
         <Text variant="helper" tone="muted" align="center">
@@ -719,11 +727,7 @@ function ActiveLineup({
 
   return (
     <Screen
-      testID={bookings.length > 0 ? "lineup-motion" : "lineup-added"}
-      footer={footer}
-      contentStyle={styles.tight}
-    >
-      <View style={styles.header}>
+      header={
         <ScreenHeader
           title="Lineup"
           subtitle={subtitle}
@@ -739,7 +743,11 @@ function ActiveLineup({
             </View>
           }
         />
-      </View>
+      }
+      testID={bookings.length > 0 ? "lineup-motion" : "lineup-added"}
+      footer={footer}
+      contentStyle={styles.tight}
+    >
       {backFromGelatin ? <BackFromGelatin /> : null}
       {browse.notice ? <Notice tone="warning">{browse.notice}</Notice> : null}
       {flow.queued ? (
@@ -759,10 +767,13 @@ function ActiveLineup({
         // its pill fades to the new status and the change is announced.
         [
           ...bookings.filter((b) => !ended(b)).map(card),
-          ...offers.map((o) => (
+          ...offers.map((o, i) => (
             <AddedDjCard
               key={`added:${o.dj.id}`}
               offer={o}
+              setTime={sets[i]}
+              eventStart={fields.startTime}
+              zone={fields.city?.timeZone ?? null}
               onChange={(patch) => actions.update(o.dj.id, patch)}
               onRemove={() => actions.remove(o.dj.id)}
             />
@@ -857,7 +868,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  header: { marginBottom: space.sm },
   headActions: { flexDirection: "row", gap: space.sm },
   poll: {
     flexDirection: "row",

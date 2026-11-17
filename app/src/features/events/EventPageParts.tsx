@@ -15,7 +15,15 @@ import { radius, space } from '@/theme/tokens';
  */
 
 /** The category and who can come, above the title. */
-export function EventBadges({ category, details }: { category?: string; details: EventPageDetails }) {
+export function EventBadges({
+  category,
+  details,
+}: {
+  /** The event type from Explore's taxonomy ("Nightlife", "Dinners"), shown first in the purple tint. Left out when the event has none. */
+  category?: string;
+  /** The page details from the server: `access` picks Members only or Free for members, `sales` adds Sales ended. */
+  details: EventPageDetails;
+}) {
   const access =
     details.access === 'members-only' ? 'Members only' : details.access === 'free-for-members' ? 'Free for members' : null;
   return (
@@ -28,7 +36,15 @@ export function EventBadges({ category, details }: { category?: string; details:
 }
 
 /** "Hosted by Second Sundays ✓": the host's logo, its name as a link, and the verified mark. */
-export function HostedBy({ host, onOpen }: { host: EventPageDetails['host']; onOpen: () => void }) {
+export function HostedBy({
+  host,
+  onOpen,
+}: {
+  /** The host community: its logo (or initials), name and whether Memberly has verified it. */
+  host: EventPageDetails['host'];
+  /** Opens the community's page. */
+  onOpen: () => void;
+}) {
   const c = useTheme();
   return (
     <Pressable
@@ -51,7 +67,24 @@ export function HostedBy({ host, onOpen }: { host: EventPageDetails['host']; onO
 }
 
 /** One fact about the event: an icon tile, a small label and the value under it. */
-export function DetailRow({ icon, label, value, detail, onPress }: { icon: ReactNode; label: string; value: ReactNode; detail?: string; onPress?: () => void }) {
+export function DetailRow({
+  icon,
+  label,
+  value,
+  detail,
+  onPress,
+}: {
+  /** An 18px Lucide icon in the foreground colour, drawn on the 36px muted tile. */
+  icon: ReactNode;
+  /** The small muted label above the value: "Date", "Time", "Location", "Price". */
+  label: string;
+  /** The fact itself. A string is set in strong body text; pass a `Text` to style parts of it (the price line). */
+  value: ReactNode;
+  /** A muted line under the value, such as the venue's address. */
+  detail?: string;
+  /** Makes the whole row a button (Location opens Maps). Leave it out for a plain fact. */
+  onPress?: () => void;
+}) {
   const c = useTheme();
   const body = (
     <>
@@ -81,7 +114,12 @@ export function DetailRow({ icon, label, value, detail, onPress }: { icon: React
 }
 
 /** Who's going: a few faces, their names, and the rest as a count. Hidden when nobody has said yet. */
-export function GoingRow({ going }: { going: EventPageDetails['going'] }) {
+export function GoingRow({
+  going,
+}: {
+  /** The people the server shows (up to four faces are drawn) and how many others are going. Renders nothing when both are empty. */
+  going: EventPageDetails['going'];
+}) {
   const c = useTheme();
   const { people, othersCount } = going;
   if (people.length === 0 && othersCount === 0) return null;
@@ -110,7 +148,12 @@ export function GoingRow({ going }: { going: EventPageDetails['going'] }) {
 }
 
 /** About this event: paragraphs with the web's bold, italic and links. Links open in the browser. */
-export function RichText({ paragraphs }: { paragraphs: RichSpan[][] }) {
+export function RichText({
+  paragraphs,
+}: {
+  /** About this event as the server sends it: paragraphs of runs, each optionally bold, italic or a link. */
+  paragraphs: RichSpan[][];
+}) {
   return (
     <View style={styles.rich}>
       {paragraphs.map((runs, i) => (
@@ -133,7 +176,12 @@ export function RichText({ paragraphs }: { paragraphs: RichSpan[][] }) {
 }
 
 /** Member perks: what belonging gets you at this event. */
-export function MemberPerks({ perks }: { perks: EventPageDetails['memberPerks'] }) {
+export function MemberPerks({
+  perks,
+}: {
+  /** What members get at this event: a title, its kind (shown as a pill) and a line each. The page hides the section when there are none. */
+  perks: EventPageDetails['memberPerks'];
+}) {
   const c = useTheme();
   return (
     <View style={styles.perks}>
@@ -158,7 +206,15 @@ export function MemberPerks({ perks }: { perks: EventPageDetails['memberPerks'] 
 }
 
 /** About the community: the host's logo, name and line, and a way to its page. */
-export function HostCard({ host, onVisit }: { host: EventPageDetails['host']; onVisit: () => void }) {
+export function HostCard({
+  host,
+  onVisit,
+}: {
+  /** The host community: logo, name, verified mark and its own short description (`about`, hidden when empty). */
+  host: EventPageDetails['host'];
+  /** Visit community: opens the community's page. */
+  onVisit: () => void;
+}) {
   const c = useTheme();
   return (
     <View testID="event-host-card" style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>

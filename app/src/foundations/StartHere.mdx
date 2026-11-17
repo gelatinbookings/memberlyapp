@@ -15,13 +15,13 @@ The sidebar follows atomic design. Each level is built only from the levels abov
 | Level | What goes in it | The rule |
 | --- | --- | --- |
 | **Foundations** | Colors, type, spacing, radius, icons, motion | Values only. Read straight from `src/theme/tokens.ts`, never retyped. |
-| **Atoms** | Text, Button, Chip, pills, Toggle, Avatar, Fab… | One thing that can't be split further and still mean something. No data reads. |
-| **Molecules** | Fields, rows, cards, notices, a DJ card, a calendar… | A few atoms doing one job together. Props in, events out; at most one small data read. |
-| **Organisms** | Headers, sheets, the Lineup, the Memberly Card… | A self-contained piece of a screen. Can read the repository and hold its own state. |
+| **Atoms** | Text, Button, Chip, pills, Toggle, Avatar, Fab, RichText… | One thing that can't be split further and still mean something. No data reads. |
+| **Molecules** | Fields, rows, cards, notices, a DJ card, a calendar, the event page's parts… | A few atoms doing one job together. Props in, events out; at most one small data read. |
+| **Organisms** | Headers, sheets, the Lineup, the public lineup, the Memberly Card… | A self-contained piece of a screen. Can read the repository and hold its own state. |
 | **Templates** | Pushed screen, tab screen, step form, bottom sheet, dialog | Layout only, with placeholder content. No real data. |
 | **Pages** | Home, Explore, Lineup, Create community… | Real screens on the sample repository, one story per account or state that matters. |
 
-Each component has one Docs page and one story per state you'd meet in the app. Every story says, in one line, when you'd see it. The Docs page says what the part is, when to use it and when not, shows a usage snippet and the props table, and lists accessibility notes and Do / Don't lines from DESIGN.md.
+Each component has one Docs page, titled with the component's name, and one story per state you'd meet in the app: the rest state first, then variants, then empty, loading, error and other edge states. Every story says, in one line, when you'd see it. The Docs page says what the part is, when to use it and when not, shows a usage snippet and the props table, and lists accessibility notes and Do / Don't lines from DESIGN.md. Where the code handles a state no story can hold still (a spinner between two answers, a failure the sample world can't produce), the Docs page lists it under “States without a story”.
 
 ### Where a few parts landed, and why
 
@@ -32,6 +32,10 @@ The assignment of components to levels follows the plan, with these moves where 
 - **ProviderButtons, LinkLine, LegalLine, OrRule and the Google / Apple marks** are the small auth parts, so they are molecules (the marks are atoms).
 - **TabBar** (the floating tab bar and its TabButton) and **DrawnCheck** are added: the tab screen template needs the bar, and Verify code draws the check.
 - **Screen** has no story of its own. It is a layout, so it lives in the templates (pushed screen, tab screen, step form).
+- **The event page's parts** (`features/events/EventPageParts.tsx`) each have their own page: **EventBadges, HostedBy, DetailRow, GoingRow, MemberPerks and HostCard** are molecules, and **RichText** (About this event) is an atom. **PublicLineup** is the organism between them.
+- **Attribution** lives under Atoms only, and **OrRule** under Molecules only. BrowseStates and AuthSheet use them but no longer list them as their own subcomponents, so each part has one home.
+- **MapPlaceholder** stays a subcomponent of **TonightMapView**, **PassPill** of **Pill**, **SheetHandle** of **BottomSheetFrame**, and **TabButton** of **TabBar**: none is used on its own.
+- The larger screens under `src/features` that a route renders whole and that are built from the organisms here (Create New Event's form and Date & time, Browse talent, Create community, pass setup, the published screen) are shown under Pages, not as organisms of their own.
 
 ## Run it
 
@@ -54,9 +58,13 @@ parameters: {
     simulation: { failBookings: true },     // edge states the fake can be put in
     talentMode: 'unavailable',              // how the talent catalog answers
     route: { params: { id: 'e_long_table' } }, // what useLocalSearchParams() returns
+    pending: ['getCard'],                   // these reads never answer: the loading state
+    failing: ['quoteOffer'],                // these reads fail with a server error: the “Couldn't …” state
   },
 },
 ```
+
+Sheets and dialogs that use React Native's `Modal` draw inside the story's phone frame, not over the whole page: in the browser, a stand-in Modal (`.storybook/mocks/Modal.tsx`) renders them in a layer over the 390-wide phone, and Escape closes them as Android's back button would. The app's components are unchanged.
 
 Amounts on a story always come from the fake repository. A story never types a total, a fee or a sum: it reads a booking or a quote through `Sample` (`src/stories/support/Sample.tsx`) and shows what came back.
 
@@ -87,7 +95,8 @@ export const Selected: StoryObj<typeof meta> = {
 };
 ```
 
-- One story per meaningful state, named for the state (`Selected`, `Fee missing`, `Catalog unavailable`), each with a one-line `storyDoc`.
+- One story per meaningful state, named for the state (`Selected`, `Fee missing`, `Catalog unavailable`), each with a one-line `storyDoc`. Rest state first; loading, empty and error states last.
+- Reach loading and error states through the sample world (`pending`, `failing`, `simulation`, `talentMode`), not by changing the component. List any state you can't reach in `componentDocs({ unshown })`.
 - Add controls (`args`, `argTypes`) where a part has real variants. Interactive parts get a story that works when you click it, using local state in a `render` function.
 - Add JSDoc to a prop when the props table doesn't read well without it.
 - Don't change a component to make a story work. Put the state in the sample world instead.

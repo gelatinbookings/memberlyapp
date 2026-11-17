@@ -11,7 +11,9 @@ import { Text } from './Text';
 export type AvatarProps = {
   /** Photo when we have one; initials otherwise. */
   source?: ImageAsset;
+  /** One or two letters, shown on the purple tint when there is no photo. */
   initials: string;
+  /** Diameter in points. */
   size?: number;
   /** Greyed out, e.g. a DJ who passed. */
   muted?: boolean;

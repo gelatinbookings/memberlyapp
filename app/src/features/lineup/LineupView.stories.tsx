@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
+import { screen, userEvent } from 'storybook/test';
 
 import { sampleCities } from '@/data/fakeRepository';
 import type { EventFields } from '@/data/types';
@@ -66,6 +67,12 @@ const meta = {
             'Say why a DJ passed, expired or was taken.',
             'Show the lineup’s fees or statuses on the public event page.',
           ],
+          unshown: [
+            '“Back from Gelatin”, a tint notice with a check, after the organizer returns from the portal and the lineup is read again. Open Every status, tap Manage in Gelatin on a held card and come back from the test portal.',
+            'Offers kept while offline: a muted notice with a no-connection icon when Hold and send couldn’t reach the server. They send when the connection returns.',
+            '“We’re confirming your hold” and “We couldn’t start the payment”, muted notices from the offer flow between the payment sheet and the next read.',
+            '“Save your new date or city first”, a warning when a live event’s night or city was changed in the form but not saved before Browse talent.',
+          ],
         }),
       },
     },
@@ -125,6 +132,13 @@ export const NewEventReady: Story = {
   },
 };
 
+export const Loading: Story = {
+  parameters: {
+    memberly: { pending: ['getEventBookings'] },
+    ...storyDoc('While the event, its bookings and its offers are read: three loading rows under the title.'),
+  },
+};
+
 export const Behind: Story = {
   name: 'Behind: last updated',
   args: { eventId: SAMPLE_EVENT.inMotion },
@@ -141,4 +155,25 @@ export const CouldNotLoad: Story = {
     memberly: { simulation: { failBookings: true } },
     ...storyDoc('The first read failed: the event is safe, nothing was sent, and Try again reads it once more.'),
   },
+};
+
+export const SaveFailed: Story = {
+  name: 'Draft didn’t save',
+  args: { eventId: 'new', fromForm: true },
+  play: async () => {
+    await userEvent.click(await screen.findByText('Browse talent'));
+  },
+  parameters: {
+    memberly: {
+      draft: newEventDraft({ date: '2026-12-12', startTime: '21:00', endTime: '02:00', city: sampleCities[0] }),
+      failing: ['saveEvent'],
+    },
+    ...storyDoc('Browse talent couldn’t save the new event as a draft: a warning says talent can’t load yet, and the button tries again.'),
+  },
+};
+
+export const EventGone: Story = {
+  name: 'Event not available',
+  args: { eventId: 'e_removed' },
+  parameters: storyDoc('The event was removed (or the link is old): the screen says so and offers nothing to do.'),
 };

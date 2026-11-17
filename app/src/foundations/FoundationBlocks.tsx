@@ -214,7 +214,7 @@ const ICONS: [keyof typeof Icons, string][] = [
   ['Gift', 'Referrals'],
   ['House', 'Home tab'],
   ['ImagePlus', 'Add a photo'],
-  ['LayoutGrid', 'Manage tab'],
+  ['LayoutGrid', 'Manage (on Me)'],
   ['Lock', 'Locked filters (city, night)'],
   ['LogOut', 'Sign out'],
   ['Map', 'Tonight on the map'],

@@ -1,3 +1,4 @@
+import type { ComponentRef, Ref } from 'react';
 import { StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
@@ -7,6 +8,8 @@ import { font, motion, radius, size, space } from '@/theme/tokens';
 import { Text } from './Text';
 
 export type TextFieldProps = Omit<TextInputProps, 'style'> & {
+  /** The input itself, to focus or blur it, e.g. the venue search after Change. */
+  ref?: Ref<ComponentRef<typeof TextInput>>;
   label: string;
   /** Hide the label visually but keep it as the field's spoken name. */
   hideLabel?: boolean;

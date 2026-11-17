@@ -24,6 +24,7 @@ export function BottomSheetFrame({
 }: {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** Pads the bottom for the home indicator. Default true; false when the sheet pins its own footer. */
   padBottom?: boolean;
   /** Touch handlers for the handle, when the sheet can be pulled down to close (see useSwipeToClose). */
   grab?: ViewProps;

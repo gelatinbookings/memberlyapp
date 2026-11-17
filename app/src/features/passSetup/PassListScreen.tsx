@@ -18,8 +18,10 @@ export const WAITING_ON_STRIPE = 'Not on sale until Stripe is connected';
 export const STRIPE_LIST_DETAIL = 'Your paid passes are saved and go on sale once it’s connected.';
 
 /** Connect Stripe is on the web until it has its own issue. */
-export function openConnectStripe() {
-  router.push({ pathname: '/later', params: { title: 'Connect Stripe', milestone: '', note: 'Connecting Stripe is on the web for now.' } });
+/** Stripe onboarding for the community's payouts (Stripe Connect, Express). */
+export function openConnectStripe(communityId: string | undefined) {
+  if (!communityId) return;
+  router.push({ pathname: '/organizer/communities/[id]/stripe', params: { id: communityId } });
 }
 
 function PassRow({ pass, onPress }: { pass: OrganizerPass; onPress: () => void }) {
@@ -80,17 +82,19 @@ export function PassListScreen({ scope, parentId }: { scope: PassScope; parentId
   const add = () => router.push(newPassHref(scope, parentId));
 
   return (
-    <Screen testID={community ? 'community-passes' : 'event-passes'}>
-      <ScreenHeader
-        title={community ? 'Tiers' : 'Access & passes'}
-        subtitle={parentName}
-        right={
-          passes.length > 0 ? (
-            <PillButton testID="passes-add" label="Add pass" filled icon={<Plus size={14} color={c.onBrand} strokeWidth={2.5} />} onPress={add} />
-          ) : undefined
-        }
-      />
-
+    <Screen
+      header={
+        <ScreenHeader
+          title={community ? 'Tiers' : 'Access & passes'}
+          subtitle={parentName}
+          right={
+            passes.length > 0 ? (
+              <PillButton testID="passes-add" label="Add pass" filled icon={<Plus size={14} color={c.onBrand} strokeWidth={2.5} />} onPress={add} />
+            ) : undefined
+          }
+        />
+      }
+      testID={community ? 'community-passes' : 'event-passes'}>
       {/* An event's passes in one line, as Create New Event shows them: "2 passes · from $30". */}
       {!community && summary ? (
         <Text variant="secondary" tone="muted" testID="passes-summary">
@@ -105,7 +109,12 @@ export function PassListScreen({ scope, parentId }: { scope: PassScope; parentId
           <Notice tone="warning" title={STRIPE_NOTICE}>
             {STRIPE_LIST_DETAIL}
           </Notice>
-          <PillButton label="Connect Stripe" onPress={openConnectStripe} style={styles.start} />
+          <PillButton
+            testID="passes-connect-stripe"
+            label="Connect Stripe"
+            onPress={() => openConnectStripe(community ? parentId : event.data?.communityId)}
+            style={styles.start}
+          />
         </View>
       ) : null}
 

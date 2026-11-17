@@ -104,6 +104,34 @@ export function PreferencesView({ editing = false }: { editing?: boolean }) {
   return (
     <Screen
       testID="preferences"
+      header={
+        <View style={styles.top}>
+          {stepIndex > 0 || editing ? (
+            <IconButton accessibilityLabel="Back" icon={<ArrowLeft size={18} color={c.foreground} strokeWidth={2} />} onPress={back} />
+          ) : (
+            <View style={styles.spacer} />
+          )}
+          <View style={styles.progress} accessible accessibilityLabel={`Step ${stepIndex + 1} of ${PREFERENCE_STEPS.length}`}>
+            {PREFERENCE_STEPS.map((s, i) => (
+              <View key={s.key} style={[styles.segment, { backgroundColor: i <= stepIndex ? c.brand : c.muted }]} />
+            ))}
+          </View>
+          {editing ? (
+            <View style={styles.spacer} />
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Skip"
+              onPress={() => finish()}
+              hitSlop={8}
+              style={styles.skip}>
+              <Text variant="secondaryStrong" tone="muted">
+                Skip
+              </Text>
+            </Pressable>
+          )}
+        </View>
+      }
       footer={
         <>
           <Button
@@ -120,33 +148,6 @@ export function PreferencesView({ editing = false }: { editing?: boolean }) {
           ) : null}
         </>
       }>
-      <View style={styles.top}>
-        {stepIndex > 0 || editing ? (
-          <IconButton accessibilityLabel="Back" icon={<ArrowLeft size={18} color={c.foreground} strokeWidth={2} />} onPress={back} />
-        ) : (
-          <View style={styles.spacer} />
-        )}
-        <View style={styles.progress} accessible accessibilityLabel={`Step ${stepIndex + 1} of ${PREFERENCE_STEPS.length}`}>
-          {PREFERENCE_STEPS.map((s, i) => (
-            <View key={s.key} style={[styles.segment, { backgroundColor: i <= stepIndex ? c.brand : c.muted }]} />
-          ))}
-        </View>
-        {editing ? (
-          <View style={styles.spacer} />
-        ) : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Skip"
-            onPress={() => finish()}
-            hitSlop={8}
-            style={styles.skip}>
-            <Text variant="secondaryStrong" tone="muted">
-              Skip
-            </Text>
-          </Pressable>
-        )}
-      </View>
-
       <View style={styles.head}>
         <Text variant="display" accessibilityRole="header">
           {step.title}

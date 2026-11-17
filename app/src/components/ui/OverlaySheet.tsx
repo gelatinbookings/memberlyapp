@@ -25,7 +25,9 @@ export function OverlaySheet({
   closeLabel = 'Close',
   covered = false,
 }: {
+  /** Shows the sheet over the screen, which dims to 35%. */
   visible: boolean;
+  /** Called by a tap on the dimmed screen or a swipe down. */
   onClose: () => void;
   children: ReactNode;
   testID?: string;

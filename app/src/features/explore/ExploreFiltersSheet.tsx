@@ -40,8 +40,11 @@ export function ExploreFiltersSheet({
 }: {
   visible: boolean;
   city: string;
+  /** What is typed in Explore’s search, so the count matches the results. */
   text: string;
+  /** The category chip on in Explore, so the count matches the results. */
   category: string;
+  /** The filters on now. The sheet edits a copy and applies it only on Show. */
   applied: ExploreFilters;
   onApply: (filters: ExploreFilters) => void;
   onClose: () => void;

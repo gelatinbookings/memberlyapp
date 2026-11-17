@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { createFakeRepository, createMemoryStorage, type FakeSimulation, type TalentSimulation } from '@/data/fakeRepository';
+import type { MemberlyRepository } from '@/data/repository';
 import { RepositoryProvider } from '@/data/RepositoryProvider';
 import type { TestAccountId } from '@/data/testAccounts';
 import { AuthProvider } from '@/features/auth/AuthProvider';
@@ -14,6 +15,8 @@ import { PaymentsProvider } from '@/lib/payments';
 import { PortalProvider } from '@/lib/portal';
 import { ThemeProvider } from '@/theme/theme';
 import { darkPalette, size, space } from '@/theme/tokens';
+
+import { ModalHost } from './mocks/modal-host';
 
 /** An iPhone at 390 wide: the frame DESIGN.md lays screens out on. */
 export const PHONE = { width: 390, height: 844, insets: { top: 47, left: 0, right: 0, bottom: 34 } } as const;
@@ -43,7 +46,37 @@ export type MemberlyParameters = {
   draft?: EventDraft;
   /** Route params and pathname the expo-router mock hands to the screen. */
   route?: { params?: Record<string, string | undefined>; pathname?: string };
+  /**
+   * Repository calls that never answer, so a part shows its loading state
+   * (skeletons, Loading rows) and stays there. For example `['getCard']`.
+   */
+  pending?: RepositoryCall[];
+  /**
+   * Repository calls that fail with a plain server error (not offline), so a
+   * part shows its “Couldn’t load” state. For the no-connection wording use
+   * `simulation: { offline: true }`, which fails every call.
+   */
+  failing?: RepositoryCall[];
 };
+
+/** The name of one call on the repository, such as `getCard` or `getEventBookings`. */
+export type RepositoryCall = {
+  [K in keyof MemberlyRepository]: MemberlyRepository[K] extends (...args: never[]) => unknown ? K : never;
+}[keyof MemberlyRepository];
+
+/** The repository with the story's `pending` calls held open and its `failing` calls refused. Everything else passes through. */
+function withStoryReads<R extends object>(repository: R, pending: RepositoryCall[] = [], failing: RepositoryCall[] = []): R {
+  if (pending.length === 0 && failing.length === 0) return repository;
+  return new Proxy(repository, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if (typeof value !== 'function') return value;
+      if ((pending as PropertyKey[]).includes(prop)) return () => new Promise(() => {});
+      if ((failing as PropertyKey[]).includes(prop)) return () => Promise.reject(new Error(`Sample server error on ${String(prop)}`));
+      return value;
+    },
+  });
+}
 
 /**
  * What every screen gets in the app: the dark theme, a fresh TanStack Query
@@ -52,19 +85,20 @@ export type MemberlyParameters = {
  * safe-area insets. One fresh world per story.
  */
 export function AppProviders({ memberly = {}, children }: { memberly?: MemberlyParameters; children: ReactNode }) {
-  const { account, signedIn = true, simulation, talentMode, draft } = memberly;
+  const { account, signedIn = true, simulation, talentMode, draft, pending, failing } = memberly;
   const [services] = useState(() => {
     const storage = createMemoryStorage();
+    const fake = createFakeRepository({
+      delayMs: 0,
+      storage,
+      // A named account signs in below, before anything reads.
+      signedIn: signedIn && !account,
+      simulation,
+      talentMode: talentMode ? () => talentMode : undefined,
+    });
     return {
       storage,
-      repository: createFakeRepository({
-        delayMs: 0,
-        storage,
-        // A named account signs in below, before anything reads.
-        signedIn: signedIn && !account,
-        simulation,
-        talentMode: talentMode ? () => talentMode : undefined,
-      }),
+      repository: withStoryReads(fake, pending, failing),
       queryClient: new QueryClient({
         defaultOptions: { queries: { retry: false, staleTime: Infinity, gcTime: Infinity }, mutations: { gcTime: Infinity } },
       }),
@@ -106,11 +140,14 @@ export function AppProviders({ memberly = {}, children }: { memberly?: MemberlyP
   );
 }
 
-/** The phone column every story renders in: black ground, 390 wide. */
+/**
+ * The phone column every story renders in: black ground, 390 wide. A Modal
+ * (sheet, dialog) draws over this column, not over the canvas (see mocks/Modal.tsx).
+ */
 export function PhoneFrame({ frame = 'padded', children }: { frame?: StoryFrame; children: ReactNode }) {
   return (
     <View style={[styles.column, frame === 'padded' ? styles.padded : null, frame === 'screen' ? styles.screen : null]}>
-      {children}
+      <ModalHost>{children}</ModalHost>
     </View>
   );
 }

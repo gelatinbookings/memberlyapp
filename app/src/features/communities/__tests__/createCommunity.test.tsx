@@ -2,7 +2,7 @@ import { Alert } from 'react-native';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 
 import TabsLayout from '@/app/(tabs)/_layout';
-import ManageScreen, { NO_EVENTS_TITLE } from '@/app/(tabs)/manage';
+import ManageScreen, { NO_EVENTS_TITLE } from '@/app/manage';
 import MeScreen from '@/app/(tabs)/me';
 import { createFakeRepository, type FakeRepository } from '@/data/fakeRepository';
 import type { TestAccountId } from '@/data/testAccounts';
@@ -59,8 +59,9 @@ async function toPricing(name = 'Night Garden') {
   await press(screen.getByTestId('community-logo'));
   await press(screen.getByTestId('community-banner'));
   await next();
-  await press(screen.getByTestId('community-city'));
-  await press(await screen.findByTestId('city-atl'));
+  await act(async () => fireEvent(screen.getByTestId('community-city'), 'focus'));
+  await type(screen.getByTestId('community-city'), 'Atl');
+  await press(await screen.findByTestId('city-hint-Atlanta'));
   await type(screen.getByTestId('tag-field'), 'mus');
   await press(screen.getByTestId('tag-suggest-Music'));
   await next();
@@ -174,15 +175,25 @@ describe('Create community · step 3, How people find you', () => {
     await next();
   }
 
-  it('starts in the United States with the city optional, and lists that country’s cities', async () => {
+  it('takes any city: suggestions fill the state, and a city nobody listed is kept as typed', async () => {
     await toDiscovery();
     expect(screen.getByLabelText('Step 3 of 4, How people find you')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Country, United States' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
+    const city = screen.getByTestId('community-city');
+    await act(async () => fireEvent(city, 'focus'));
+    await type(city, 'Ash');
+    expect(screen.queryByTestId('city-hints')).toBeNull();
+    await type(city, 'Asheville');
+    await type(screen.getByTestId('community-region'), 'NC');
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
+
     await press(screen.getByTestId('community-country'));
     await press(await screen.findByTestId('country-Canada'));
-    await press(screen.getByTestId('community-city'));
-    expect(await screen.findByText('No cities listed for Canada yet. City is optional.')).toBeTruthy();
+    await type(screen.getByTestId('community-city'), 'Tor');
+    await press(await screen.findByTestId('city-hint-Toronto'));
+    expect(screen.getByTestId('community-region').props.value).toBe('ON');
+    expect(screen.getByLabelText('Province (optional)')).toBeTruthy();
   });
 
   it('offers a few suggested tags, matches as you type, and takes a tag of your own', async () => {
@@ -280,7 +291,8 @@ describe('Create community · step 4, Membership pricing', () => {
     await renderWithProviders(<CreateCommunityScreen />, { repository: await signedInAs('existing-member') });
     await toPricing('Kept Name');
     await press(screen.getByRole('button', { name: 'Back' }));
-    expect(screen.getByRole('button', { name: 'City (optional), Atlanta, GA' })).toBeTruthy();
+    expect(screen.getByTestId('community-city').props.value).toBe('Atlanta');
+    expect(screen.getByTestId('community-region').props.value).toBe('GA');
     expect(screen.getByRole('button', { name: 'Remove Music' })).toBeTruthy();
     await press(screen.getByRole('button', { name: 'Back' }));
     expect(screen.getByTestId('preview-logo-image')).toBeTruthy();
@@ -361,16 +373,12 @@ describe('after creating a community', () => {
     return { repository, community };
   }
 
-  it('the Manage tab appears', async () => {
+  it('Manage stays off the tab bar: it opens from Me, under You organize', async () => {
     const repository = await signedInAs('existing-member');
+    await repository.createCommunity(communityInput());
     await renderWithProviders(<TabsLayout />, { repository });
     await waitFor(() => expect(screen.getAllByTestId('tab-me').length).toBeGreaterThan(0));
     expect(screen.queryAllByTestId('tab-manage')).toHaveLength(0);
-    screen.unmount();
-
-    await repository.createCommunity(communityInput());
-    await renderWithProviders(<TabsLayout />, { repository });
-    await waitFor(() => expect(screen.queryAllByTestId('tab-manage').length).toBeGreaterThan(0));
   });
 
   it('Me lists it under You organize and no longer offers Start a community', async () => {

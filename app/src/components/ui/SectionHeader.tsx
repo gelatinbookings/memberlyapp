@@ -9,6 +9,7 @@ export function SectionHeader({
   onAction,
 }: {
   title: string;
+  /** A text link on the right, such as “See all”. Shown only with `onAction`. */
   actionLabel?: string;
   onAction?: () => void;
 }) {

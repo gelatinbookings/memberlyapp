@@ -5,6 +5,7 @@ import { Avatar, Button, MoneySummary, Notice, OverlaySheet, Skeleton, Text } fr
 import { isRepositoryError } from '@/data/errors';
 import { useOfferQuote } from '@/data/RepositoryProvider';
 import type { DraftOffer } from '@/data/types';
+import { formatSetTime } from '@/lib/dates';
 import { useTheme } from '@/theme/theme';
 import { radius, size, space } from '@/theme/tokens';
 
@@ -28,10 +29,13 @@ export function OfferReviewSheet({
   eventId: string;
   /** "Late Service · Sat, Nov 28" */
   context: string;
+  /** The unsent offer: the DJ, the fee and the note. */
   offer: DraftOffer;
   /** Why the last send did not go through, if it did not. */
   error: string | null;
+  /** Hold and send is working: the button shows it is busy. */
   sending: boolean;
+  /** Hold and send: opens the payment sheet for the server’s total. */
   onConfirm: () => void;
   /** Close and go back to the offer fields. */
   onEdit: () => void;
@@ -99,6 +103,12 @@ export function OfferReviewSheet({
 
       <View style={styles.noteRow}>
         <Text variant="secondary" tone="muted" style={styles.flex}>
+          {offer.setStart && offer.setEnd ? (
+            <>
+              Set: <Text variant="secondary" testID="review-set">{formatSetTime(offer.setStart, offer.setEnd)}</Text>
+              {'\n'}
+            </>
+          ) : null}
           {offer.note.trim() ? (
             <>
               Note sent with the offer: <Text variant="secondary">“{offer.note.trim()}”</Text>

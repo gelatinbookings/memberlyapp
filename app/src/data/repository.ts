@@ -40,6 +40,14 @@ import type {
   UpdatePassInput,
   VerifyCodeResult,
   Viewer,
+  Announcement,
+  CommunityMarketing,
+  CommunityMembers,
+  MembersQuery,
+  SendAnnouncementInput,
+  StripeAccount,
+  StripeOnboardingLink,
+  VenueResults,
 } from './types';
 
 /**
@@ -100,6 +108,15 @@ export interface MemberlyRepository {
 
   /** Cities an event can be set in, each with its IANA zone. */
   getCities(): Promise<City[]>;
+  /**
+   * The Location type-ahead: venues whose name or address match what was typed,
+   * from Gelatin's venue database first, then Google Places (looked up by the
+   * backend, so the Google key never ships in the app). A recognized venue
+   * comes with its street, city, state, postcode and time zone.
+   * Fewer than two characters finds nothing.
+   * HTTP: GET /app/venues/search?q=
+   */
+  searchVenues(query: string): Promise<VenueResults>;
   /** An event as the organizer edits it. HTTP: GET /app/organizer/events/:id */
   getOrganizerEvent(id: string): Promise<OrganizerEventDetail | null>;
   /**
@@ -244,4 +261,32 @@ export interface MemberlyRepository {
    * HTTP: not listed in GEL-1058, which only has PATCH {active}. See README, open questions.
    */
   deletePass(passId: string): Promise<void>;
+
+  // Organizer: members and marketing
+
+  /**
+   * A community's members, 30 at a time: search by name, filter by tier.
+   * HTTP: GET /app/communities/:id/members?q=&tier=&cursor=
+   */
+  getCommunityMembers(communityId: string, query?: MembersQuery): Promise<CommunityMembers>;
+  /** The community's page link and the announcements sent so far. HTTP: GET /app/communities/:id/marketing */
+  getCommunityMarketing(communityId: string): Promise<CommunityMarketing>;
+  /**
+   * Send an announcement to every member or one tier, by push and email.
+   * HTTP: POST /app/communities/:id/announcements
+   */
+  sendAnnouncement(communityId: string, input: SendAnnouncementInput): Promise<Announcement>;
+
+  // Organizer: payouts (Stripe Connect, Express)
+
+  /** The community's Stripe account, worded. HTTP: GET /app/communities/:id/stripe */
+  getStripeAccount(communityId: string): Promise<StripeAccount>;
+  /**
+   * Start or finish Stripe onboarding: the backend creates the community's
+   * Express account if there is none, then a one-time Account Link. The app
+   * opens it in the in-app browser; Stripe sends the organizer back to
+   * memberly://return/stripe, and the app reads the account again.
+   * HTTP: POST /app/communities/:id/stripe/onboarding
+   */
+  createStripeOnboarding(communityId: string): Promise<StripeOnboardingLink>;
 }

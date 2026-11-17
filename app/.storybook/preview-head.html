@@ -2,6 +2,9 @@
   /* The app's ground behind every story and docs page. */
   html, body, #storybook-root, #storybook-docs { background: #000000; }
   body { margin: 0; color: #fafafa; }
+  /* A browser <input> keeps a default width of about 20 characters and won't shrink below it in a row.
+     React Native's TextInput has no such width, so let inputs shrink to their field as they do on a phone. */
+  #storybook-root input, #storybook-root textarea, #storybook-docs input, #storybook-docs textarea { min-width: 0; }
   /* Docs tables in the app's own tones: card rows, muted stripes, border lines (tokens.ts dark palette). */
   #storybook-docs .sbdocs table tr,
   #storybook-docs .sbdocs table tr:nth-of-type(2n) { background: #0d0d0d; }

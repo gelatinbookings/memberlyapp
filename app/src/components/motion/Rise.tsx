@@ -15,7 +15,9 @@ export function Rise({
   children,
   style,
 }: {
+  /** Place in a stagger: each step starts 90ms (`STAGGER_MS`) after the one before. */
   index?: number;
+  /** Milliseconds before the first step starts. */
   delay?: number;
   children: ReactNode;
   style?: StyleProp<ViewStyle>;

@@ -11,6 +11,7 @@ export type IconButtonProps = {
   onPress?: () => void;
   /** Visual diameter, 36–48. The hit area is always at least 44. */
   size?: number;
+  /** Outline (1px border on the ground, default), card (card fill, over a map), scrim (60% black, over a photo) or plain (no fill or border). */
   variant?: 'outline' | 'card' | 'scrim' | 'plain';
   style?: StyleProp<ViewStyle>;
   testID?: string;

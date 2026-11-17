@@ -52,21 +52,29 @@ describe('where each test account lands (real routes)', () => {
     expect(r.queryByTestId('home')).toBeNull();
   });
 
-  it('new organizer: Home, with the Manage tab', async () => {
+  it('new organizer: Home, with the same four tabs (Manage is under Me)', async () => {
     const r = await renderRouter('./src/app', { initialUrl: '/' });
     await signInAs(r, 'new-organizer');
     expect(await r.findByTestId('home', {}, { timeout: 5000 })).toBeTruthy();
     expect(r.getPathname()).toBe('/');
-    expect(await r.findByRole('tab', { name: 'Manage' }, { timeout: 5000 })).toBeTruthy();
-    for (const name of ['Home', 'Explore', 'Events', 'Me']) expect(tab(r, name)).toBeTruthy();
+    for (const name of ['Home', 'Explore', 'Events', 'Me']) expect(await r.findByRole('tab', { name }, { timeout: 5000 })).toBeTruthy();
+    expect(tab(r, 'Manage')).toBeNull();
   });
 
-  it('existing organizer: Home, with the Manage tab', async () => {
+  it('existing organizer: Home with four tabs, and Manage under Me', async () => {
     const r = await renderRouter('./src/app', { initialUrl: '/' });
     await signInAs(r, 'existing-organizer');
     expect(await r.findByTestId('home', {}, { timeout: 5000 })).toBeTruthy();
-    expect(await r.findByRole('tab', { name: 'Manage' }, { timeout: 5000 })).toBeTruthy();
     expect(await r.findByText(/Jordan/, {}, { timeout: 5000 })).toBeTruthy();
+    expect(tab(r, 'Manage')).toBeNull();
+    await act(async () => router.navigate('/me'));
+    const manage = (await r.findAllByRole('button', { name: /^Manage / }, { timeout: 5000 }))[0];
+    await act(async () => {
+      fireEvent.press(manage);
+      jest.advanceTimersByTime(1000);
+    });
+    expect(await r.findByTestId('manage', {}, { timeout: 5000 })).toBeTruthy();
+    expect(r.getPathname()).toBe('/manage');
   });
 
   it('existing member: Home with four tabs and no Manage', async () => {
@@ -78,14 +86,14 @@ describe('where each test account lands (real routes)', () => {
     expect(tab(r, 'Manage')).toBeNull();
   });
 
-  it('switching: sign out as the organizer, sign in as the member, and the Manage tab and their name are gone', async () => {
+  it('switching: sign out as the organizer, sign in as the member, and their name is gone', async () => {
     jest.spyOn(Alert, 'alert').mockImplementation((_title, _message, buttons) => {
       buttons?.find((b) => b.style === 'destructive')?.onPress?.();
     });
     const r = await renderRouter('./src/app', { initialUrl: '/' });
     await signInAs(r, 'existing-organizer');
     await r.findByTestId('home', {}, { timeout: 5000 });
-    expect(await r.findByRole('tab', { name: 'Manage' }, { timeout: 5000 })).toBeTruthy();
+    expect(await r.findByText(/Jordan/, {}, { timeout: 5000 })).toBeTruthy();
 
     await act(async () => router.navigate('/me'));
     const signOut = await r.findByRole('button', { name: 'Sign out' }, { timeout: 5000 });
@@ -115,6 +123,5 @@ describe('where each test account lands (real routes)', () => {
     });
     await r.findByTestId('home', {}, { timeout: 5000 });
     expect(await r.findByText(/Jordan/, {}, { timeout: 5000 })).toBeTruthy();
-    expect(await r.findByRole('tab', { name: 'Manage' }, { timeout: 5000 })).toBeTruthy();
   });
 });

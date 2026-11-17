@@ -2,12 +2,12 @@ import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import type { MemberlyRepository } from '@/data/repository';
-import type { EventFields, ImageAsset } from '@/data/types';
+import type { EventFields, EventPageDetails, ImageAsset, MemberEvent } from '@/data/types';
 import { isoDateInZone, type IsoDate } from '@/lib/dates';
 import type { LibraryPhoto } from '@/lib/photos';
 import { space } from '@/theme/tokens';
 
-import { sampleUri } from './Sample';
+import { Sample, sampleUri } from './Sample';
 
 /**
  * Small helpers shared by the Atoms and Molecules stories. Layout only, plus
@@ -47,6 +47,28 @@ export async function eventFieldsOf(repo: MemberlyRepository, eventId: string): 
   if (!e) throw new Error(`No sample event ${eventId}`);
   const { name, tagline, description, cover, date, startTime, endTime, venue, city } = e;
   return { name, tagline, description, cover, date, startTime, endTime, venue, city };
+}
+
+/** A member-facing event with its page details (host, venue, price, going, About, perks), exactly as the fake server returns them. */
+export async function eventPageOf(repo: MemberlyRepository, eventId: string): Promise<{ event: MemberEvent; details: EventPageDetails }> {
+  const event = await repo.getEvent(eventId);
+  if (!event?.details) throw new Error(`No sample event page for ${eventId}`);
+  return { event, details: event.details };
+}
+
+/** Renders a part of the event page with a sample event's page, read from the fake server. */
+export function OnEventPage({
+  eventId,
+  children,
+}: {
+  eventId: string;
+  children: (page: { event: MemberEvent; details: EventPageDetails }) => ReactNode;
+}) {
+  return (
+    <Sample name={`event-page-${eventId}`} load={(repo) => eventPageOf(repo, eventId)}>
+      {children}
+    </Sample>
+  );
 }
 
 const styles = StyleSheet.create({

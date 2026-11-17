@@ -17,6 +17,7 @@ export function GalleryField({
   onRemove,
 }: {
   photos: LibraryPhoto[];
+  /** Replaces the helper in amber, e.g. when a photo couldn’t be added. */
   warning?: string | null;
   onAdd: () => void;
   onRemove: (index: number) => void;

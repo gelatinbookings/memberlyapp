@@ -40,7 +40,6 @@ function EmailBody({ withName = false, testAccounts = false }: { withName?: bool
 const meta = {
   title: 'Organisms/AuthSheet',
   component: AuthSheet,
-  subcomponents: { OrRule },
   tags: ['autodocs'],
   args: {
     title: 'Enter your email',
@@ -62,7 +61,7 @@ const meta = {
     docs: {
       description: {
         component: componentDocs({
-          what: 'The sheet Sign in and Create account rise in, over Welcome (which keeps playing, dimmed to 35%). The grab handle, the Memberly wordmark, a 24pt Display title and a muted line, then whatever the screen puts in: the email field, Send verification code, “or”, the Google and Apple buttons, the links. `OrRule` is the “or” line between the email path and the providers.',
+          what: 'The sheet Sign in and Create account rise in, over Welcome (which keeps playing, dimmed to 35%). The grab handle, the Memberly wordmark, a 24pt Display title and a muted line, then whatever the screen puts in: the email field, Send verification code, “or”, the Google and Apple buttons, the links. The “or” line between the email path and the providers is `OrRule`, under Molecules.',
           use: 'for the two auth sheets, rendered by their routes as transparent modals over Welcome.',
           avoid: 'for any task after sign-in: use `Sheet` or `OverlaySheet`. It has no swipe to close; tapping the dimmed Welcome closes it.',
           usage: `<AuthSheet title="Enter your email" subtitle="Sign in to your account. We’ll send you a code, no password needed.">

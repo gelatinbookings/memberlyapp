@@ -78,11 +78,6 @@ export const WithHelper: Story = {
   parameters: storyDoc('A short line under the field that says how it’s used.'),
 };
 
-export const Warning: Story = {
-  args: { label: 'Instagram', value: 'instagram', helper: undefined, warning: linkProblem('instagram') },
-  parameters: storyDoc('Something needs fixing before you can go on: amber outline and amber helper.'),
-};
-
 export const Money: Story = {
   render: (args) => (
     <Sample name="draft" load={(repo) => repo.getDraftOffers('e_late_service')}>
@@ -100,19 +95,6 @@ export const Money: Story = {
     </Sample>
   ),
   parameters: storyDoc('An offer fee: a muted “$” prefix and bold tabular figures. Prefilled with the DJ’s published rate.'),
-};
-
-export const FeeMissing: Story = {
-  name: 'Fee missing',
-  args: {
-    label: 'Your offer to NIGHTFORM, in dollars',
-    prefix: '$',
-    money: true,
-    placeholder: 'Fee',
-    warning: FEE_MISSING_MESSAGE,
-    keyboardType: 'number-pad',
-  },
-  parameters: storyDoc('A private-rate DJ with no fee entered yet: the offer can’t be sent until there is one.'),
 };
 
 export const Multiline: Story = {
@@ -138,6 +120,24 @@ function Typing() {
     />
   );
 }
+
+export const Warning: Story = {
+  args: { label: 'Instagram', value: 'instagram', helper: undefined, warning: linkProblem('instagram') },
+  parameters: storyDoc('Something needs fixing before you can go on: amber outline and amber helper.'),
+};
+
+export const FeeMissing: Story = {
+  name: 'Fee missing',
+  args: {
+    label: 'Your offer to NIGHTFORM, in dollars',
+    prefix: '$',
+    money: true,
+    placeholder: 'Fee',
+    warning: FEE_MISSING_MESSAGE,
+    keyboardType: 'number-pad',
+  },
+  parameters: storyDoc('A private-rate DJ with no fee entered yet: the offer can’t be sent until there is one.'),
+};
 
 export const TypeInIt: Story = {
   name: 'Type in it',

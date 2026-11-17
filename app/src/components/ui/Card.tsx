@@ -10,7 +10,9 @@ export type CardProps = {
   selected?: boolean;
   /** Warning edge for a card that needs action (new offer from the DJ). */
   attention?: boolean;
+  /** Inner padding. Default 14 (`space.card`); DJ cards use 12, event row cards 10. */
   padding?: number;
+  /** Makes the whole card one button. Leave it out for a card that only holds content. */
   onPress?: () => void;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;

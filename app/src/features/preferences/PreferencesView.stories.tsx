@@ -32,6 +32,10 @@ const meta = {
           ],
           do: ['Let a new member skip; they can change these any time in Me.', 'Keep one primary button, pinned above the home indicator.'],
           dont: ['Put an eyebrow above the step title.', 'Save on every chip tap: Save (or the last Continue) saves.'],
+          unshown: [
+            'Saving: the last Continue (or Save) shows it is busy while the picks are written. On sample data that is a blink.',
+            'Saved picks that can’t be read: the view has no error state yet. The options stay hidden and Continue stays disabled, so there is no story for it.',
+          ],
         }),
       },
     },
@@ -43,6 +47,13 @@ type Story = StoryObj<typeof meta>;
 
 export const Onboarding: Story = {
   parameters: storyDoc('A new member’s first step: nothing picked, Skip top right, the line about what comes next.'),
+};
+
+export const Loading: Story = {
+  parameters: {
+    memberly: { account: 'new-user', pending: ['getPreferences'] },
+    ...storyDoc('While the saved picks are read: two loading rows under the title, and Continue stays disabled until they arrive.'),
+  },
 };
 
 export const OnboardingStepTwo: Story = {

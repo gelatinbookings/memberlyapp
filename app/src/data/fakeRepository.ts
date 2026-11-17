@@ -5,11 +5,13 @@
 import type { MemberlyRepository } from './repository';
 import { formatCents } from '@/features/booking/money';
 import { runExplore } from '@/features/explore/filters';
-import { addDays, endsNextMorning, formatEventDate, formatIsoDate, zonedIso, type IsoDate } from '@/lib/dates';
+import { addDays, endsNextMorning, formatEventDate, formatIsoDate, formatSetTime, zonedIso, type IsoDate } from '@/lib/dates';
 
 import { CatalogUnavailableError, RepositoryError } from './errors';
 import { SAMPLE_COMMUNITY_PAGES } from './sampleCommunityPages';
 import { SAMPLE_REFERRALS } from './sampleReferrals';
+import { sampleMember, SAMPLE_ANNOUNCEMENTS } from './sampleMembers';
+import { searchSampleVenues } from './sampleVenues';
 import { defaultEventPage, SAMPLE_EVENT_PAGES } from './sampleEventPages';
 import { COMMUNITY_TYPES, EVENT_THEMES, EVENT_TYPES, EVENT_VIBES, MUSIC_GENRES } from './taxonomy';
 import {
@@ -57,6 +59,9 @@ import type {
   SetupTask,
   TalentPage,
   Viewer,
+  StripeAccount,
+  Announcement,
+  CommunityMember,
 } from './types';
 
 const img = {
@@ -362,6 +367,11 @@ export const LAUNCH_TTL_MS = 60_000;
 
 /** Where fake launches point. `.invalid` never resolves: nothing can be opened by mistake. */
 export const TEST_PORTAL_ORIGIN = 'https://gelatin-portal.invalid';
+/** Where the fake's Stripe onboarding links point: nowhere real, so the app shows its test onboarding instead. */
+export const TEST_STRIPE_ORIGIN = 'https://connect.stripe.invalid';
+
+/** How a test Stripe onboarding ended: every step done, or closed partway. */
+export type FakeStripeOutcome = { finished: true; bankLast4: string } | { finished: false };
 
 /** How long a counter reads `negotiating` before the DJ's new price lands, in the design build. */
 export const COUNTER_MS = 6000;
@@ -410,6 +420,8 @@ export type WorldControls = {
   portalBooking(requestId: string): FakePortalBooking | null;
   /** How many pass orders exist. */
   passOrderCount(): number;
+  /** End a test Stripe onboarding, as Stripe's webhook would report it: connected, or left partway. */
+  finishStripeOnboarding(communityId: string, outcome: FakeStripeOutcome): void;
 };
 
 /**
@@ -558,6 +570,13 @@ const CONNECT_STRIPE_TASK: SetupTask = {
   title: 'Connect Stripe',
   detail: 'So you can receive payments from paid tiers.',
   actionLabel: 'Connect',
+};
+/** Stripe onboarding was started and left partway. */
+const FINISH_STRIPE_TASK: SetupTask = {
+  id: 'stripe',
+  title: 'Finish Stripe setup',
+  detail: 'A few details are left before payouts can start.',
+  actionLabel: 'Finish',
 };
 
 /** Longest name the server takes for a community or a pass (GEL-1058). */
@@ -1112,7 +1131,16 @@ function createWorld(options: FakeRepositoryOptions, seed: WorldSeed): World {
   const delay = options.delayMs ?? 250;
   let preferences: Preferences = seed.preferences;
   /** The communities this viewer runs: the seeded one, then any they create. Each has its own setup and numbers. */
-  type Owned = { community: Community; setupTasks: SetupTask[]; stats: WorldSeed['stats']; stripeConnected: boolean };
+  type Owned = {
+    community: Community;
+    setupTasks: SetupTask[];
+    stats: WorldSeed['stats'];
+    stripeConnected: boolean;
+    /** Stripe onboarding was opened and left before the end. */
+    stripeStarted?: boolean;
+    /** The test bank account payouts go to, once connected. */
+    bankLast4?: string;
+  };
   const owned: Owned[] = seed.community ? [{ community: seed.community, setupTasks: seed.setupTasks, stats: seed.stats, stripeConnected: false }] : [];
   const ownedById = (communityId: string | null | undefined) => owned.find((o) => o.community.id === communityId);
   // Running a community is what makes someone an organizer, from the moment it exists.
@@ -1308,6 +1336,17 @@ function createWorld(options: FakeRepositoryOptions, seed: WorldSeed): World {
     settleCounters: () => [...counters.keys()].forEach(landCounter),
     bookingFetches: (eventId) => ({ ...readsOf(eventId) }),
     portalLaunchCount: () => launchCount,
+    finishStripeOnboarding: (communityId, outcome) => {
+      const o = ownedById(communityId);
+      if (!o) return;
+      if (outcome.finished) {
+        o.stripeConnected = true;
+        o.stripeStarted = false;
+        o.bankLast4 = outcome.bankLast4;
+      } else if (!o.stripeConnected) {
+        o.stripeStarted = true;
+      }
+    },
     redeemLaunch: (launchUrl) => {
       const launch = launches.get(launchUrl);
       if (!launch || launch.used || launch.expiresAt <= Date.now()) return null;
@@ -1530,15 +1569,54 @@ function createWorld(options: FakeRepositoryOptions, seed: WorldSeed): World {
     await later(undefined, delay);
     throw new RepositoryError('timeout');
   };
-  /** Stripe is asked for once anything in the community has a price. */
+  /** Stripe is asked for once anything in the community has a price, and goes once it is connected. */
   const tasksOf = (o: Owned): SetupTask[] => {
+    const isStripe = (t: SetupTask) => t.id === CONNECT_STRIPE_TASK.id;
+    if (o.stripeConnected) return o.setupTasks.filter((t) => !isStripe(t));
     const priced = [
       ...(communityPasses.get(o.community.id) ?? []),
       ...events.filter((e) => e.communityId === o.community.id).flatMap((e) => eventPasses.get(e.id) ?? []),
     ].some((p) => p.priceCents != null && !p.seeded);
-    const asksForStripe = o.setupTasks.some((t) => t.id === CONNECT_STRIPE_TASK.id);
-    return priced && !asksForStripe && !o.stripeConnected ? [...o.setupTasks, CONNECT_STRIPE_TASK] : o.setupTasks;
+    const task = o.stripeStarted ? FINISH_STRIPE_TASK : CONNECT_STRIPE_TASK;
+    if (o.setupTasks.some(isStripe)) return o.setupTasks.map((t) => (isStripe(t) ? (o.stripeStarted ? task : t) : t));
+    return priced || o.stripeStarted ? [...o.setupTasks, task] : o.setupTasks;
   };
+  const stripeOf = (o: Owned): StripeAccount =>
+    o.stripeConnected
+      ? { status: 'connected', payoutsTo: `STRIPE TEST BANK ••••${o.bankLast4 ?? '6789'}`, payoutSchedule: 'Weekly, on Mondays' }
+      : { status: o.stripeStarted ? 'incomplete' : 'not_connected', payoutsTo: null, payoutSchedule: null };
+  let stripeLinks = 0;
+
+  /** Everyone in an owned community: the organizer first, then sample members, each on a tier. */
+  const membersOf = (o: Owned): CommunityMember[] => {
+    const tiers = (communityPasses.get(o.community.id) ?? []).filter((p) => p.active).map((p) => ({ name: p.name, weight: Math.max(1, p.heldCount) }));
+    const names = tiers.length > 0 ? tiers : [{ name: 'Member', weight: 1 }];
+    const weightSum = names.reduce((n, t) => n + t.weight, 0);
+    const tierAt = (i: number) => {
+      // Spread the tiers through the list in proportion to how many hold each.
+      let slot = (i * 7919) % weightSum;
+      for (const t of names) {
+        if (slot < t.weight) return t.name;
+        slot -= t.weight;
+      }
+      return names[0].name;
+    };
+    const v = viewer();
+    const you: CommunityMember = {
+      id: `m_${o.community.id}_you`,
+      name: `${v.firstName} ${v.lastName}`,
+      initials: v.initials,
+      tier: 'Owner',
+      joinedLabel: 'Started it',
+      status: 'active',
+      isYou: true,
+    };
+    const others = Math.max(0, o.community.memberCount - 1);
+    return [you, ...Array.from({ length: others }, (_, i) => sampleMember(o.community.id, i, tierAt(i)))];
+  };
+  const announcements = new Map<string, Announcement[]>(Object.entries(SAMPLE_ANNOUNCEMENTS).map(([k, v]) => [k, [...v]]));
+  const announcementKeys = new Map<string, string>();
+  const MEMBERS_PAGE = 30;
 
   const overview = (o: Owned): CommunityOverview => ({
     community: o.community,
@@ -1619,6 +1697,75 @@ function createWorld(options: FakeRepositoryOptions, seed: WorldSeed): World {
     },
 
     getCities: () => later(sampleCities, delay),
+    searchVenues: async (query) => {
+      await network();
+      return later(searchSampleVenues(query), delay);
+    },
+    getCommunityMembers: async (communityId, { query = '', tier = null, cursor = null } = {}) => {
+      await network();
+      const o = ownedById(communityId);
+      if (!o) throw new RepositoryError('not_found');
+      const all = membersOf(o);
+      const counts = new Map<string, number>();
+      for (const m of all) if (!m.isYou) counts.set(m.tier, (counts.get(m.tier) ?? 0) + 1);
+      const q = query.trim().toLowerCase();
+      const matching = all.filter((m) => (!tier || m.tier === tier) && (!q || m.name.toLowerCase().includes(q)));
+      const from = cursor ? Number(cursor) : 0;
+      const page = matching.slice(from, from + MEMBERS_PAGE);
+      return later(
+        {
+          total: all.length,
+          tiers: [...counts].map(([name, count]) => ({ name, count })),
+          matching: matching.length,
+          members: page,
+          nextCursor: from + MEMBERS_PAGE < matching.length ? String(from + MEMBERS_PAGE) : null,
+        },
+        delay,
+      );
+    },
+    getCommunityMarketing: async (communityId) => {
+      await network();
+      const o = ownedById(communityId);
+      if (!o) throw new RepositoryError('not_found');
+      return later({ pageUrl: `https://withmemberly.com/c/${o.community.id}`, announcements: [...(announcements.get(communityId) ?? [])] }, delay);
+    },
+    sendAnnouncement: async (communityId, { body, tier, idempotencyKey }) => {
+      await network();
+      const o = ownedById(communityId);
+      if (!o) throw new RepositoryError('not_found');
+      const text = body.trim();
+      if (text.length === 0 || text.length > 500) throw new RepositoryError('invalid_input');
+      const list = announcements.get(communityId) ?? [];
+      const known = list.find((a) => a.id === announcementKeys.get(`${communityId}:${idempotencyKey}`));
+      if (known) return later(known, delay);
+      const reach = membersOf(o).filter((m) => !m.isYou && (!tier || m.tier === tier)).length;
+      const sent: Announcement = {
+        id: `an_${nextId++}`,
+        body: text,
+        audienceLabel: tier ?? 'All members',
+        reachLabel: `Sent to ${reach.toLocaleString('en-US')} ${reach === 1 ? 'member' : 'members'}`,
+        sentLabel: 'Just now',
+      };
+      announcements.set(communityId, [sent, ...list]);
+      announcementKeys.set(`${communityId}:${idempotencyKey}`, sent.id);
+      return later(sent, delay);
+    },
+    getStripeAccount: async (communityId) => {
+      await network();
+      const o = ownedById(communityId);
+      if (!o) throw new RepositoryError('not_found');
+      return later(stripeOf(o), delay);
+    },
+    createStripeOnboarding: async (communityId) => {
+      await network();
+      const o = ownedById(communityId);
+      if (!o) throw new RepositoryError('not_found');
+      stripeLinks += 1;
+      return later(
+        { url: `${TEST_STRIPE_ORIGIN}/setup/e/acct_test_${o.community.id}/${stripeLinks}`, expiresAt: new Date(Date.now() + 5 * 60_000).toISOString() },
+        delay,
+      );
+    },
     getOrganizerEvent: (id) => {
       const e = find(id);
       return later(e ? detail(e) : null, delay);
@@ -1717,7 +1864,7 @@ function createWorld(options: FakeRepositoryOptions, seed: WorldSeed): World {
       if (!Number.isInteger(offerCents) || offerCents <= 0) throw new RepositoryError('invalid_offer');
       return later({ offerCents, ...priced(offerCents) }, delay);
     },
-    createOffer: async (eventId, { djId, offerCents, note, clientOfferId }) => {
+    createOffer: async (eventId, { djId, offerCents, note, setStart, setEnd, clientOfferId }) => {
       await network();
       const key = `${eventId}:${djId}:${clientOfferId}`;
       let requestId = requestsByKey.get(key);
@@ -1745,7 +1892,7 @@ function createWorld(options: FakeRepositoryOptions, seed: WorldSeed): World {
           offerCents,
           totalCents: priced(offerCents).totalCents,
           note,
-          setTime: '',
+          setTime: setStart && setEnd ? formatSetTime(setStart, setEnd) : '',
         };
         writeBookings(eventId, [...(bookingsByEvent[eventId] ?? []), booking]);
         // The offer is sent, so it is no longer a draft.

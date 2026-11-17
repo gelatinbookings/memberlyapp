@@ -23,13 +23,16 @@ export function CardHeldScreen({
   onBack,
   onAddAnother,
 }: {
+  /** The booking just held, as the server returned it. The total shown is its own. */
   booking: Booking;
   /** The event's night, "Sat, Nov 28". */
   day: string;
   /** The next DJ waiting for review, when several offers are being sent. */
   nextDj?: string;
+  /** Next: review the offer to `nextDj`. Offered only when another offer is waiting. */
   onNext: () => void;
   onBack: () => void;
+  /** Add another DJ. Offered when no other offer is waiting. */
   onAddAnother: () => void;
 }) {
   const c = useTheme();

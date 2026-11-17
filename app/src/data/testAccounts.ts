@@ -39,7 +39,7 @@ export type TestAccount = {
   passes: { eventId: string; passName: string }[];
   /** Events on the Events tab that are not passes: going, or saved to decide later. */
   events: Record<string, 'going' | 'saved'>;
-  /** The community they run, or null: no Manage tab. */
+  /** The community they run, or null: nothing to manage on Me. */
   organizes: null | {
     /** A community in the shared catalog, or a new one with just these fields. */
     community: { id: string; name: string; city: string; memberCount: number };
@@ -140,12 +140,12 @@ const EXISTING_ORGANIZER: TestAccount = {
   },
 };
 
-/** 4. A member with passes and memberships who runs nothing: no Manage tab, and Me offers Start a community. */
+/** 4. A member with passes and memberships who runs nothing: nothing to manage, and Me offers Start a community. */
 const EXISTING_MEMBER: TestAccount = {
   id: 'existing-member',
   viewerId: 'u_test_member',
   label: 'Existing member · no community yet',
-  description: 'Has passes and memberships. No Manage tab; Me offers Start a community.',
+  description: 'Has passes and memberships. Nothing to manage; Me offers Start a community.',
   email: 'member@memberly.test',
   firstName: 'Dana',
   lastName: 'Whitfield',

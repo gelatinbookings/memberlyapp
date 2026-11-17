@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
+import { screen, userEvent } from 'storybook/test';
 
 import { componentDocs, storyDoc } from '@/stories/support/docs';
 import { SAMPLE_EVENT, ScreenBehind } from '@/stories/support/organisms';
@@ -40,6 +41,11 @@ const meta = {
           ],
           do: ['Show the server’s price and total only.', 'Say where the pass goes: on the Memberly Card, shown at the door.'],
           dont: ['Hide a sold-out pass; show it dimmed with the pill.', 'Ask for card details in the sheet.'],
+          unshown: [
+            '“Confirming your pass”, a spinner between paying and the server reading the order as paid. On sample data it lasts a moment; open One paid pass, tap Get and pay to see it pass.',
+            '“Payment didn’t go through. You weren’t charged.”, an error notice after a declined card. Open One paid pass, tap Get and tap “Use a declined test card” in the test payment sheet, then close it.',
+            '“You’re offline. Try again when you’re back.”, a muted notice when Get can’t reach the server after the list has loaded.',
+          ],
         }),
       },
     },
@@ -66,12 +72,50 @@ export const AlreadyOnYourCard: Story = {
   parameters: storyDoc('You already hold a pass for this event: the sheet opens on the finished state with Show my pass.'),
 };
 
+export const Loading: Story = {
+  parameters: {
+    memberly: { pending: ['getPassTypes'] },
+    ...storyDoc('While the pass types load: two card-sized skeletons, read as “Loading passes”.'),
+  },
+};
+
+export const NothingOnSale: Story = {
+  name: 'Nothing on sale',
+  args: { eventId: SAMPLE_EVENT.draftsNotSent },
+  parameters: storyDoc('The event has no pass on sale yet: a muted notice says so, and nothing can be got.'),
+};
+
 export const SlowToConfirm: Story = {
   name: 'Slow to confirm',
   args: { eventId: 'e_long_table' },
   parameters: {
     memberly: { simulation: { slowPassOrder: true } },
     ...storyDoc('Get, then pay: confirming takes longer than ten seconds, so the sheet says the pass will land on your card.'),
+  },
+};
+
+/** Taps Get on Long Table's one paid pass, the way a member would. */
+const tapGet = async () => {
+  await userEvent.click(await screen.findByText('Get'));
+};
+
+export const JustSoldOut: Story = {
+  name: 'Just sold out',
+  args: { eventId: 'e_long_table' },
+  play: tapGet,
+  parameters: {
+    memberly: { simulation: { soldOutNext: true } },
+    ...storyDoc('Get is tapped as the last one goes: an error notice says the pass just sold out, nothing is charged, and the list reloads.'),
+  },
+};
+
+export const PriceChanged: Story = {
+  name: 'Price changed',
+  args: { eventId: 'e_long_table' },
+  play: tapGet,
+  parameters: {
+    memberly: { simulation: { priceChangeNext: true } },
+    ...storyDoc('The organizer changed the price after the list loaded: a warning notice gives the new total from the server and asks you to tap Get again.'),
   },
 };
 

@@ -120,6 +120,14 @@ export const BudgetAndGenre: Story = {
   parameters: storyDoc('Reopened with a band and a genre on: both chips are selected and the count narrows.'),
 };
 
+export const GenresLoading: Story = {
+  name: 'Genres loading',
+  parameters: {
+    memberly: { pending: ['getTalentGenres'] },
+    ...storyDoc('While the genres open that night are read: round chip skeletons where the genres go. Budget already works.'),
+  },
+};
+
 export const GenresUnavailable: Story = {
   name: 'Genres unavailable',
   parameters: {

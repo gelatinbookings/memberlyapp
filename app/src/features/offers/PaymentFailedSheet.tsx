@@ -20,6 +20,7 @@ export function PaymentFailedSheet({
   onClose,
 }: {
   booking: Booking;
+  /** Try again is working: the button shows it is busy. */
   retrying: boolean;
   onRetry: () => void;
   onClose: () => void;

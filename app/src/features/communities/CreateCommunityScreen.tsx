@@ -12,7 +12,8 @@ import { useTheme } from '@/theme/theme';
 import { radius, space } from '@/theme/tokens';
 
 import { ChoiceCard } from './ChoiceCard';
-import { CitySheet, CountrySheet } from './CitySheet';
+import { CityField } from './CityField';
+import { CountrySheet } from './CitySheet';
 import {
   COMMUNITY_DESCRIPTION_MAX,
   COMMUNITY_NAME_MAX,
@@ -115,7 +116,7 @@ export function CreateCommunityScreen() {
   const qc = useQueryClient();
   const [step, setStep] = useState<Step>(0);
   const [draft, setDraft] = useState<CommunityDraft>(EMPTY_COMMUNITY);
-  const [sheet, setSheet] = useState<'country' | 'city' | null>(null);
+  const [sheet, setSheet] = useState<'country' | null>(null);
   const [photoNote, setPhotoNote] = useState<{ logo?: string; banner?: string; gallery?: string }>({});
   // One key for this visit: trying again is the same request.
   const [key] = useState(() => newClientId('community'));
@@ -193,8 +194,11 @@ export function CreateCommunityScreen() {
   const linksFilled = SOCIAL_FIELDS.some((f) => draft.links[f.key].trim());
 
   return (
-    <Screen key={`step-${step}`} testID={`community-step-${step}`} footer={footer}>
-      <ScreenHeader title={STEP_TITLES[step]} subtitle="Create community" onBack={back} />
+    <Screen
+      key={`step-${step}`}
+      testID={`community-step-${step}`}
+      header={<ScreenHeader title={STEP_TITLES[step]} subtitle="Create community" onBack={back} />}
+      footer={footer}>
       <StepBar step={step} />
 
       {step === 0 ? (
@@ -292,13 +296,7 @@ export function CreateCommunityScreen() {
         <>
           <Group title="Where you meet" line="Puts your events in front of people searching that city.">
             <SelectField testID="community-country" label="Country" value={draft.country} placeholder="Choose a country" onPress={() => setSheet('country')} />
-            <SelectField
-              testID="community-city"
-              label="City (optional)"
-              value={draft.city ? `${draft.city.name}, ${draft.city.region}` : null}
-              placeholder="Choose a city"
-              onPress={() => setSheet('city')}
-            />
+            <CityField country={draft.country} city={draft.city} region={draft.region} onChange={(patch) => set(patch)} />
           </Group>
           <Group title="Tags" line="How people find you in Explore. Pick a few that truly describe your nights, or add your own.">
             <TagInput tags={draft.tags} onChange={(tags) => set({ tags })} />
@@ -340,18 +338,7 @@ export function CreateCommunityScreen() {
             selected={draft.country}
             onClose={() => setSheet(null)}
             onPick={(country) => {
-              // A city belongs to its country.
-              set(country === draft.country ? {} : { country, city: null });
-              setSheet(null);
-            }}
-          />
-          <CitySheet
-            visible={sheet === 'city'}
-            country={draft.country}
-            selected={draft.city}
-            onClose={() => setSheet(null)}
-            onPick={(city) => {
-              set({ city });
+              set({ country });
               setSheet(null);
             }}
           />

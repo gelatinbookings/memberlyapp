@@ -14,13 +14,19 @@ export function SectionCard({
   summary,
   Icon,
   state,
+  optional = false,
   onPress,
   testID,
 }: {
   title: string;
+  /** One line under the title: what is set, or what to do. */
   summary: string;
+  /** The section’s icon, drawn on the tile. */
   Icon: LucideIcon;
+  /** `todo` (not filled yet, with a chevron), `done` (a green check) or `new` (purple tile and a New pill). */
   state: SectionCardState;
+  /** Shows "(Optional)" after the title, for a section publishing never waits on. */
+  optional?: boolean;
   onPress: () => void;
   testID?: string;
 }) {
@@ -30,7 +36,7 @@ export function SectionCard({
     <Pressable
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={`${title}${state === 'done' ? ', complete' : isNew ? ', new' : ''}. ${summary}`}
+      accessibilityLabel={`${title}${optional ? ', optional' : ''}${state === 'done' ? ', complete' : isNew ? ', new' : ''}. ${summary}`}
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
@@ -40,7 +46,14 @@ export function SectionCard({
         <Icon size={20} color={isNew ? c.onBrand : c.brandText} strokeWidth={2} />
       </View>
       <View style={styles.text}>
-        <Text variant="cardTitle">{title}</Text>
+        <Text variant="cardTitle">
+          {title}
+          {optional ? (
+            <Text variant="secondary" tone="muted">
+              {'  (Optional)'}
+            </Text>
+          ) : null}
+        </Text>
         <Text variant="secondary" tone={isNew ? 'brand' : 'muted'} numberOfLines={2}>
           {summary}
         </Text>

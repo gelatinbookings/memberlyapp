@@ -10,9 +10,11 @@ export type NoticeTone = 'muted' | 'tint' | 'error' | 'warning';
 
 export type NoticeProps = {
   children: ReactNode;
+  /** Muted (default, the hold line and quiet facts), tint (back from Gelatin), warning (needs a look) or error (read as an alert). */
   tone?: NoticeTone;
   /** Optional bold lead-in, e.g. "No lineup right now?" */
   title?: string;
+  /** A 16px icon before the text, in the tone’s colour. */
   icon?: ReactNode;
   /** Centred text, for a notice under a centred heading. */
   center?: boolean;

@@ -67,16 +67,6 @@ export const Destructive: Story = {
   parameters: storyDoc('Only for actions that undo something the organizer set up: Change date, Cancel.'),
 };
 
-export const Disabled: Story = {
-  args: { label: 'Send 2 offers', disabled: true },
-  parameters: storyDoc('When the action can’t run yet; say why nearby (for example, a fee is missing).'),
-};
-
-export const Loading: Story = {
-  args: { label: 'Holding your card', loading: true },
-  parameters: storyDoc('While the action is in flight; the button stays in place and can’t be pressed twice.'),
-};
-
 export const WithTrailingIcon: Story = {
   name: 'With trailing icon',
   args: {
@@ -95,4 +85,14 @@ export const Compact: Story = {
     </View>
   ),
   parameters: storyDoc('Two buttons side by side in a centred dialog, with the 14px label.'),
+};
+
+export const Loading: Story = {
+  args: { label: 'Holding your card', loading: true },
+  parameters: storyDoc('While the action is in flight; the button stays in place and can’t be pressed twice.'),
+};
+
+export const Disabled: Story = {
+  args: { label: 'Send 2 offers', disabled: true },
+  parameters: storyDoc('When the action can’t run yet; say why nearby (for example, a fee is missing).'),
 };

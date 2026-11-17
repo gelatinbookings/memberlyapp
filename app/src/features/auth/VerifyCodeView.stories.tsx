@@ -75,6 +75,15 @@ export const Success: Story = {
   parameters: storyDoc('The right code: a check draws in with “You’re in”, then the app moves on (logged to Actions).'),
 };
 
+export const CouldntCheck: Story = {
+  name: 'Couldn’t check the code',
+  play: enter(FAKE_CODES.success),
+  parameters: {
+    memberly: { signedIn: false, failing: ['verifyCode'] },
+    ...storyDoc('The server couldn’t check the code: an error notice says to try again, and the digits stay.'),
+  },
+};
+
 export const ResendReady: Story = {
   name: 'Resend ready',
   args: { resendAfter: 0 },

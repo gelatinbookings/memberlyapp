@@ -1,13 +1,15 @@
 import { Alert } from 'react-native';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 
+import { RepositoryError } from '@/data/errors';
 import { createFakeRepository, type FakeRepository } from '@/data/fakeRepository';
 import type { TestAccountId } from '@/data/testAccounts';
+import { EMPTY_FIELDS } from '@/features/events/completeness';
 import { ACCESS_EMPTY_SUMMARY, EventFormScreen } from '@/features/events/EventFormScreen';
 import { PassSheet } from '@/features/passes/PassSheet';
 import { renderWithProviders } from '@/test-utils/renderWithProviders';
 
-import { STRIPE_NOTICE, passesSummary } from '../passForm';
+import { PARENT_UNAVAILABLE_DETAIL, PARENT_UNAVAILABLE_TITLE, STRIPE_NOTICE, passesSummary } from '../passForm';
 import { PassFormScreen } from '../PassFormScreen';
 import { NO_PASSES_TITLE, PassListScreen, WAITING_ON_STRIPE } from '../PassListScreen';
 
@@ -160,6 +162,57 @@ describe('an event pass', () => {
     expect(await repository.getOrganizerEventPasses(LATE_SERVICE)).toEqual([
       expect.objectContaining({ name: 'Early entry', priceCents: 2000, limit: 40, freeForMembers: true }),
     ]);
+  });
+
+  it('Quantity has minus and plus: plus from empty starts at 1, minus from 1 is no limit, typing still works', async () => {
+    const repository = await signedInAs('existing-organizer');
+    await renderWithProviders(<PassFormScreen scope="event" parentId={LATE_SERVICE} />, { repository });
+    const field = await screen.findByTestId('pass-limit');
+    expect(field.props.value).toBe('');
+    await press(screen.getByRole('button', { name: 'Increase quantity' }));
+    await press(screen.getByRole('button', { name: 'Increase quantity' }));
+    expect(screen.getByTestId('pass-limit').props.value).toBe('2');
+    await press(screen.getByRole('button', { name: 'Decrease quantity' }));
+    await press(screen.getByRole('button', { name: 'Decrease quantity' }));
+    expect(screen.getByTestId('pass-limit').props.value).toBe('');
+    // Minus does nothing with no limit set.
+    await press(screen.getByRole('button', { name: 'Decrease quantity' }));
+    expect(screen.getByTestId('pass-limit').props.value).toBe('');
+    await type(screen.getByTestId('pass-limit'), '150');
+    await press(screen.getByRole('button', { name: 'Increase quantity' }));
+    expect(screen.getByTestId('pass-limit').props.value).toBe('151');
+  });
+
+  it('an event this account doesn’t run says so instead of showing a form that can’t save', async () => {
+    const repository = await signedInAs('new-organizer');
+    await renderWithProviders(<PassFormScreen scope="event" parentId={LATE_SERVICE} />, { repository });
+    expect(await screen.findByText(PARENT_UNAVAILABLE_TITLE)).toBeTruthy();
+    expect(screen.getByText(PARENT_UNAVAILABLE_DETAIL.event)).toBeTruthy();
+    expect(screen.queryByTestId('pass-name')).toBeNull();
+  });
+
+  it('a new organizer adds a pass to their own new event, with the quantity set by plus', async () => {
+    const repository = await signedInAs('new-organizer');
+    const [own] = await repository.getOrganizedCommunities();
+    const event = await repository.saveEvent({ communityId: own.id, fields: { ...EMPTY_FIELDS, name: 'Porch Night' }, publish: false });
+    await renderWithProviders(<PassFormScreen scope="event" parentId={event.id} />, { repository });
+    await type(await screen.findByTestId('pass-name'), 'General admission');
+    for (let i = 0; i < 3; i++) await press(screen.getByRole('button', { name: 'Increase quantity' }));
+    await press(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(router.dismissTo).toHaveBeenCalledWith({ pathname: '/organizer/events/[id]/passes', params: { id: event.id } }));
+    expect(await repository.getOrganizerEventPasses(event.id)).toEqual([expect.objectContaining({ name: 'General admission', limit: 3 })]);
+  });
+
+  it('a save the server refuses as not found says why and doesn’t offer Try again', async () => {
+    const repository = await signedInAs('existing-organizer');
+    await renderWithProviders(<PassFormScreen scope="event" parentId={LATE_SERVICE} />, { repository });
+    await type(await screen.findByTestId('pass-name'), 'Early entry');
+    // The event goes away (or changes hands) after the form opened.
+    jest.spyOn(repository, 'createEventPass').mockRejectedValueOnce(new RepositoryError('not_found'));
+    await press(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText(PARENT_UNAVAILABLE_DETAIL.event)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
+    expect(screen.getByTestId('pass-save')).toBeDisabled();
   });
 
   it('a new pass shows in Access & passes with a summary', async () => {

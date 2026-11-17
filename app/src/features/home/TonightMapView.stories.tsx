@@ -86,7 +86,7 @@ export const OneEvent: Story = {
 };
 
 export const MapPlaceholderOnly: Story = {
-  name: 'MapPlaceholder',
+  name: 'Map placeholder only',
   render: () => <Tonight>{(events) => <MapPlaceholder events={events} height={420} />}</Tonight>,
   parameters: { frame: 'bare', ...storyDoc('The stand-in map on its own: streets, blocks and one numbered pin per event.') },
 };
