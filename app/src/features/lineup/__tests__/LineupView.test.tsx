@@ -5,6 +5,7 @@ import { EMPTY_FIELDS } from '@/features/events/completeness';
 import { renderWithProviders } from '@/test-utils/renderWithProviders';
 
 import { FEE_FOOTER, LineupView, POLL_LINE, SAVE_FIRST_NOTICE, SAVES_DRAFT_LINE } from '../LineupView';
+import { unbrokenParts } from '@/features/booking/lineupSummary';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), dismissTo: jest.fn(), canGoBack: () => true },
@@ -169,7 +170,7 @@ describe('Lineup screen', () => {
 
   it('shows bookings in motion with one status, one money line and one action each', async () => {
     await renderWithProviders(<LineupView eventId="e_warehouse_friday" />);
-    expect(await screen.findByText('1 confirmed · 1 waiting · 1 to pay')).toBeTruthy();
+    expect(await screen.findByText(unbrokenParts('1 confirmed · 1 waiting · 1 to pay'))).toBeTruthy();
     expect(screen.getByText('Payment needed')).toBeTruthy();
     expect(screen.getByText('Card held · waiting for the DJ')).toBeTruthy();
     expect(screen.getByText('Confirmed')).toBeTruthy();
@@ -186,10 +187,13 @@ describe('Lineup screen', () => {
     const base = createFakeRepository({ delayMs: 0 });
     const repository = {
       ...base,
-      getEventBookings: async () => [
-        { requestId: 'br_1', dj: sampleDjs.koyo, status: 'confirmed' as const, offerCents: 45000, totalCents: 45700, note: '', setTime: 'Midnight to 2' },
-        { requestId: 'br_2', dj: sampleDjs.sable, status: 'declined' as const, offerCents: 27500, totalCents: 28200, note: '', setTime: 'Opening set' },
-      ],
+      getEventBookings: async () => ({
+        etag: 'W/"test"',
+        bookings: [
+          { requestId: 'br_1', dj: sampleDjs.koyo, status: 'confirmed' as const, offerCents: 45000, totalCents: 45700, note: '', setTime: 'Midnight to 2' },
+          { requestId: 'br_2', dj: sampleDjs.sable, status: 'declined' as const, offerCents: 27500, totalCents: 28200, note: '', setTime: 'Opening set' },
+        ],
+      }),
     };
     await renderWithProviders(<LineupView eventId="e_warehouse_friday" />, { repository });
     expect(await screen.findByText('Passed')).toBeTruthy();

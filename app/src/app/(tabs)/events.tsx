@@ -15,6 +15,9 @@ const SCOPES: { scope: MyEventsScope; label: string }[] = [
   { scope: 'saved', label: 'Saved' },
 ];
 
+/** Under the title for someone with no passes and no plans. */
+export const NOTHING_YET = 'Your passes and plans';
+
 /** One line on why the scope is empty, and the way to Explore. */
 export const EMPTY_SCOPE: Record<MyEventsScope, string> = {
   upcoming: 'Nothing coming up yet. Passes you get and events you’re going to land here.',
@@ -49,7 +52,7 @@ export default function EventsScreen() {
           Events
         </Text>
         <Text variant="secondary" tone="muted">
-          {upcoming.data ? countLine(upcoming.data) : ' '}
+          {upcoming.data ? (upcoming.data.length > 0 ? countLine(upcoming.data) : NOTHING_YET) : ' '}
         </Text>
       </View>
 

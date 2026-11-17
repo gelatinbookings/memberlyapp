@@ -1,19 +1,25 @@
 import { router } from 'expo-router';
 import { Clock, Image as ImageIcon, MapPin, Music, Ticket } from 'lucide-react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, ErrorState, LoadingRows, Notice, Screen, ScreenHeader, Sheet } from '@/components/ui';
+import { isRepositoryError } from '@/data/errors';
 import {
+  fetchEventBookings,
   useDraftOffers,
   useEventBookings,
   useOrganizedCommunities,
   useOrganizerEvent,
+  useOrganizerEventPasses,
+  useRepository,
   useSaveEvent,
 } from '@/data/RepositoryProvider';
-import type { EventFields, OrganizerEventDetail } from '@/data/types';
+import type { Booking, EventFields, OrganizerEventDetail } from '@/data/types';
 import { draftHoldNotice } from '@/features/booking/statusLine';
-import { openLater } from '@/features/navigation/later';
+import { passesSummary } from '@/features/passSetup/passForm';
+import { passListHref } from '@/features/passSetup/routes';
 import { space } from '@/theme/tokens';
 
 import {
@@ -28,6 +34,8 @@ import {
   whenComplete,
   whenSummary,
 } from './completeness';
+import { dateChangeBlock } from './dateChange';
+import { DateChangeHost, useDateChangeGuard } from './DateChangeGuard';
 import { useEventDraft } from './EventDraftProvider';
 import { SectionCard } from './SectionCard';
 
@@ -43,13 +51,24 @@ function backToManage() {
   router.dismissTo('/manage');
 }
 
+const NO_BOOKINGS: Booking[] = [];
+
+/** The server refused the save because a booking holds the event to its date (GEL-1025). */
+const dateRefused = (error: unknown) => isRepositoryError(error, 'confirmed_booking') || isRepositoryError(error, 'open_bookings');
+
+export const ACCESS_EMPTY_SUMMARY = 'Who can come, and what it costs';
+
 /**
  * Create New Event (GEL-1008), shared by /organizer/events/new and
  * /organizer/events/[id]/edit. Five sections; Lineup and Access & passes never
- * block publishing. `open="when"` jumps straight to Date & time.
+ * block publishing. `open="when"` jumps straight to Date & time. A new event
+ * is saved under `communityId` (chosen in the Create sheet), or the
+ * organizer's first community.
  */
-export function EventFormScreen({ eventId, open }: { eventId?: string; open?: string }) {
-  const { draft, begin, rekey, end } = useEventDraft();
+export function EventFormScreen({ eventId, open, communityId }: { eventId?: string; open?: string; communityId?: string }) {
+  const { draft, begin, rekey, end, update } = useEventDraft();
+  const repo = useRepository();
+  const qc = useQueryClient();
   const communities = useOrganizedCommunities();
   const persisted = useOrganizerEvent(eventId);
   // Each visit to the form starts its own draft; sub-screens pushed on top share it.
@@ -58,18 +77,18 @@ export function EventFormScreen({ eventId, open }: { eventId?: string; open?: st
   const [holdNotice, setHoldNotice] = useState<string | null>(null);
   const save = useSaveEvent();
 
-  const community = communities.data?.[0];
+  const community = communities.data?.find((x) => x.id === communityId) ?? communities.data?.[0];
 
   // Start a fresh draft for this screen: empty for a new event, the saved event otherwise.
   useEffect(() => {
     if (started) return;
     if (!eventId) {
-      begin({ key: 'new', communityId: '', fields: EMPTY_FIELDS, session });
+      begin({ key: 'new', communityId: communityId ?? '', fields: EMPTY_FIELDS, session });
     } else if (persisted.data) {
       begin({ key: persisted.data.id, communityId: persisted.data.communityId, fields: fieldsOf(persisted.data), session });
       if (open === 'when') router.push('/organizer/events/when');
     }
-  }, [started, eventId, persisted.data, begin, open, session]);
+  }, [started, eventId, persisted.data, begin, open, session, communityId]);
 
   // Unsaved edits go when the form closes; the saved event is the truth again.
   useEffect(() => () => end(session), [end, session]);
@@ -78,11 +97,20 @@ export function EventFormScreen({ eventId, open }: { eventId?: string; open?: st
   const savedId = key && key !== 'new' ? key : undefined;
   const bookings = useEventBookings(savedId);
   const offers = useDraftOffers(savedId);
+  const passes = useOrganizerEventPasses(savedId);
+  // Date & time stops a date change that a booking forbids. This is for the save the server still turns down.
+  const storedDate = persisted.data?.date ?? null;
+  const guard = useDateChangeGuard({
+    eventId: savedId,
+    eventName: draft?.fields.name.trim() || 'New event',
+    storedDate,
+    bookings: bookings.data ?? NO_BOOKINGS,
+  });
 
   const header = (
     <ScreenHeader
       title={eventId ? 'Edit event' : 'Create New Event'}
-      subtitle={`${persisted.data?.communityName ?? community?.name ?? 'Your community'} · ${persisted.data?.status === 'published' ? 'live' : 'draft'}`}
+      subtitle={`${persisted.data?.communityName ?? communities.data?.find((x) => x.id === draft?.communityId)?.name ?? community?.name ?? 'Your community'} · ${persisted.data?.status === 'published' ? 'live' : 'draft'}`}
     />
   );
 
@@ -116,6 +144,21 @@ export function EventFormScreen({ eventId, open }: { eventId?: string; open?: st
   const isLive = persisted.data?.status === 'published';
   const lineupKey = draft.key;
 
+  const passList = passes.data ?? [];
+  // Passes belong to a saved event: a new one is saved as a draft first, as Browse talent does.
+  const openPasses = () => {
+    if (savedId) return router.push(passListHref('event', savedId));
+    save.mutate(
+      { communityId: draft.communityId || community?.id || '', fields: f, publish: false },
+      {
+        onSuccess: (event) => {
+          rekey(event.id);
+          router.push(passListHref('event', event.id));
+        },
+      },
+    );
+  };
+
   const submit = (publish: boolean) => {
     save.mutate(
       { id: savedId, communityId: draft.communityId || community?.id || '', fields: f, publish },
@@ -130,18 +173,34 @@ export function EventFormScreen({ eventId, open }: { eventId?: string; open?: st
           if (notice) setHoldNotice(notice);
           else backToManage();
         },
+        onError: (error) => {
+          if (!savedId || !dateRefused(error)) return;
+          // Say which booking holds the date, from the bookings as the server has them now.
+          fetchEventBookings(qc, repo, savedId).then(
+            (list) => {
+              const block = dateChangeBlock(list);
+              if (block) guard.refuse(block, f.date);
+            },
+            () => undefined,
+          );
+        },
       },
     );
   };
 
   return (
+    <View style={styles.fill}>
     <Screen
       testID="event-form"
       contentStyle={styles.content}
       footer={
         <>
           {save.isError ? (
-            <Notice tone="error">Couldn’t save. Your changes are still here; try again.</Notice>
+            <Notice tone="error">
+              {dateRefused(save.error)
+                ? 'The date can’t change while a booking is open for it. Your other changes are still here.'
+                : 'Couldn’t save. Your changes are still here; try again.'}
+            </Notice>
           ) : null}
           <View style={styles.actions}>
             <Button
@@ -203,10 +262,10 @@ export function EventFormScreen({ eventId, open }: { eventId?: string; open?: st
         <SectionCard
           testID="section-access"
           title={SECTION_TITLES.access}
-          summary="Who can come, and what it costs"
+          summary={passesSummary(passList) ?? ACCESS_EMPTY_SUMMARY}
           Icon={Ticket}
-          state="todo"
-          onPress={() => openLater('Access & passes', 'web')}
+          state={passList.some((p) => p.active) ? 'done' : 'todo'}
+          onPress={openPasses}
         />
       </View>
       <Notice>{NO_LINEUP_NOTICE}</Notice>
@@ -225,10 +284,14 @@ export function EventFormScreen({ eventId, open }: { eventId?: string; open?: st
         />
       </Sheet>
     </Screen>
+    {/* Keeping the date puts the saved one back, so the next save goes through. */}
+    <DateChangeHost guard={guard} onKeep={() => update({ date: storedDate })} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   content: { gap: 18 },
   sections: { gap: space.stack },
   actions: { flexDirection: 'row', gap: space.stack },

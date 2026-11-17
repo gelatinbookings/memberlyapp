@@ -18,11 +18,14 @@ export function ScreenHeader({
   subtitle,
   onBack,
   right,
+  subtitleLines = 1,
 }: {
   title: string;
   subtitle?: string;
   onBack?: () => void;
   right?: ReactNode;
+  /** Lines the subtitle may take before it is cut; 2 for a lineup summary with many parts. */
+  subtitleLines?: number;
 }) {
   const c = useTheme();
   const back = onBack ?? (() => (router.canGoBack() ? router.back() : router.replace('/manage')));
@@ -34,7 +37,7 @@ export function ScreenHeader({
           {title}
         </Text>
         {subtitle ? (
-          <Text variant="secondary" tone="muted" numberOfLines={1}>
+          <Text variant="secondary" tone="muted" numberOfLines={subtitleLines}>
             {subtitle}
           </Text>
         ) : null}

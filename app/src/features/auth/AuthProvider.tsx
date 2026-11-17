@@ -1,9 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { useRepository } from '@/data/RepositoryProvider';
+import { getFakeControls } from '@/data/fakeRepository';
+import { useRepository, useStorage } from '@/data/RepositoryProvider';
+import { TEST_ACCOUNTS, type TestAccount, type TestAccountId } from '@/data/testAccounts';
 import type { AuthProviderName, SendCodeInput, Session, VerifyCodeResult } from '@/data/types';
 
+import { claimDevice } from './deviceOwner';
 import type { AuthStatus } from './gate';
 
 type AuthContextValue = {
@@ -15,6 +18,13 @@ type AuthContextValue = {
   signInWithProvider: (provider: AuthProviderName) => Promise<Session>;
   completeOnboarding: () => Promise<void>;
   signOut: () => Promise<void>;
+  /**
+   * The test accounts, only while the app runs on the sample (fake)
+   * repository, in any build. Null with a real repository: there is nothing
+   * to pick and no way to sign in without a code.
+   */
+  testAccounts: readonly TestAccount[] | null;
+  signInAsTestAccount: (id: TestAccountId) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -26,7 +36,9 @@ const AuthContext = createContext<AuthContextValue | null>(null);
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const repo = useRepository();
+  const storage = useStorage();
   const queryClient = useQueryClient();
+  const fake = getFakeControls(repo);
   const [session, setSession] = useState<Session | null>(null);
   const [status, setStatus] = useState<AuthStatus>('loading');
 
@@ -37,22 +49,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => null)
       .then((s) => {
         if (!live) return;
+        if (s) void claimDevice(storage, s.viewerId, { atLaunch: true });
         setSession(s);
         setStatus(s ? 'signedIn' : 'signedOut');
       });
     return () => {
       live = false;
     };
-  }, [repo]);
+  }, [repo, storage]);
 
   const signedIn = useCallback(
-    (s: Session) => {
-      // Whoever was signed in before, nothing of theirs stays in the cache.
+    async (s: Session) => {
+      // Whoever was signed in before, nothing of theirs stays: not in the cache, not on the phone.
+      await claimDevice(storage, s.viewerId);
       queryClient.clear();
       setSession(s);
       setStatus('signedIn');
     },
-    [queryClient],
+    [queryClient, storage],
   );
 
   const value = useMemo<AuthContextValue>(
@@ -64,13 +78,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const result = await repo.verifyCode(email, code);
         if (result.ok) {
           await options?.beforeSignIn?.();
-          signedIn(result.session);
+          await signedIn(result.session);
         }
         return result;
       },
       signInWithProvider: async (provider) => {
         const s = await repo.signInWithProvider(provider);
-        signedIn(s);
+        await signedIn(s);
         return s;
       },
       completeOnboarding: async () => {
@@ -82,8 +96,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(null);
         setStatus('signedOut');
       },
+      testAccounts: fake ? TEST_ACCOUNTS : null,
+      signInAsTestAccount: async (id) => {
+        if (!fake) throw new Error('Test accounts exist only on the sample repository');
+        await signedIn(await fake.signInAs(id));
+      },
     }),
-    [status, session, repo, signedIn, queryClient],
+    [status, session, repo, signedIn, queryClient, fake],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

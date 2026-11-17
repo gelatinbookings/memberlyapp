@@ -1,19 +1,23 @@
 import { createContext, useContext, useMemo, useRef, type ReactNode } from 'react';
-import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
+import { POLL_INTERVAL_MS, shouldPoll } from '@/features/booking/status';
 import { secureStorage } from '@/lib/secureStorage';
 
 import { isCatalogUnavailable } from './errors';
 import { createFakeRepository } from './fakeRepository';
 import type { MemberlyRepository } from './repository';
 import type {
+  Booking,
   BudgetBand,
+  Community,
   Dj,
   DraftOffer,
   DraftOfferPatch,
   ExploreQuery,
   KeyValueStorage,
   MyEventsScope,
+  OrganizerEvent,
   Preferences,
   SaveEventInput,
   TalentFilters,
@@ -37,7 +41,8 @@ export function RepositoryProvider({
   children: ReactNode;
 }) {
   const value = useMemo(
-    () => ({ repository: repository ?? createFakeRepository({ storage, signedIn: FAKE_SIGNED_IN }), storage }),
+    // The app's own repository answers nothing until it has read who is signed in.
+    () => ({ repository: repository ?? createFakeRepository({ storage, signedIn: FAKE_SIGNED_IN, holdUntilSession: true }), storage }),
     [repository, storage],
   );
   return <RepositoryContext.Provider value={value}>{children}</RepositoryContext.Provider>;
@@ -72,6 +77,8 @@ export const queryKeys = {
   cities: ['cities'] as const,
   organizerEvent: (id: string) => ['organizer-event', id] as const,
   bookings: (eventId: string) => ['event-bookings', eventId] as const,
+  bookingsMeta: (eventId: string) => ['event-bookings-meta', eventId] as const,
+  alternates: (requestId: string) => ['alternates', requestId] as const,
   draftOffers: (eventId: string) => ['draft-offers', eventId] as const,
   talent: (eventId: string, f: TalentFilters) => ['talent', eventId, f.budget, f.genre] as const,
   talentCount: (eventId: string, f: TalentFilters) => ['talent-count', eventId, f.budget, f.genre] as const,
@@ -79,6 +86,8 @@ export const queryKeys = {
   cityWaitlist: (city: string) => ['city-waitlist', city] as const,
   offerQuote: (eventId: string, djId: string, offerCents: number) => ['offer-quote', eventId, djId, offerCents] as const,
   passTypes: (eventId: string) => ['pass-types', eventId] as const,
+  communityPasses: (communityId: string) => ['community-passes', communityId] as const,
+  eventPasses: (eventId: string) => ['organizer-event-passes', eventId] as const,
 };
 
 export function useViewer() {
@@ -168,12 +177,115 @@ export function useOrganizerEvent(id: string | undefined) {
   });
 }
 
-export function useEventBookings(eventId: string | undefined) {
+// ---------------------------------------------------------------------------
+// Booking status (GEL-1022)
+
+/**
+ * What the app remembers about its last read of an event's bookings: the ETag
+ * to send back, whether that body was the backend's last known one (`stale`),
+ * whether the latest read failed, and when a current answer last arrived.
+ */
+export type BookingsMeta = { etag: string | null; stale: boolean; failed: boolean; freshAt: number | null };
+
+/**
+ * One read of an event's bookings, conditional on the last ETag. A
+ * "not modified" answer hands back the very list already in the cache, so
+ * nothing that shows it renders again. Every read of bookings goes through
+ * this: the Lineup's poll, a refresh after a payment, a return from Gelatin.
+ */
+export function eventBookingsFetcher(qc: QueryClient, repo: MemberlyRepository, eventId: string): () => Promise<Booking[]> {
+  const key = queryKeys.bookings(eventId);
+  const metaKey = queryKeys.bookingsMeta(eventId);
+  return async () => {
+    const held = qc.getQueryData<Booking[]>(key);
+    const meta = qc.getQueryData<BookingsMeta>(metaKey);
+    let answer;
+    try {
+      // The ETag is only sent with a body to go back to.
+      answer = await repo.getEventBookings(eventId, { ifNoneMatch: held ? (meta?.etag ?? null) : null });
+      // The cache was cleared while the call was out: ask again in full.
+      if ('notModified' in answer && !qc.getQueryData<Booking[]>(key)) answer = await repo.getEventBookings(eventId);
+    } catch (error) {
+      if (held) qc.setQueryData<BookingsMeta>(metaKey, { etag: meta?.etag ?? null, stale: meta?.stale ?? false, freshAt: meta?.freshAt ?? null, failed: true });
+      throw error;
+    }
+    const now = Date.now();
+    if ('notModified' in answer) {
+      qc.setQueryData<BookingsMeta>(metaKey, { etag: meta?.etag ?? null, stale: false, failed: false, freshAt: now });
+      return qc.getQueryData<Booking[]>(key) ?? [];
+    }
+    qc.setQueryData<BookingsMeta>(metaKey, {
+      etag: answer.etag,
+      stale: !!answer.stale,
+      failed: false,
+      // A stale body is no newer than the last current one.
+      freshAt: answer.stale ? (meta?.freshAt ?? null) : now,
+    });
+    return answer.bookings;
+  };
+}
+
+/** Read an event's bookings now, whatever the cache holds, and put the answer in the cache. */
+export function fetchEventBookings(qc: QueryClient, repo: MemberlyRepository, eventId: string): Promise<Booking[]> {
+  return qc.fetchQuery({ queryKey: queryKeys.bookings(eventId), queryFn: eventBookingsFetcher(qc, repo, eventId), staleTime: 0 });
+}
+
+/**
+ * An event's bookings. With `live`, the list polls every 5 seconds, only
+ * while a booking is `requested` or `negotiating`; the Lineup passes `live`
+ * while it is the screen in front. Polling pauses in the background and
+ * offline (the query client follows AppState and the connection) and reads
+ * once at once on the way back, because a live list is never treated as fresh.
+ */
+export function useEventBookings(eventId: string | undefined, { live = false }: { live?: boolean } = {}) {
   const repo = useRepository();
+  const qc = useQueryClient();
   return useQuery({
     queryKey: queryKeys.bookings(eventId ?? ''),
-    queryFn: () => repo.getEventBookings(eventId ?? ''),
+    queryFn: eventBookingsFetcher(qc, repo, eventId ?? ''),
     enabled: !!eventId,
+    ...(live
+      ? {
+          staleTime: 0,
+          refetchInterval: (query: { state: { data?: Booking[] } }) =>
+            query.state.data?.some((b) => shouldPoll(b.status)) ? POLL_INTERVAL_MS : false,
+          refetchIntervalInBackground: false,
+        }
+      : null),
+  });
+}
+
+const NO_META: BookingsMeta = { etag: null, stale: false, failed: false, freshAt: null };
+
+/**
+ * Whether the bookings on screen may be behind (a stale body, a failed
+ * refresh, or no connection), and when a current answer last arrived. While
+ * all is well it gives the same value every time, so a quiet poll renders nothing.
+ */
+export function useBookingsFreshness(eventId: string | undefined, offline = false): { behind: boolean; since: number | null } {
+  const meta = useQuery({
+    queryKey: queryKeys.bookingsMeta(eventId ?? ''),
+    // Written by eventBookingsFetcher; never fetched.
+    queryFn: () => NO_META,
+    enabled: false,
+    gcTime: Infinity,
+    select: (m: BookingsMeta) => {
+      const behind = m.stale || m.failed || (offline && m.freshAt != null);
+      return { behind, since: behind ? m.freshAt : null };
+    },
+  });
+  return meta.data ?? { behind: false, since: null };
+}
+
+/** DJs open on the same night as a booking that passed, expired or was cancelled (GEL-1023). */
+export function useAlternates(requestId: string | undefined) {
+  const repo = useRepository();
+  return useQuery({
+    queryKey: queryKeys.alternates(requestId ?? ''),
+    queryFn: () => repo.getAlternates(requestId ?? ''),
+    enabled: !!requestId,
+    staleTime: 0,
+    retry: talentRetry,
   });
 }
 
@@ -355,5 +467,71 @@ export function usePassTypes(eventId: string | undefined) {
     queryKey: queryKeys.passTypes(eventId ?? ''),
     queryFn: () => repo.getPassTypes(eventId ?? ''),
     enabled: !!eventId,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Communities and pass setup (GEL-1056, GEL-1057)
+
+/** A community's passes (its memberships), as its organizer sees them. */
+export function useCommunityPasses(communityId: string | undefined) {
+  const repo = useRepository();
+  return useQuery({
+    queryKey: queryKeys.communityPasses(communityId ?? ''),
+    queryFn: () => repo.getCommunityPasses(communityId ?? ''),
+    enabled: !!communityId,
+  });
+}
+
+/** An event's passes as its organizer sees them, turned-off ones included. */
+export function useOrganizerEventPasses(eventId: string | undefined) {
+  const repo = useRepository();
+  return useQuery({
+    queryKey: queryKeys.eventPasses(eventId ?? ''),
+    queryFn: () => repo.getOrganizerEventPasses(eventId ?? ''),
+    enabled: !!eventId,
+  });
+}
+
+export type OrganizerUpcomingEvent = OrganizerEvent & { community: Community };
+
+/**
+ * Every upcoming event across the communities the viewer runs, each with its
+ * community, in the order Manage lists them. For "Add a pass for an event".
+ */
+export function useOrganizerUpcomingEvents(): { events: OrganizerUpcomingEvent[]; isPending: boolean; isError: boolean; refetch: () => void } {
+  const repo = useRepository();
+  const organized = useOrganizedCommunities();
+  const communities = organized.data ?? [];
+  const overviews = useQueries({
+    queries: communities.map((c) => ({ queryKey: queryKeys.overview(c.id), queryFn: () => repo.getCommunityOverview(c.id) })),
+  });
+  const events = overviews.flatMap((o, i) => (o.data?.upcoming ?? []).map((e) => ({ ...e, community: communities[i] })));
+  return {
+    events,
+    isPending: organized.isPending || overviews.some((o) => o.isPending),
+    isError: organized.isError || overviews.some((o) => o.isError),
+    refetch: () => {
+      organized.refetch();
+      overviews.forEach((o) => o.refetch());
+    },
+  };
+}
+
+/**
+ * After a community is created: the viewer is an organizer now, so who they
+ * are, what they run and Manage are all read again before the app moves on.
+ */
+export async function refreshAfterCommunity(qc: QueryClient): Promise<void> {
+  qc.invalidateQueries({ queryKey: ['community-overview'] });
+  await Promise.all([qc.refetchQueries({ queryKey: queryKeys.viewer }), qc.refetchQueries({ queryKey: queryKeys.organized })]);
+}
+
+/** After a pass is added, changed, turned off or removed: its lists, what members see, and the setup tasks. */
+export function refreshAfterPassSetup(qc: QueryClient, pass: { communityId: string; eventId: string | null }): Promise<void> {
+  qc.invalidateQueries({ queryKey: ['community-overview'] });
+  if (pass.eventId) qc.invalidateQueries({ queryKey: queryKeys.passTypes(pass.eventId) });
+  return qc.invalidateQueries({
+    queryKey: pass.eventId ? queryKeys.eventPasses(pass.eventId) : queryKeys.communityPasses(pass.communityId),
   });
 }

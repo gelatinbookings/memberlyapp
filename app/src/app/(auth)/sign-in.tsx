@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Button, Notice, TextField } from '@/components/ui';
 import { AuthSheet, OrRule } from '@/features/auth/components/AuthSheet';
 import { LegalLine, LinkLine, ProviderButtons } from '@/features/auth/components/ProviderButtons';
+import { TestAccountsEntry } from '@/features/auth/components/TestAccountsSheet';
 import { isValidEmail } from '@/features/auth/email';
 import { useSendCode } from '@/features/auth/useSendCode';
 import { useOnline } from '@/lib/network';
@@ -40,6 +41,8 @@ export default function SignInSheet() {
       <ProviderButtons disabled={!online} />
       <LinkLine lead="Don’t have an account?" action="Sign up here" onPress={() => router.replace('/create-account')} />
       <LegalLine />
+      {/* Only on the sample (fake) repository; renders nothing with a real one. */}
+      <TestAccountsEntry />
     </AuthSheet>
   );
 }

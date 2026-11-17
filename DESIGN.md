@@ -314,6 +314,9 @@ Sign in, create account, filters, offer, hand-off, "DJ taken", "timed out" and o
 ### Map pin (signature)
 Round brand pill, 34px, with a 22px white disc carrying the pin number in purple and the event name in 12px/700 white.
 
+### Floating action button
+One per screen at most, and on Home only today: a round 56px `brand` button with a white 2px-stroke plus, floating at the bottom right, 16px from the edge and 12px above the tab bar. No shadow; it sits on content the way the tab bar does. It opens the **Create** bottom sheet (Create community, Add event, Add pass), never a fan of mini buttons. Rows a person can't use yet are shown disabled with one line saying why. Decided 16 Nov 2026 (GEL-1055).
+
 ### Motion
 150–250ms, state-conveying only inside the product; Reduce Motion honored everywhere (instant or a plain fade). Authored moments, decided 6 Nov 2026 to make first run feel alive:
 - **Launch:** the native splash hands off to the Memberly mark scaling and fading in with a brief brand-purple reveal, then a cross-fade into Welcome or Home; under about 1.6s and never blocking once data is ready.

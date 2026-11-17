@@ -25,3 +25,14 @@ export function lineupSummary(bookings: Pick<Booking, 'status'>[]): string {
 export function lineupNeedsAction(bookings: Pick<Booking, 'status'>[]): boolean {
   return bookings.some((b) => b.status === 'authorization_required' || b.status === 'reauthorization_required');
 }
+
+/**
+ * The same line for a narrow space: each part holds together ("1 to pay"
+ * never breaks after "to"), so a long summary wraps only between parts.
+ */
+export function unbrokenParts(summary: string): string {
+  return summary
+    .split(' · ')
+    .map((part) => part.replace(/ /g, '\u00A0'))
+    .join(' · ');
+}

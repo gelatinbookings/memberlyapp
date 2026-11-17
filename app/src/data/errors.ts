@@ -16,7 +16,7 @@ export function isCatalogUnavailable(error: unknown): error is CatalogUnavailabl
 }
 
 /**
- * Error codes the app acts on, mirroring Memberly's backend (GEL-1016, GEL-1035).
+ * Error codes the app acts on, mirroring Memberly's backend (GEL-1006, GEL-1016, GEL-1021, GEL-1035).
  * `offline` and `timeout` are what the HTTP repository reports when a call
  * never got an answer.
  */
@@ -27,13 +27,23 @@ export type RepositoryErrorCode =
   | 'pass_unavailable'
   | 'price_changed'
   | 'invalid_offer'
+  /** A date change refused because a DJ is confirmed for the current date (GEL-1025). */
+  | 'confirmed_booking'
+  /** A date change refused because offers for the current date are still open (GEL-1025). */
+  | 'open_bookings'
+  /** No way into Gelatin yet: the portal opens only once a card hold exists (GEL-1024). */
+  | 'portal_unavailable'
+  /** A community or pass the server will not take: no name, a name over 60 characters, a bad price or limit (GEL-1058). */
+  | 'invalid_input'
+  /** A pass people already hold cannot be deleted, only turned off (GEL-1058). */
+  | 'pass_held'
   | 'not_found'
   | 'offline'
   | 'timeout';
 
 export class RepositoryError extends Error {
   readonly code: RepositoryErrorCode;
-  /** `offer_open`: the booking that is already open with this DJ. */
+  /** `offer_open`: the booking already open with this DJ. `confirmed_booking`, `open_bookings`: a booking that blocks the change. */
   readonly requestId?: string;
   /** `price_changed`: the server's new total. */
   readonly totalCents?: number;

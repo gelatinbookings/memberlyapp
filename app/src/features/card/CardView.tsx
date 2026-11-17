@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { ArrowLeft, WifiOff } from 'lucide-react-native';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import { ErrorState, GroupedList, IconButton, LoadingRows, Pill, Screen, SectionHeader, Text } from '@/components/ui';
@@ -16,6 +16,8 @@ const LOGO_RATIO = 740 / 210;
 const QR_SIZE = 200;
 
 export const OFFLINE_LINE = 'Shown offline';
+export const NO_MEMBERSHIPS_TITLE = 'No memberships yet';
+export const NO_MEMBERSHIPS_LINE = 'Join a community and it shows here. Your card already works at the door for any pass you hold.';
 
 function MembershipRow({ m }: { m: Membership }) {
   const active = m.status === 'active';
@@ -69,7 +71,7 @@ function TheCard({ card, offline }: { card: MemberCard; offline: boolean }) {
           {card.name}
         </Text>
         <Text variant="secondary" tone="brand" align="center">
-          Member · {card.communityCount} {card.communityCount === 1 ? 'community' : 'communities'}
+          {card.communityCount === 0 ? 'Member · no communities yet' : `Member · ${card.communityCount} ${card.communityCount === 1 ? 'community' : 'communities'}`}
         </Text>
         {offline ? (
           <View style={styles.offline} testID="card-offline">
@@ -127,11 +129,25 @@ export function CardView() {
           ) : null}
           <View style={styles.section}>
             <SectionHeader title="Your memberships" />
-            <GroupedList>
-              {state.card.memberships.map((m) => (
-                <MembershipRow key={m.communityId} m={m} />
-              ))}
-            </GroupedList>
+            {state.card.memberships.length > 0 ? (
+              <GroupedList>
+                {state.card.memberships.map((m) => (
+                  <MembershipRow key={m.communityId} m={m} />
+                ))}
+              </GroupedList>
+            ) : (
+              <View style={[styles.empty, { borderColor: c.border }]} testID="card-no-memberships">
+                <Text variant="bodyStrong">{NO_MEMBERSHIPS_TITLE}</Text>
+                <Text variant="secondary" tone="muted">
+                  {NO_MEMBERSHIPS_LINE}
+                </Text>
+                <Pressable accessibilityRole="link" accessibilityLabel="Find a community in Explore" onPress={() => router.navigate('/explore')} style={styles.link}>
+                  <Text variant="bodyStrong" tone="brand">
+                    Find a community in Explore
+                  </Text>
+                </Pressable>
+              </View>
+            )}
           </View>
         </>
       ) : null}
@@ -151,6 +167,8 @@ const styles = StyleSheet.create({
   who: { gap: 2, alignItems: 'center' },
   offline: { flexDirection: 'row', alignItems: 'center', gap: space.xs, marginTop: space.xs },
   section: { gap: space.stack },
+  empty: { borderWidth: 1, borderRadius: radius.card, padding: space.card, gap: space.xs },
+  link: { minHeight: size.minTarget, justifyContent: 'center', alignSelf: 'flex-start' },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.row, paddingVertical: space.row, paddingHorizontal: space.card, minHeight: size.minTarget },
   cover: { width: 40, height: 40, borderRadius: 10 },
   faded: { opacity: 0.5 },

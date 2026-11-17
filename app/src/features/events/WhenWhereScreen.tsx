@@ -8,6 +8,7 @@ import {
   Chip,
   ErrorState,
   GroupedList,
+  Notice,
   Screen,
   ScreenHeader,
   SelectField,
@@ -15,8 +16,10 @@ import {
   Text,
   TextField,
 } from '@/components/ui';
-import { useCities, useRepository } from '@/data/RepositoryProvider';
+import { useCities, useDraftOffers, useEventBookings, useOrganizerEvent, useRepository } from '@/data/RepositoryProvider';
+import type { Booking } from '@/data/types';
 import {
+  formatIsoDate,
   formatWallTime,
   halfHourSlots,
   isoDateInZone,
@@ -27,12 +30,15 @@ import {
 import { useTheme } from '@/theme/theme';
 import { size, space } from '@/theme/tokens';
 
+import { recheckNotice } from './dateChange';
+import { DateChangeHost, useDateChangeGuard } from './DateChangeGuard';
 import { useEventDraft } from './EventDraftProvider';
 import { MonthCalendar } from './MonthCalendar';
 
 const SLOTS = halfHourSlots();
 const CHIP_ROW = size.chip + space.sm;
 const FALLBACK_ZONE = 'America/New_York';
+const NO_BOOKINGS: Booking[] = [];
 
 const done = () => (router.canGoBack() ? router.back() : router.replace('/manage'));
 
@@ -85,6 +91,10 @@ function TimeSheet({
 /**
  * Date & time and Location for the open draft (the "Date, time and place"
  * board). Times are stored as the venue's wall clock with its IANA zone.
+ *
+ * On a saved event with bookings the date is guarded (GEL-1025): a confirmed
+ * DJ or an open offer keeps the event on its date, a dialog says why, and the
+ * way forward is Gelatin. DJs added but not sent do not hold the date.
  */
 export function WhenWhereScreen() {
   const c = useTheme();
@@ -93,6 +103,18 @@ export function WhenWhereScreen() {
   const { draft, update } = useEventDraft();
   const [timeSheet, setTimeSheet] = useState<'Starts' | 'Ends' | null>(null);
   const [citySheet, setCitySheet] = useState(false);
+  // The saved event behind this draft, and what is booked on it.
+  const savedId = draft && draft.key !== 'new' ? draft.key : undefined;
+  const stored = useOrganizerEvent(savedId);
+  const bookings = useEventBookings(savedId);
+  const added = useDraftOffers(savedId);
+  const storedDate = stored.data?.date ?? null;
+  const guard = useDateChangeGuard({
+    eventId: savedId,
+    eventName: draft?.fields.name.trim() || 'New event',
+    storedDate,
+    bookings: bookings.data ?? NO_BOOKINGS,
+  });
 
   if (!draft) {
     return (
@@ -105,11 +127,22 @@ export function WhenWhereScreen() {
   const f = draft.fields;
   const zone = f.city?.timeZone ?? null;
   const today = isoDateInZone(repo.now(), zone ?? FALLBACK_ZONE);
+  const addedCount = added.data?.length ?? 0;
+  const moved = !!savedId && !!storedDate && !!f.date && f.date !== storedDate;
 
   return (
+    <View style={styles.fill}>
     <Screen footer={<Button testID="when-done" label="Done" onPress={done} />} contentStyle={styles.content}>
       <ScreenHeader title="Date & time" subtitle={f.name.trim() || 'New event'} />
-      <MonthCalendar selected={f.date} today={today} onSelect={(date) => update({ date })} />
+      <MonthCalendar
+        selected={f.date}
+        today={today}
+        onSelect={(date) => {
+          // A booking can hold the event to its date; the guard says so and the date stays.
+          if (guard.allow(date)) update({ date });
+        }}
+      />
+      {moved && addedCount > 0 && f.date ? <Notice>{recheckNotice(addedCount, formatIsoDate(f.date))}</Notice> : null}
 
       <View style={styles.timesBlock}>
         <View style={styles.times}>
@@ -207,10 +240,13 @@ export function WhenWhereScreen() {
         </GroupedList>
       </Sheet>
     </Screen>
+    <DateChangeHost guard={guard} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   content: { gap: 18 },
   flex: { flex: 1 },
   timesBlock: { gap: space.sm },

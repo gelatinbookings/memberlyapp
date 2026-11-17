@@ -7,7 +7,17 @@ import { runExplore } from '@/features/explore/filters';
 import { addDays, endsNextMorning, formatEventDate, formatIsoDate, zonedIso, type IsoDate } from '@/lib/dates';
 
 import { CatalogUnavailableError, RepositoryError } from './errors';
+import {
+  DEFAULT_TEST_ACCOUNT,
+  NEW_ACCOUNT_TEMPLATE,
+  TEST_ACCOUNTS,
+  testAccountByEmail,
+  testAccountById,
+  type TestAccount,
+  type TestAccountId,
+} from './testAccounts';
 import type {
+  AnyBookingStatus,
   Booking,
   BudgetBand,
   CardPass,
@@ -17,6 +27,7 @@ import type {
   DraftOffer,
   Dj,
   CodeIntent,
+  CreateCommunityResult,
   EventFields,
   EventRelation,
   KeyValueStorage,
@@ -25,11 +36,14 @@ import type {
   MyEvent,
   OrganizerEvent,
   OrganizerEventDetail,
+  OrganizerPass,
   PassOrder,
   PassType,
   PaymentSession,
+  PortalLaunch,
   Preferences,
   Session,
+  SetupTask,
   TalentPage,
   Viewer,
 } from './types';
@@ -49,16 +63,23 @@ const NY = 'America/New_York';
 /** The design build pretends it is Friday, Nov 20, 2026 at 6 PM in Atlanta: tonight is the sample night and "this week" has content. */
 export const DEMO_NOW = new Date('2026-11-20T18:00:00-05:00');
 
-export const sampleViewer: Viewer = {
-  id: 'u_jordan',
-  firstName: 'Jordan',
-  lastName: 'Reese',
-  initials: 'JR',
-  email: 'jordan@secondsundays.example',
-  city: 'Atlanta',
-  roles: ['member', 'organizer'],
-  communityCount: 3,
-};
+/** The viewer a test account signs in as. */
+function viewerOf(account: TestAccount): Viewer {
+  const { firstName, lastName } = account;
+  return {
+    id: account.viewerId,
+    firstName,
+    lastName,
+    initials: `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase(),
+    email: account.email,
+    city: account.city,
+    roles: account.organizes ? ['member', 'organizer'] : ['member'],
+    communityCount: account.memberships.filter((m) => m.status === 'active').length,
+  };
+}
+
+/** The existing organizer (see testAccounts.ts): who the sample data has always been. */
+export const sampleViewer: Viewer = viewerOf(DEFAULT_TEST_ACCOUNT);
 
 const community = (
   id: string,
@@ -293,6 +314,16 @@ export type FakeSimulation = {
   soldOutNext: boolean;
   /** The next pass order finds a new price, once. */
   priceChangeNext: boolean;
+  /** Booking reads answer with the last body the backend had and `stale: true`, as when Gelatin is slow. */
+  staleBookings: boolean;
+  /** Booking reads fail, as when the backend cannot be reached. */
+  failBookings: boolean;
+  /** This many portal launches come back already expired. */
+  expiredLaunches: number;
+  /** Nobody else is open that night: alternates come back empty. */
+  noAlternates: boolean;
+  /** The next community or pass is saved but its response is lost, once: the app sees a timeout. */
+  timeoutNextSave: boolean;
 };
 
 const NO_SIMULATION: FakeSimulation = {
@@ -303,16 +334,39 @@ const NO_SIMULATION: FakeSimulation = {
   slowPassOrder: false,
   soldOutNext: false,
   priceChangeNext: false,
+  staleBookings: false,
+  failBookings: false,
+  expiredLaunches: 0,
+  noAlternates: false,
+  timeoutNextSave: false,
 };
 
 export type FakePaymentOutcome = { status: 'succeeded' } | { status: 'failed'; message: string };
+
+/** What the DJ, or time, can do to a booking. The test portal's buttons (see src/lib/portal). */
+export type PortalAction = 'accept' | 'pass' | 'counter' | 'expire' | 'cancel';
+
+/** A portal launch lasts 60 seconds and opens once (GEL-1021). */
+export const LAUNCH_TTL_MS = 60_000;
+
+/** Where fake launches point. `.invalid` never resolves: nothing can be opened by mistake. */
+export const TEST_PORTAL_ORIGIN = 'https://gelatin-portal.invalid';
+
+/** How long a counter reads `negotiating` before the DJ's new price lands, in the design build. */
+export const COUNTER_MS = 6000;
+
+/** A status the app has never heard of, for the "Checking status" demo. */
+export const UNKNOWN_STATUS_SAMPLE = 'awaiting_review';
+
+/** The booking behind a launch, as the test portal shows it. */
+export type FakePortalBooking = { eventId: string; eventName: string; booking: Booking };
 
 /**
  * What only the fake has: switches for edge states, and the part the payment
  * provider plays. The test payment sheet calls `confirmPayment` where the real
  * sheet would confirm with the provider and the backend would hear about it.
  */
-export type FakeControls = {
+export type WorldControls = {
   simulate(patch: Partial<FakeSimulation>): void;
   /** The payment went through: a hold moves its request to `requested`; a pass order heads for `paid`. */
   confirmPayment(clientSecret: string): Promise<FakePaymentOutcome>;
@@ -322,8 +376,40 @@ export type FakeControls = {
   settlePassOrders(): void;
   /** How many booking requests exist on an event. */
   requestCount(eventId: string): number;
+  /**
+   * Put a booking in any status, as Gelatin would. `newOfferCents` is the DJ's
+   * new price on `reauthorization_required`. Changes the event's ETag.
+   */
+  setStatus(requestId: string, status: AnyBookingStatus, patch?: { newOfferCents?: number | null }): void;
+  /**
+   * Play the DJ from the test portal: accept → confirmed, pass → declined,
+   * counter → negotiating and then reauthorization_required at a new price,
+   * expire → expired, cancel → cancelled.
+   */
+  playDj(requestId: string, action: PortalAction): void;
+  /** Land every counter still being worked out: negotiating → reauthorization_required. */
+  settleCounters(): void;
+  /** How many booking reads an event has answered in full, and how many with "not modified". */
+  bookingFetches(eventId: string): { full: number; notModified: number };
+  /** How many portal launches have been minted. */
+  portalLaunchCount(): number;
+  /** Use a launch, once. Null when it was used before, has expired or never existed. */
+  redeemLaunch(launchUrl: string): FakePortalBooking | null;
+  /** One booking as it stands now. */
+  portalBooking(requestId: string): FakePortalBooking | null;
   /** How many pass orders exist. */
   passOrderCount(): number;
+};
+
+/**
+ * The fake's controls. Everything in WorldControls acts on the account that
+ * is signed in (the existing organizer until someone signs in).
+ */
+export type FakeControls = WorldControls & {
+  /** Sign in as one of the test accounts (see testAccounts.ts), as the Test accounts sheet does. */
+  signInAs(accountId: TestAccountId): Promise<Session>;
+  /** The viewer id of the account whose data the repository is answering with. */
+  currentViewerId(): string;
 };
 
 export type FakeRepository = MemberlyRepository & { readonly fake: FakeControls };
@@ -378,8 +464,100 @@ function seedPassTypes(): Record<string, PassType[]> {
   };
 }
 
+/** A pass as the fake server keeps it: what the organizer set up, plus who holds it. */
+type StoredPass = {
+  id: string;
+  scope: 'community' | 'event';
+  /** Set for a community pass; an event pass takes its community from the event. */
+  communityId: string | null;
+  eventId: string | null;
+  name: string;
+  /** Null is free. Monthly for a community pass. */
+  priceCents: number | null;
+  included: string;
+  limit: number | null;
+  freeForMembers: boolean;
+  active: boolean;
+  heldCount: number;
+  /** Marked sold out whatever the quantity says (the sample "Table for four", and a demo switch). */
+  soldOut: boolean;
+  /** Sample passes that were on sale before this build asked about Stripe. They stay on sale. */
+  seeded: boolean;
+};
+
+/** How many people hold each sample pass, to match the sales lines on Manage. */
+const SEEDED_HOLDERS: Record<string, { held: number; limit?: number }> = {
+  pt_warehouse_general: { held: 212 },
+  pt_warehouse_member: { held: 86 },
+  pt_long_table_seat: { held: 40, limit: 48 },
+};
+
+function seedEventPasses(): Map<string, StoredPass[]> {
+  return new Map(
+    Object.entries(seedPassTypes()).map(([eventId, types]) => [
+      eventId,
+      types.map(
+        (t): StoredPass => ({
+          id: t.id,
+          scope: 'event',
+          communityId: null,
+          eventId,
+          name: t.name,
+          priceCents: t.priceCents > 0 ? t.priceCents : null,
+          included: t.included,
+          limit: SEEDED_HOLDERS[t.id]?.limit ?? null,
+          freeForMembers: t.freeForMembers,
+          active: true,
+          heldCount: SEEDED_HOLDERS[t.id]?.held ?? 0,
+          soldOut: t.soldOut,
+          seeded: true,
+        }),
+      ),
+    ]),
+  );
+}
+
+/** Invented memberships for the sample community. A community created in the app starts with what its organizer chose. */
+function seedCommunityPasses(communityId: string): StoredPass[] {
+  if (communityId !== 'c_second_sundays') return [];
+  const tier = (id: string, name: string, priceCents: number | null, included: string, heldCount: number, limit: number | null): StoredPass => ({
+    id,
+    scope: 'community',
+    communityId,
+    eventId: null,
+    name,
+    priceCents,
+    included,
+    limit,
+    freeForMembers: false,
+    active: true,
+    heldCount,
+    soldOut: false,
+    seeded: true,
+  });
+  return [
+    tier('cp_sundays_member', 'Member', null, 'Entry before midnight at every Second Sundays night', 894, null),
+    tier('cp_sundays_inner_circle', 'Inner Circle', 2500, 'Guest list plus one, and first access to passes', 310, 400),
+  ];
+}
+
+/** The one setup task the app knows: taking payments needs a connected Stripe account. */
+const CONNECT_STRIPE_TASK: SetupTask = {
+  id: 'stripe',
+  title: 'Connect Stripe',
+  detail: 'So you can receive payments from paid tiers.',
+  actionLabel: 'Connect',
+};
+
+/** Longest name the server takes for a community or a pass (GEL-1058). */
+export const NAME_MAX = 60;
+export const DESCRIPTION_MAX = 280;
+
 /** A booking that still holds the DJ for the night. */
 const OPEN_BOOKING: Booking['status'][] = ['authorization_required', 'requested', 'negotiating', 'reauthorization_required', 'confirmed'];
+
+/** A booking that is over: the DJ passed, time ran out, or it was cancelled. */
+const ENDED_BOOKING: Booking['status'][] = ['declined', 'expired', 'cancelled'];
 
 export const sampleEvents: MemberEvent[] = [
   {
@@ -541,23 +719,8 @@ const exploreOnlyEvents: MemberEvent[] = [
 
 const allEvents = (): MemberEvent[] => [...sampleEvents, dayparty, ...exploreOnlyEvents];
 
-/** How the sample viewer relates to each event on the Events tab. */
-const relations: Record<string, EventRelation> = {
-  e_warehouse_friday: 'pass',
-  e_rooftop_hours: 'going',
-  e_long_table: 'going',
-  e_daylight: 'saved',
-};
-
-/** Jordan's picks: 11 in all, the number Me shows. */
-export const samplePreferences: Preferences = {
-  eventTypes: ['Nightlife', 'Concerts', 'Day parties'],
-  genres: ['House', 'Afrobeats', 'R&B', 'Amapiano'],
-  vibes: ['Underground', 'Rooftop'],
-  themes: ['Food & drink', 'Culture'],
-};
-
-const EMPTY_PREFERENCES: Preferences = { eventTypes: [], genres: [], vibes: [], themes: [] };
+/** The existing organizer's picks: 11 in all, the number Me shows. */
+export const samplePreferences: Preferences = DEFAULT_TEST_ACCOUNT.preferences;
 
 /** The fake codes, documented in the README. */
 export const FAKE_CODES = { success: '1234', expired: '0000' } as const;
@@ -617,6 +780,37 @@ const bookings: Booking[] = [
     setTime: 'Midnight to 2',
   },
 ];
+
+/** The sample event that shows every status at once (the "Every status" board). */
+export const ALL_STATUSES_EVENT_ID = 'e_sunday_sessions';
+
+const fromCatalog = (id: string): Dj => {
+  const row = sampleCatalog.find((dj) => dj.id === id);
+  if (!row) throw new Error(`No sample DJ ${id}`);
+  return publicDj(row);
+};
+
+/** One booking in each of the eight statuses, each with a different DJ. Totals are the fake server's. */
+function seedAllStatuses(): Booking[] {
+  const row = (
+    dj: Dj,
+    status: Booking['status'],
+    offerCents: number,
+    totalCents: number,
+    setTime: string,
+    extra: Partial<Booking> = {},
+  ): Booking => ({ requestId: `br_sessions_${dj.id.replace(/^dj_/, '')}`, dj, status, offerCents, totalCents, note: '', setTime, ...extra });
+  return [
+    row(sampleDjs.koyo, 'authorization_required', 45000, 45700, '8 to 10'),
+    row(sampleDjs.blkmtn, 'requested', 39000, 39700, 'Opening set'),
+    row(sampleDjs.nightform, 'negotiating', 60000, 60700, '10 to midnight'),
+    row(sampleDjs.sable, 'reauthorization_required', 27500, 28200, '6 to 8', { newOfferCents: 34000 }),
+    row(fromCatalog('dj_juno_vale'), 'confirmed', 70000, 70700, 'Headline'),
+    row(fromCatalog('dj_mara_sol'), 'declined', 25000, 25700, 'Warm-up'),
+    row(fromCatalog('dj_lowtide'), 'expired', 120000, 120700, 'Closing set'),
+    row(fromCatalog('dj_caro_lumen'), 'cancelled', 150000, 150700, 'Guest set'),
+  ];
+}
 
 export const sampleCities: City[] = [
   { id: 'atl', name: 'Atlanta', region: 'GA', timeZone: NY },
@@ -694,6 +888,24 @@ function seedEvents(): StoredEvent[] {
       },
     },
     {
+      // One booking in every status: the "Every status, as the organizer reads it" board.
+      id: ALL_STATUSES_EVENT_ID,
+      communityId: 'c_second_sundays',
+      status: 'published',
+      salesLabel: '64 passes sold',
+      fields: {
+        name: 'Sunday Sessions',
+        tagline: 'An all-day room, eight sets',
+        description: 'Doors at four. Eight DJs across the afternoon and the night.',
+        cover: img.dayparty,
+        date: '2026-12-13',
+        startTime: '16:00',
+        endTime: '02:00',
+        venue: 'Westside warehouse',
+        city: atlanta,
+      },
+    },
+    {
       // A draft in a city Gelatin does not book yet: Browse talent answers "No DJs in Savannah yet".
       id: 'e_river_street',
       communityId: 'c_second_sundays',
@@ -725,7 +937,7 @@ function seedDraftOffers(): Record<string, DraftOffer[]> {
   };
 }
 
-function toDetail(e: StoredEvent): OrganizerEventDetail {
+function toDetail(e: StoredEvent, communityName?: string): OrganizerEventDetail {
   const { date, startTime, endTime, city } = e.fields;
   const timeZone = city?.timeZone ?? null;
   const timed = !!(date && startTime && endTime && timeZone);
@@ -733,7 +945,7 @@ function toDetail(e: StoredEvent): OrganizerEventDetail {
     ...e.fields,
     id: e.id,
     communityId: e.communityId,
-    communityName: sampleCommunities.find((c) => c.id === e.communityId)?.name ?? '',
+    communityName: communityName ?? sampleCommunities.find((c) => c.id === e.communityId)?.name ?? '',
     status: e.status,
     timeZone,
     startsAt: timed ? zonedIso(date!, startTime!, timeZone!) : null,
@@ -752,18 +964,71 @@ function later<T>(value: T, ms = 250): Promise<T> {
  * In-memory and per instance: saves, publishes and offer edits last until the
  * app reloads. Milestone 8 replaces this with Memberly's backend.
  */
-function cardMemberships(): MemberCard['memberships'] {
-  const by = (id: string) => sampleCommunities.find((c) => c.id === id)!;
-  const row = (id: string, tierLabel: string, status: 'active' | 'expired') => {
-    const c = by(id);
-    return { communityId: c.id, communityName: c.name, cover: c.cover, tierLabel, status };
+function membershipsOf(account: TestAccount): MemberCard['memberships'] {
+  return account.memberships.flatMap((m) => {
+    const c = sampleCommunities.find((x) => x.id === m.communityId);
+    return c ? [{ communityId: c.id, communityName: c.name, cover: c.cover, tierLabel: m.tierLabel, status: m.status }] : [];
+  });
+}
+
+/**
+ * Everything one account sees, built from its seed in testAccounts.ts. Each
+ * account gets its own world: its events, bookings, unsent offers, passes,
+ * orders and preferences. Tonight's events, communities and DJs are shared.
+ */
+type WorldSeed = {
+  viewer: Viewer;
+  preferences: Preferences;
+  memberships: MemberCard['memberships'];
+  /** Event id → the pass held. */
+  passes: [string, string][];
+  /** Going or saved, by event id. */
+  relations: Record<string, EventRelation>;
+  /** The community the viewer runs, or null. */
+  community: Community | null;
+  setupTasks: CommunityOverview['setupTasks'];
+  stats: Pick<CommunityOverview, 'revenueMonthCents' | 'newMembersMonth' | 'churnPercent' | 'sampleNumbers'>;
+  events: StoredEvent[];
+  bookings: Record<string, Booking[]>;
+  draftOffers: Record<string, DraftOffer[]>;
+};
+
+/** A cover for a community that is not in the shared catalog (one just created). */
+const NEW_COMMUNITY_COVER = img.dayparty;
+
+function seedWorld(account: TestAccount, who: Partial<Pick<Viewer, 'id' | 'firstName' | 'lastName' | 'initials' | 'email'>> = {}): WorldSeed {
+  const run = account.organizes;
+  const listed = run ? sampleCommunities.find((c) => c.id === run.community.id) : undefined;
+  const community: Community | null = run
+    ? { ...(listed ?? { cover: NEW_COMMUNITY_COVER }), ...run.community, isOwner: true }
+    : null;
+  const eventIds = new Set(run?.eventIds ?? []);
+  const allBookings: Record<string, Booking[]> = {
+    e_warehouse_friday: bookings.map((b) => ({ ...b })),
+    [ALL_STATUSES_EVENT_ID]: seedAllStatuses(),
   };
-  return [
-    row('c_second_sundays', 'Inner Circle · renews Dec 1', 'active'),
-    row('c_supper_club', 'Table member', 'active'),
-    row('c_rooftop', 'Free tier', 'active'),
-    row('c_bass_church', 'Lapsed Oct 31 · renew in the web app', 'expired'),
-  ];
+  const only = <T,>(byEvent: Record<string, T>) => Object.fromEntries(Object.entries(byEvent).filter(([id]) => eventIds.has(id)));
+  return {
+    viewer: { ...viewerOf(account), ...who },
+    preferences: account.preferences,
+    memberships: membershipsOf(account),
+    passes: account.passes.map((p) => [p.eventId, p.passName]),
+    relations: { ...account.events },
+    community,
+    setupTasks: run ? run.setupTasks.map((t) => ({ ...t })) : [],
+    stats: {
+      revenueMonthCents: run?.stats.revenueMonthCents ?? 0,
+      newMembersMonth: run?.stats.newMembersMonth ?? 0,
+      churnPercent: run?.stats.churnPercent ?? null,
+      sampleNumbers: run?.stats.sample ?? false,
+    },
+    // Copies, so a hold in one world never shows in another.
+    events: seedEvents()
+      .filter((e) => eventIds.has(e.id))
+      .map((e) => (run ? { ...e, communityId: run.community.id } : e)),
+    bookings: only(allBookings),
+    draftOffers: only(seedDraftOffers()),
+  };
 }
 
 export type FakeRepositoryOptions = {
@@ -786,43 +1051,37 @@ export type FakeRepositoryOptions = {
   /** How long a paid pass order takes to read `paid`; Infinity leaves it pending until `fake.settlePassOrders()`. */
   passConfirmMs?: number;
   slowPassConfirmMs?: number;
+  /** How long a counter reads `negotiating` before the new price lands; Infinity waits for `fake.settleCounters()`. */
+  counterMs?: number;
+  /**
+   * Hold every data call until the stored session has been read once, so a
+   * screen that asks before then is answered as the person who is signed in,
+   * never as the default account. The app sets this; a real repository does
+   * the same by reading its token before the first request.
+   */
+  holdUntilSession?: boolean;
 };
 
-export function createFakeRepository(options: FakeRepositoryOptions = {}): FakeRepository {
-  const delay = options.delayMs ?? 250;
-  const storage = options.storage ?? createMemoryStorage();
-  // In memory: signing out stops the dev flag from signing straight back in until the next reload.
-  let autoSignIn = options.signedIn ?? false;
-  let pending: { email: string; intent: CodeIntent; name?: string } | null = null;
-  let profile: Pick<Viewer, 'firstName' | 'lastName' | 'initials' | 'email'> | null = null;
-  let preferences: Preferences = samplePreferences;
-  let nextToken = 1;
+/** The session calls live on the repository itself; a world answers everything else for one account. */
+type SessionMethod = 'getSession' | 'sendCode' | 'verifyCode' | 'signInWithProvider' | 'completeOnboarding' | 'signOut';
+type World = Omit<MemberlyRepository, SessionMethod> & { readonly fake: WorldControls };
 
-  const newSession = (email: string, onboardingDone: boolean): Session => ({
-    token: `fake.${Date.now().toString(36)}.${nextToken++}`,
-    expiresAt: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
-    viewerId: sampleViewer.id,
-    email,
-    onboardingDone,
-  });
-  const store = async (session: Session) => {
-    await storage.set(SESSION_KEY, JSON.stringify(session));
-    return session;
-  };
-  const readSession = async (): Promise<Session | null> => {
-    const raw = await storage.get(SESSION_KEY);
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw) as Session;
-    } catch {
-      return null;
-    }
-  };
-  const viewer = (): Viewer => ({ ...sampleViewer, ...profile });
-  const events = seedEvents();
-  // Copies, so a hold in one repository never shows in another.
-  const bookingsByEvent: Record<string, Booking[]> = { e_warehouse_friday: bookings.map((b) => ({ ...b })) };
-  const offersByEvent = seedDraftOffers();
+function createWorld(options: FakeRepositoryOptions, seed: WorldSeed): World {
+  const delay = options.delayMs ?? 250;
+  let preferences: Preferences = seed.preferences;
+  /** The communities this viewer runs: the seeded one, then any they create. Each has its own setup and numbers. */
+  type Owned = { community: Community; setupTasks: SetupTask[]; stats: WorldSeed['stats']; stripeConnected: boolean };
+  const owned: Owned[] = seed.community ? [{ community: seed.community, setupTasks: seed.setupTasks, stats: seed.stats, stripeConnected: false }] : [];
+  const ownedById = (communityId: string | null | undefined) => owned.find((o) => o.community.id === communityId);
+  // Running a community is what makes someone an organizer, from the moment it exists.
+  const viewer = (): Viewer => ({ ...seed.viewer, roles: owned.length > 0 ? ['member', 'organizer'] : ['member'] });
+  /** The shared catalog, with the owner mark only on communities this viewer runs. */
+  const communities = (): Community[] => sampleCommunities.map(({ isOwner: _owner, ...c }) => (ownedById(c.id) ? { ...c, isOwner: true } : c));
+  const events = seed.events;
+  /** An event as the organizer edits it; a community that is not in the shared catalog is named from the viewer's own. */
+  const detail = (e: StoredEvent) => toDetail(e, ownedById(e.communityId)?.community.name);
+  const bookingsByEvent: Record<string, Booking[]> = seed.bookings;
+  const offersByEvent = seed.draftOffers;
   let nextId = 1;
 
   // --- Offers, holds and passes -------------------------------------------
@@ -833,15 +1092,15 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): FakeR
   /** `<event>:<dj>:<client_offer_id>` → request id: the Idempotency-Key the backend sends Gelatin. */
   const requestsByKey = new Map<string, string>();
   const sessions = new Map<string, StoredSession>();
-  const passTypes = seedPassTypes();
+  const eventPasses = seedEventPasses();
+  const communityPasses = new Map<string, StoredPass[]>(owned.map((o) => [o.community.id, seedCommunityPasses(o.community.id)]));
+  /** `<kind>:<idempotency_key>` → the id of what that request made. */
+  const savedByKey = new Map<string, string>();
   const orders = new Map<string, StoredOrder>();
   const ordersByKey = new Map<string, string>();
   /** Event id → the pass the viewer holds. */
-  const passes = new Map<string, string>(
-    allEvents()
-      .filter((e) => e.viewerHasPass)
-      .map((e) => [e.id, 'General pass']),
-  );
+  const passes = new Map<string, string>(seed.passes);
+  const relations = seed.relations;
   const passConfirmMs = options.passConfirmMs ?? (delay === 0 ? 0 : PASS_CONFIRM_MS);
   const slowPassConfirmMs = options.slowPassConfirmMs ?? SLOW_PASS_CONFIRM_MS;
   let nextSecret = 1;
@@ -864,10 +1123,50 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): FakeR
     }
     return null;
   };
-  const setBookingStatus = (requestId: string, status: Booking['status']) => {
+  // --- Status, ETags, alternates and portal launches (M6) -------------------
+  /** Each change to an event's bookings gives its body a new ETag (GEL-1021). */
+  const bookingVersions = new Map<string, number>();
+  const etagOf = (eventId: string) => `W/"${eventId}.${bookingVersions.get(eventId) ?? 0}"`;
+  const writeBookings = (eventId: string, list: Booking[]) => {
+    bookingsByEvent[eventId] = list;
+    bookingVersions.set(eventId, (bookingVersions.get(eventId) ?? 0) + 1);
+  };
+  const patchBooking = (requestId: string, patch: Partial<Booking>) => {
     const found = findBooking(requestId);
     if (!found) return;
-    bookingsByEvent[found.eventId] = bookingsByEvent[found.eventId].map((b) => (b.requestId === requestId ? { ...b, status } : b));
+    writeBookings(
+      found.eventId,
+      bookingsByEvent[found.eventId].map((b) => (b.requestId === requestId ? { ...b, ...patch } : b)),
+    );
+  };
+  const setBookingStatus = (requestId: string, status: Booking['status']) => patchBooking(requestId, { status });
+  const bookingReads = new Map<string, { full: number; notModified: number }>();
+  const readsOf = (eventId: string) => {
+    let reads = bookingReads.get(eventId);
+    if (!reads) bookingReads.set(eventId, (reads = { full: 0, notModified: 0 }));
+    return reads;
+  };
+  /** The last body the backend had before Gelatin went slow, per event. */
+  const staleBodies = new Map<string, { bookings: Booking[]; etag: string }>();
+  const launches = new Map<string, { requestId: string; expiresAt: number; used: boolean }>();
+  let launchCount = 0;
+  /** Counters the DJ is still working out, by request. */
+  const counters = new Map<string, ReturnType<typeof setTimeout> | null>();
+  const counterMs = options.counterMs ?? (delay === 0 ? Infinity : COUNTER_MS);
+  /** What a DJ asks for when they counter: invented, and decided here, on the fake server. */
+  const COUNTER_STEP_CENTS = 13000;
+  const landCounter = (requestId: string) => {
+    const timer = counters.get(requestId);
+    if (timer) clearTimeout(timer);
+    counters.delete(requestId);
+    const found = findBooking(requestId);
+    if (found?.booking.status !== 'negotiating') return;
+    patchBooking(requestId, { status: 'reauthorization_required', newOfferCents: found.booking.offerCents + COUNTER_STEP_CENTS });
+  };
+  const portalBooking = (requestId: string): FakePortalBooking | null => {
+    const found = findBooking(requestId);
+    if (!found) return null;
+    return { eventId: found.eventId, eventName: find(found.eventId)?.fields.name ?? '', booking: { ...found.booking } };
   };
   const newPaymentSession = (target: SessionTarget, totalCents: number): PaymentSession => {
     // A simulated expired session is born in the past.
@@ -894,8 +1193,9 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): FakeR
   const settle = (o: StoredOrder) => {
     if (o.status !== 'pending' || !o.paymentConfirmed) return;
     o.status = 'paid';
-    const type = (passTypes[o.eventId] ?? []).find((t) => t.id === o.passTypeId);
-    passes.set(o.eventId, type?.name ?? 'Pass');
+    const held = (eventPasses.get(o.eventId) ?? []).find((t) => t.id === o.passTypeId);
+    if (held) held.heldCount += 1;
+    passes.set(o.eventId, held?.name ?? 'Pass');
   };
   const cardPasses = (): CardPass[] =>
     [...passes.entries()]
@@ -909,9 +1209,10 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): FakeR
         whenLabel: formatEventDate(event.startsAt, event.timeZone),
       }));
 
-  const controls: FakeControls = {
+  const controls: WorldControls = {
     simulate: (patch) => {
       Object.assign(sim, patch);
+      if (!sim.staleBookings) staleBodies.clear();
     },
     confirmPayment: async (clientSecret) => {
       const session = sessions.get(clientSecret);
@@ -938,9 +1239,42 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): FakeR
     settlePassOrders: () => orders.forEach(settle),
     requestCount: (eventId) => (bookingsByEvent[eventId] ?? []).length,
     passOrderCount: () => orders.size,
+    setStatus: (requestId, status, patch) => patchBooking(requestId, { status, ...patch }),
+    playDj: (requestId, action) => {
+      const found = findBooking(requestId);
+      if (!found) return;
+      if (action === 'counter') {
+        patchBooking(requestId, { status: 'negotiating', newOfferCents: null });
+        counters.set(requestId, Number.isFinite(counterMs) ? setTimeout(() => landCounter(requestId), Math.max(0, counterMs)) : null);
+        return;
+      }
+      const pending = counters.get(requestId);
+      if (pending) clearTimeout(pending);
+      counters.delete(requestId);
+      if (action === 'accept') {
+        // An accepted counter is charged at the new price; the total is the server's.
+        const { newOfferCents } = found.booking;
+        patchBooking(requestId, {
+          status: 'confirmed',
+          newOfferCents: null,
+          ...(newOfferCents != null ? { offerCents: newOfferCents, totalCents: priced(newOfferCents).totalCents } : null),
+        });
+        return;
+      }
+      patchBooking(requestId, { status: action === 'pass' ? 'declined' : action === 'expire' ? 'expired' : 'cancelled', newOfferCents: null });
+    },
+    settleCounters: () => [...counters.keys()].forEach(landCounter),
+    bookingFetches: (eventId) => ({ ...readsOf(eventId) }),
+    portalLaunchCount: () => launchCount,
+    redeemLaunch: (launchUrl) => {
+      const launch = launches.get(launchUrl);
+      if (!launch || launch.used || launch.expiresAt <= Date.now()) return null;
+      launch.used = true;
+      return portalBooking(launch.requestId);
+    },
+    portalBooking,
   };
 
-  const find = (id: string) => events.find((e) => e.id === id);
   const offers = (eventId: string) => (offersByEvent[eventId] ??= []);
   const waitlist = new Set<string>();
 
@@ -986,21 +1320,109 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): FakeR
     addedDjCount: offers(e.id).length,
   });
 
-  const overview = (): CommunityOverview => ({
-    community: sampleCommunities[0],
-    revenueMonthCents: 432000,
-    newMembersMonth: 38,
-    churnPercent: 1.2,
-    setupTasks: [
-      {
-        id: 'stripe',
-        title: 'Connect Stripe',
-        detail: 'So you can receive payments from paid tiers.',
-        actionLabel: 'Connect',
-      },
-    ],
+  // --- Communities and passes (GEL-1056, GEL-1057) --------------------------
+  const find = (id: string) => events.find((e) => e.id === id);
+  /** The community an event belongs to: the organizer's own event, or one in the shared catalog. */
+  const communityOfEvent = (eventId: string) => find(eventId)?.communityId ?? allEvents().find((e) => e.id === eventId)?.communityId ?? null;
+  const communityOfPass = (p: StoredPass) => p.communityId ?? (p.eventId ? communityOfEvent(p.eventId) : null);
+  const isMember = (communityId: string | null) =>
+    !!communityId && (!!ownedById(communityId) || seed.memberships.some((m) => m.communityId === communityId && m.status === 'active'));
+  /**
+   * A priced pass can be sold only once its community's Stripe account is
+   * connected. Nothing in this build connects one, so a new paid pass saves
+   * and waits. Sample passes, and other people's events, are on sale as before.
+   */
+  const sellable = (p: StoredPass) => p.priceCents == null || p.seeded || (ownedById(communityOfPass(p))?.stripeConnected ?? true);
+  /** A pass as a member meets it in Get a pass. */
+  const passTypeOf = (p: StoredPass): PassType => {
+    // A free members' pass is anyone's to claim, as it always was here; a priced one is free only to the community's members.
+    const membersFree = p.freeForMembers && (p.priceCents == null || isMember(communityOfPass(p)));
+    return {
+      id: p.id,
+      name: p.name,
+      priceCents: membersFree ? 0 : (p.priceCents ?? 0),
+      included: p.included,
+      soldOut: p.soldOut || (p.limit != null && p.heldCount >= p.limit),
+      freeForMembers: membersFree,
+    };
+  };
+  const organizerPass = (p: StoredPass): OrganizerPass => ({
+    id: p.id,
+    scope: p.scope,
+    communityId: communityOfPass(p) ?? '',
+    eventId: p.eventId,
+    name: p.name,
+    priceCents: p.priceCents,
+    included: p.included,
+    limit: p.limit,
+    freeForMembers: p.freeForMembers,
+    active: p.active,
+    heldCount: p.heldCount,
+    sellable: sellable(p),
+  });
+  /** Only a community's organizer sees or changes its passes; to anyone else they do not exist (404). */
+  const ownEventPasses = (eventId: string) => {
+    const e = find(eventId);
+    if (!e || !ownedById(e.communityId)) throw new RepositoryError('not_found');
+    let list = eventPasses.get(eventId);
+    if (!list) eventPasses.set(eventId, (list = []));
+    return list;
+  };
+  const ownCommunityPasses = (communityId: string) => {
+    if (!ownedById(communityId)) throw new RepositoryError('not_found');
+    let list = communityPasses.get(communityId);
+    if (!list) communityPasses.set(communityId, (list = []));
+    return list;
+  };
+  const findOwnPass = (passId: string) => {
+    for (const o of owned) {
+      const lists = [ownCommunityPasses(o.community.id), ...events.filter((e) => e.communityId === o.community.id).map((e) => ownEventPasses(e.id))];
+      for (const list of lists) {
+        const pass = list.find((p) => p.id === passId);
+        if (pass) return { pass, list };
+      }
+    }
+    throw new RepositoryError('not_found');
+  };
+  const validName = (name: string) => {
+    const trimmed = name.trim();
+    if (trimmed.length === 0 || trimmed.length > NAME_MAX) throw new RepositoryError('invalid_input');
+    return trimmed;
+  };
+  /** Zero is free: stored as no price. */
+  const validPrice = (cents: number | null | undefined) => {
+    if (cents == null || cents === 0) return null;
+    if (!Number.isInteger(cents) || cents < 0) throw new RepositoryError('invalid_input');
+    return cents;
+  };
+  const validLimit = (limit: number | null | undefined) => {
+    if (limit == null) return null;
+    if (!Number.isInteger(limit) || limit <= 0) throw new RepositoryError('invalid_input');
+    return limit;
+  };
+  /** The save happened; the answer never arrives. A retry with the same key finds what was saved. */
+  const lostResponse = async () => {
+    if (!sim.timeoutNextSave) return;
+    sim.timeoutNextSave = false;
+    await later(undefined, delay);
+    throw new RepositoryError('timeout');
+  };
+  /** Stripe is asked for once anything in the community has a price. */
+  const tasksOf = (o: Owned): SetupTask[] => {
+    const priced = [
+      ...(communityPasses.get(o.community.id) ?? []),
+      ...events.filter((e) => e.communityId === o.community.id).flatMap((e) => eventPasses.get(e.id) ?? []),
+    ].some((p) => p.priceCents != null && !p.seeded);
+    const asksForStripe = o.setupTasks.some((t) => t.id === CONNECT_STRIPE_TASK.id);
+    return priced && !asksForStripe && !o.stripeConnected ? [...o.setupTasks, CONNECT_STRIPE_TASK] : o.setupTasks;
+  };
+
+  const overview = (o: Owned): CommunityOverview => ({
+    community: o.community,
+    ...o.stats,
+    setupTasks: tasksOf(o),
     upcoming: events
-      .filter((e) => e.communityId === sampleCommunities[0].id)
+      .filter((e) => e.communityId === o.community.id)
       .sort((a, b) => (a.fields.date ?? '9999').localeCompare(b.fields.date ?? '9999'))
       .map(organizerRow),
   });
@@ -1009,58 +1431,6 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): FakeR
     fake: controls,
     now: () => DEMO_NOW,
 
-    getSession: async () => {
-      let session = await readSession();
-      if (session && !profile) {
-        const raw = await storage.get(PROFILE_KEY);
-        if (raw) profile = JSON.parse(raw);
-      }
-      if (!session && autoSignIn) session = await store(newSession(sampleViewer.email, true));
-      return later(session, delay);
-    },
-    sendCode: ({ email, intent, name }) => {
-      // A resend from Verify keeps the name Create account sent first.
-      const keepName = pending?.email === email.trim() ? pending.name : undefined;
-      pending = { email: email.trim(), intent, name: name ?? keepName };
-      return later({ email: email.trim(), resendAfterSeconds: RESEND_SECONDS }, delay);
-    },
-    verifyCode: async (email, code) => {
-      if (code === FAKE_CODES.expired) return later({ ok: false as const, reason: 'expired' as const, resendAfterSeconds: RESEND_SECONDS }, delay);
-      if (code !== FAKE_CODES.success) return later({ ok: false as const, reason: 'wrong' as const }, delay);
-      // Create account makes a new member who still has preferences to pick; sign in is a returning one.
-      const isNewUser = pending?.intent === 'sign-up';
-      const name = pending?.name?.trim();
-      if (isNewUser) {
-        profile = { ...splitName(name || 'New member'), email };
-        await storage.set(PROFILE_KEY, JSON.stringify(profile));
-        preferences = EMPTY_PREFERENCES;
-      } else {
-        // A returning member is the sample viewer, whatever email was typed.
-        profile = null;
-        await storage.remove(PROFILE_KEY);
-      }
-      pending = null;
-      const session = await store(newSession(email, !isNewUser));
-      return later({ ok: true as const, session, isNewUser }, delay);
-    },
-    signInWithProvider: async () => {
-      // The fake skips the native Google / Apple sheet and signs in the sample viewer.
-      profile = null;
-      await storage.remove(PROFILE_KEY);
-      return later(await store(newSession(sampleViewer.email, true)), delay);
-    },
-    completeOnboarding: async () => {
-      const current = (await readSession()) ?? newSession(viewer().email, true);
-      return later(await store({ ...current, onboardingDone: true }), delay);
-    },
-    signOut: async () => {
-      autoSignIn = false;
-      profile = null;
-      await storage.remove(SESSION_KEY);
-      await storage.remove(PROFILE_KEY);
-      return later(undefined, delay);
-    },
-
     getPreferences: () => later(preferences, delay),
     putPreferences: (next) => {
       preferences = next;
@@ -1068,17 +1438,17 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): FakeR
     },
 
     explore: (query) =>
-      later(runExplore({ communities: sampleCommunities, events: allEvents().map(withPass) }, query, sampleViewer.city), delay),
+      later(runExplore({ communities: communities(), events: allEvents().map(withPass) }, query, viewer().city), delay),
 
     getCard: () => {
-      const memberships = cardMemberships();
+      const { memberships } = seed;
       const card: MemberCard = {
         name: `${viewer().firstName} ${viewer().lastName}`.trim(),
         communityCount: memberships.filter((m) => m.status === 'active').length,
         memberships,
         passes: cardPasses(),
         // Short-lived, as the door expects. Real clock: the demo clock only drives event grouping.
-        qr: { token: `memberly:card:${sampleViewer.id}:${Date.now().toString(36)}`, expiresAt: new Date(Date.now() + 12 * 3600 * 1000).toISOString() },
+        qr: { token: `memberly:card:${viewer().id}:${Date.now().toString(36)}`, expiresAt: new Date(Date.now() + 12 * 3600 * 1000).toISOString() },
       };
       return later(card, delay);
     },
@@ -1111,28 +1481,59 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): FakeR
             : mine.filter((e) => !ended(e));
       return later(result, delay);
     },
-    getTopCommunities: (city) => later(sampleCommunities.filter((c) => c.city === city).slice(0, 4), delay),
-    getOrganizedCommunities: () => later(sampleCommunities.filter((c) => c.isOwner), delay),
-    getCommunityOverview: (communityId) =>
-      later(communityId === sampleCommunities[0].id ? overview() : null, delay),
+    getTopCommunities: (city) => later(communities().filter((c) => c.city === city).slice(0, 4), delay),
+    getOrganizedCommunities: () => later(owned.map((o) => ({ ...o.community })), delay),
+    getCommunityOverview: (communityId) => {
+      const o = ownedById(communityId);
+      return later(o ? overview(o) : null, delay);
+    },
 
     getCities: () => later(sampleCities, delay),
     getOrganizerEvent: (id) => {
       const e = find(id);
-      return later(e ? toDetail(e) : null, delay);
+      return later(e ? detail(e) : null, delay);
     },
-    saveEvent: ({ id, communityId, fields, publish }) => {
+    saveEvent: async ({ id, communityId, fields, publish }) => {
       let e = id ? find(id) : undefined;
+      if (e && fields.date !== e.fields.date) {
+        // The date is part of every offer. A confirmed DJ, or an offer still open, holds the event to it (GEL-1025).
+        const list = bookingsByEvent[e.id] ?? [];
+        const confirmed = list.find((b) => b.status === 'confirmed');
+        const open = list.find((b) => b.status !== 'confirmed' && !ENDED_BOOKING.includes(b.status));
+        const blocker = confirmed ?? open;
+        if (blocker) {
+          await later(undefined, delay);
+          throw new RepositoryError(confirmed ? 'confirmed_booking' : 'open_bookings', { requestId: blocker.requestId });
+        }
+      }
       if (!e) {
         e = { id: `e_new_${nextId++}`, communityId, status: 'draft', salesLabel: null, fields };
         events.push(e);
       }
       e.fields = { ...fields, name: fields.name.trim() || 'Untitled event' };
       e.status = publish ? 'published' : 'draft';
-      return later(toDetail(e), delay);
+      return later(detail(e), delay);
     },
 
-    getEventBookings: (eventId) => later([...(bookingsByEvent[eventId] ?? [])], delay),
+    getEventBookings: async (eventId, { ifNoneMatch = null } = {}) => {
+      if (sim.failBookings) {
+        await later(undefined, delay);
+        throw new RepositoryError('timeout');
+      }
+      const current = { bookings: [...(bookingsByEvent[eventId] ?? [])], etag: etagOf(eventId) };
+      if (sim.staleBookings) {
+        // Gelatin is slow: the backend answers with the last body it had, whatever has happened since.
+        if (!staleBodies.has(eventId)) staleBodies.set(eventId, current);
+        readsOf(eventId).full += 1;
+        return later({ ...staleBodies.get(eventId)!, stale: true }, delay);
+      }
+      if (ifNoneMatch && ifNoneMatch === current.etag) {
+        readsOf(eventId).notModified += 1;
+        return later({ notModified: true as const }, delay);
+      }
+      readsOf(eventId).full += 1;
+      return later(current, delay);
+    },
     getDraftOffers: (eventId) => later([...offers(eventId)], delay),
     addDraftOffer: (eventId, dj) => {
       if (!offers(eventId).some((o) => o.dj.id === dj.id)) {
@@ -1216,7 +1617,7 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): FakeR
           note,
           setTime: '',
         };
-        bookingsByEvent[eventId] = [...(bookingsByEvent[eventId] ?? []), booking];
+        writeBookings(eventId, [...(bookingsByEvent[eventId] ?? []), booking]);
         // The offer is sent, so it is no longer a draft.
         offersByEvent[eventId] = offers(eventId).filter((o) => o.dj.id !== djId);
         requestsByKey.set(key, requestId);
@@ -1238,9 +1639,40 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): FakeR
       return later(newPaymentSession({ kind: 'hold', requestId }, totalCents), delay);
     },
 
+    getAlternates: async (requestId) => {
+      const found = findBooking(requestId);
+      if (!found) throw new RepositoryError('not_found');
+      // Open that night in that city, minus the DJ this booking was with. Never why they passed.
+      return catalog(() =>
+        sim.noAlternates
+          ? []
+          : openDjs(found.eventId)
+              .filter((dj) => dj.id !== found.booking.dj.id)
+              .map(publicDj),
+      );
+    },
+    createPortalLaunch: async (requestId) => {
+      await network();
+      const found = findBooking(requestId);
+      if (!found) throw new RepositoryError('not_found');
+      // Gelatin's portal opens only once a card hold exists.
+      if (found.booking.status === 'authorization_required') throw new RepositoryError('portal_unavailable');
+      const bornExpired = sim.expiredLaunches > 0;
+      if (bornExpired) sim.expiredLaunches -= 1;
+      const expiresAt = Date.now() + (bornExpired ? -1000 : LAUNCH_TTL_MS);
+      launchCount += 1;
+      const launch: PortalLaunch = {
+        launchUrl: `${TEST_PORTAL_ORIGIN}/launch/lt_${launchCount}_${Date.now().toString(36)}`,
+        expiresAt: new Date(expiresAt).toISOString(),
+      };
+      launches.set(launch.launchUrl, { requestId, expiresAt, used: false });
+      return later(launch, delay);
+    },
+
     getPassTypes: async (eventId) => {
       await network();
-      return later((passTypes[eventId] ?? []).map((t) => ({ ...t })), delay);
+      // What is on sale: turned on, and sellable.
+      return later((eventPasses.get(eventId) ?? []).filter((p) => p.active && sellable(p)).map(passTypeOf), delay);
     },
     createPassOrder: async (eventId, { passTypeId, quantity, idempotencyKey, expectedPriceCents }) => {
       await network();
@@ -1264,22 +1696,25 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): FakeR
         if (payment) existing.clientSecret = payment.clientSecret;
         return later(orderView(existing, payment), delay);
       }
-      const type = (passTypes[eventId] ?? []).find((t) => t.id === passTypeId);
-      if (!type) throw new RepositoryError('not_found');
+      const stored = (eventPasses.get(eventId) ?? []).find((t) => t.id === passTypeId && t.active && sellable(t));
+      if (!stored) throw new RepositoryError('not_found');
       if (sim.soldOutNext) {
         sim.soldOutNext = false;
-        type.soldOut = true;
+        stored.soldOut = true;
       }
-      if (sim.priceChangeNext && !type.freeForMembers) {
+      if (sim.priceChangeNext && !passTypeOf(stored).freeForMembers) {
         sim.priceChangeNext = false;
-        type.priceCents += 500;
+        stored.priceCents = (stored.priceCents ?? 0) + 500;
       }
+      const type = passTypeOf(stored);
       if (type.soldOut) {
         await later(undefined, delay);
         throw new RepositoryError('pass_unavailable');
       }
-      const totalCents = type.freeForMembers ? 0 : type.priceCents * Math.max(1, quantity);
-      if (!type.freeForMembers && expectedPriceCents !== type.priceCents) {
+      // Free to this person: a members' pass, or a pass with no price. There is nothing to pay.
+      const free = type.freeForMembers || type.priceCents === 0;
+      const totalCents = free ? 0 : type.priceCents * Math.max(1, quantity);
+      if (!free && expectedPriceCents !== type.priceCents) {
         await later(undefined, delay);
         throw new RepositoryError('price_changed', { totalCents });
       }
@@ -1294,7 +1729,7 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): FakeR
       };
       orders.set(order.orderId, order);
       ordersByKey.set(idempotencyKey, order.orderId);
-      if (type.freeForMembers) {
+      if (free) {
         // Claimed: no payment step.
         order.paymentConfirmed = true;
         settle(order);
@@ -1310,5 +1745,325 @@ export function createFakeRepository(options: FakeRepositoryOptions = {}): FakeR
       if (!order) throw new RepositoryError('not_found');
       return later(orderView(order), delay);
     },
+
+    createCommunity: async ({ name, city, type, description, cover, membership, idempotencyKey }) => {
+      await network();
+      const key = `community:${idempotencyKey}`;
+      let id = savedByKey.get(key);
+      if (!id) {
+        const trimmed = validName(name);
+        const about = (description ?? '').trim();
+        if (!sampleCities.some((c) => c.name === city) || !type.trim() || about.length > DESCRIPTION_MAX) throw new RepositoryError('invalid_input');
+        const paid = membership.kind === 'paid' ? { name: validName(membership.name), priceCents: validPrice(membership.monthlyPriceCents) } : null;
+        // A paid membership has a price; "paid at $0" is not a thing.
+        if (paid && paid.priceCents == null) throw new RepositoryError('invalid_input');
+        id = `c_new_${nextId++}`;
+        owned.push({
+          // The caller is the owner, and so far the only member.
+          community: { id, name: trimmed, city, memberCount: 1, cover: cover ?? null, type, isOwner: true, ...(about ? { description: about } : null) },
+          setupTasks: [],
+          stats: { revenueMonthCents: 0, newMembersMonth: 0, churnPercent: null, sampleNumbers: false },
+          stripeConnected: false,
+        });
+        communityPasses.set(
+          id,
+          paid
+            ? [
+                {
+                  id: `cp_${nextId++}`,
+                  scope: 'community',
+                  communityId: id,
+                  eventId: null,
+                  name: paid.name,
+                  priceCents: paid.priceCents,
+                  included: '',
+                  limit: null,
+                  freeForMembers: false,
+                  active: true,
+                  heldCount: 0,
+                  soldOut: false,
+                  seeded: false,
+                },
+              ]
+            : [],
+        );
+        savedByKey.set(key, id);
+      }
+      await lostResponse();
+      const made = ownedById(id)!;
+      const result: CreateCommunityResult = { community: { ...made.community }, setupTasks: tasksOf(made) };
+      return later(result, delay);
+    },
+    getCommunityPasses: async (communityId) => {
+      await network();
+      return later(ownCommunityPasses(communityId).map(organizerPass), delay);
+    },
+    createCommunityPass: async (communityId, { name, monthlyPriceCents, included, memberLimit, idempotencyKey }) => {
+      await network();
+      const list = ownCommunityPasses(communityId);
+      const key = `community-pass:${communityId}:${idempotencyKey}`;
+      let pass = list.find((p) => p.id === savedByKey.get(key));
+      if (!pass) {
+        pass = {
+          id: `cp_${nextId++}`,
+          scope: 'community',
+          communityId,
+          eventId: null,
+          name: validName(name),
+          priceCents: validPrice(monthlyPriceCents),
+          included: included.trim(),
+          limit: validLimit(memberLimit),
+          freeForMembers: false,
+          active: true,
+          heldCount: 0,
+          soldOut: false,
+          seeded: false,
+        };
+        list.push(pass);
+        savedByKey.set(key, pass.id);
+      }
+      await lostResponse();
+      return later(organizerPass(pass), delay);
+    },
+    getOrganizerEventPasses: async (eventId) => {
+      await network();
+      return later(ownEventPasses(eventId).map(organizerPass), delay);
+    },
+    createEventPass: async (eventId, { name, priceCents, included, quantity, freeForMembers, idempotencyKey }) => {
+      await network();
+      const list = ownEventPasses(eventId);
+      const key = `event-pass:${eventId}:${idempotencyKey}`;
+      let pass = list.find((p) => p.id === savedByKey.get(key));
+      if (!pass) {
+        pass = {
+          id: `pt_${nextId++}`,
+          scope: 'event',
+          communityId: null,
+          eventId,
+          name: validName(name),
+          priceCents: validPrice(priceCents),
+          included: included.trim(),
+          limit: validLimit(quantity),
+          freeForMembers,
+          active: true,
+          heldCount: 0,
+          soldOut: false,
+          seeded: false,
+        };
+        list.push(pass);
+        savedByKey.set(key, pass.id);
+      }
+      await lostResponse();
+      return later(organizerPass(pass), delay);
+    },
+    updatePass: async (passId, patch) => {
+      await network();
+      const { pass } = findOwnPass(passId);
+      // Check everything before anything changes.
+      const next = {
+        ...(patch.name !== undefined ? { name: validName(patch.name) } : null),
+        ...(patch.priceCents !== undefined ? { priceCents: validPrice(patch.priceCents) } : null),
+        ...(patch.limit !== undefined ? { limit: validLimit(patch.limit) } : null),
+        ...(patch.included !== undefined ? { included: patch.included.trim() } : null),
+        ...(patch.freeForMembers !== undefined && pass.scope === 'event' ? { freeForMembers: patch.freeForMembers } : null),
+        ...(patch.active !== undefined ? { active: patch.active } : null),
+      };
+      Object.assign(pass, next);
+      await lostResponse();
+      return later(organizerPass(pass), delay);
+    },
+    deletePass: async (passId) => {
+      await network();
+      const { pass, list } = findOwnPass(passId);
+      // People hold it: it can be turned off, never removed from under them.
+      if (pass.heldCount > 0) throw new RepositoryError('pass_held');
+      list.splice(list.indexOf(pass), 1);
+      return later(undefined, delay);
+    },
   };
+}
+
+/** A stable viewer id for someone who creates an account with an email that is not a test account's. */
+function adHocViewerId(email: string): string {
+  return `u_new_${email.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+}
+
+type AdHocProfile = Pick<Viewer, 'id' | 'firstName' | 'lastName' | 'initials' | 'email'>;
+
+/**
+ * The fake repository: sample data standing in for Memberly's backend.
+ *
+ * It holds one world per account (see testAccounts.ts) and answers every call
+ * from the world of whoever is signed in, so nothing one account does or sees
+ * reaches another. Worlds are made the first time an account is used and last
+ * until the app reloads. Before anyone signs in it answers as the existing
+ * organizer, the sample person the data has always belonged to.
+ *
+ * In memory and per instance: milestone 8 replaces this with Memberly's backend.
+ */
+export function createFakeRepository(options: FakeRepositoryOptions = {}): FakeRepository {
+  const delay = options.delayMs ?? 250;
+  const storage = options.storage ?? createMemoryStorage();
+  // In memory: signing out stops the dev flag from signing straight back in until the next reload.
+  let autoSignIn = options.signedIn ?? false;
+  let pending: { email: string; intent: CodeIntent; name?: string } | null = null;
+  let nextToken = 1;
+
+  const worlds = new Map<string, World>();
+  /** People who created an account with some other email, by viewer id. */
+  const profiles = new Map<string, AdHocProfile>();
+  /** Who has finished (or skipped) onboarding during this run of the app. */
+  const onboarded = new Map<string, boolean>();
+  let currentId = DEFAULT_TEST_ACCOUNT.viewerId;
+  // Resolved once it is known who, if anyone, is signed in.
+  let sessionKnown = () => {};
+  const untilSessionKnown: Promise<void> | null = options.holdUntilSession ? new Promise((resolve) => (sessionKnown = resolve)) : null;
+
+  const worldFor = (viewerId: string): World => {
+    let world = worlds.get(viewerId);
+    if (!world) {
+      const account = testAccountById(viewerId);
+      // Anyone else starts from the new-user template under their own name: nothing joined, nothing bought.
+      world = createWorld(options, account ? seedWorld(account) : seedWorld(NEW_ACCOUNT_TEMPLATE, profiles.get(viewerId) ?? { id: viewerId }));
+      worlds.set(viewerId, world);
+    }
+    return world;
+  };
+  const world = () => worldFor(currentId);
+
+  const newSession = (viewerId: string, email: string, onboardingDone: boolean): Session => ({
+    token: `fake.${Date.now().toString(36)}.${nextToken++}`,
+    expiresAt: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
+    viewerId,
+    email,
+    onboardingDone,
+  });
+  const store = async (session: Session) => {
+    await storage.set(SESSION_KEY, JSON.stringify(session));
+    currentId = session.viewerId;
+    onboarded.set(session.viewerId, session.onboardingDone);
+    sessionKnown();
+    return session;
+  };
+  const readSession = async (): Promise<Session | null> => {
+    const raw = await storage.get(SESSION_KEY);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as Session;
+    } catch {
+      return null;
+    }
+  };
+  const signInTo = (account: TestAccount, email = account.email) =>
+    store(newSession(account.viewerId, email, onboarded.get(account.viewerId) ?? account.onboardingDone));
+
+  const session: Pick<MemberlyRepository, SessionMethod> = {
+    getSession: async () => {
+      let stored = await readSession();
+      if (stored) {
+        // Someone who made their own account: their name comes back with the session.
+        if (!testAccountById(stored.viewerId) && !profiles.has(stored.viewerId)) {
+          try {
+            const profile = JSON.parse((await storage.get(PROFILE_KEY)) ?? 'null') as AdHocProfile | null;
+            if (profile?.id === stored.viewerId) profiles.set(profile.id, profile);
+          } catch {
+            // No stored name: they open as a new member.
+          }
+        }
+        currentId = stored.viewerId;
+        onboarded.set(stored.viewerId, stored.onboardingDone);
+      }
+      if (!stored && autoSignIn) stored = await store(newSession(DEFAULT_TEST_ACCOUNT.viewerId, DEFAULT_TEST_ACCOUNT.email, true));
+      sessionKnown();
+      return later(stored, delay);
+    },
+    sendCode: ({ email, intent, name }) => {
+      // A resend from Verify keeps the name Create account sent first.
+      const keepName = pending?.email === email.trim() ? pending.name : undefined;
+      pending = { email: email.trim(), intent, name: name ?? keepName };
+      return later({ email: email.trim(), resendAfterSeconds: RESEND_SECONDS }, delay);
+    },
+    verifyCode: async (email, code) => {
+      if (code === FAKE_CODES.expired) return later({ ok: false as const, reason: 'expired' as const, resendAfterSeconds: RESEND_SECONDS }, delay);
+      if (code !== FAKE_CODES.success) return later({ ok: false as const, reason: 'wrong' as const }, delay);
+      const intent = pending?.intent;
+      const name = pending?.name?.trim();
+      pending = null;
+      // One of the test accounts, by its email, from either sheet.
+      const account = testAccountByEmail(email);
+      if (account) {
+        await storage.remove(PROFILE_KEY);
+        const signedIn = await signInTo(account);
+        return later({ ok: true as const, session: signedIn, isNewUser: !signedIn.onboardingDone }, delay);
+      }
+      if (intent === 'sign-up') {
+        // Create account with any other email: a new member under that name, with preferences still to pick.
+        const viewerId = adHocViewerId(email);
+        const profile: AdHocProfile = { id: viewerId, ...splitName(name || 'New member'), email: email.trim() };
+        profiles.set(viewerId, profile);
+        // A fresh account each time, as a real sign-up would be.
+        worlds.delete(viewerId);
+        await storage.set(PROFILE_KEY, JSON.stringify(profile));
+        const signedIn = await store(newSession(viewerId, email.trim(), false));
+        return later({ ok: true as const, session: signedIn, isNewUser: true }, delay);
+      }
+      // Sign in with any other email: a returning member, the existing organizer.
+      await storage.remove(PROFILE_KEY);
+      const signedIn = await store(newSession(DEFAULT_TEST_ACCOUNT.viewerId, email.trim(), true));
+      return later({ ok: true as const, session: signedIn, isNewUser: false }, delay);
+    },
+    signInWithProvider: async () => {
+      // The fake skips the native Google / Apple sheet and signs in the existing organizer.
+      await storage.remove(PROFILE_KEY);
+      return later(await store(newSession(DEFAULT_TEST_ACCOUNT.viewerId, DEFAULT_TEST_ACCOUNT.email, true)), delay);
+    },
+    completeOnboarding: async () => {
+      const current = (await readSession()) ?? newSession(currentId, (await world().getViewer()).email, true);
+      return later(await store({ ...current, onboardingDone: true }), delay);
+    },
+    signOut: async () => {
+      autoSignIn = false;
+      await storage.remove(SESSION_KEY);
+      await storage.remove(PROFILE_KEY);
+      // The world stays on the person who just left until someone signs in: a screen still on its way
+      // out can only ever read their own data again, never the next person's or the sample organizer's.
+      return later(undefined, delay);
+    },
+  };
+
+  // Every other call goes to the world of whoever is signed in at the moment it is made.
+  const first = world();
+  const forward = <T extends object>(sample: T, target: () => T): T =>
+    Object.fromEntries(
+      Object.keys(sample).map((name) => [
+        name,
+        (...args: unknown[]) => (target()[name as keyof T] as (...a: unknown[]) => unknown)(...args),
+      ]),
+    ) as T;
+  const { fake: firstControls, ...firstData } = first;
+  const direct = forward(firstData, () => world() as typeof firstData);
+  // Held calls wait for the session, then go to that person's world. `now` is the clock, not data, and stays immediate.
+  const data: typeof firstData = untilSessionKnown
+    ? {
+        ...(Object.fromEntries(
+          Object.keys(direct).map((name) => [
+            name,
+            (...args: unknown[]) => untilSessionKnown.then(() => (direct[name as keyof typeof direct] as (...a: unknown[]) => unknown)(...args)),
+          ]),
+        ) as unknown as typeof firstData),
+        now: direct.now,
+      }
+    : direct;
+  const controls: FakeControls = {
+    ...forward(firstControls, () => world().fake),
+    signInAs: async (accountId) => {
+      const account = TEST_ACCOUNTS.find((a) => a.id === accountId);
+      if (!account) throw new Error(`No test account ${accountId}`);
+      await storage.remove(PROFILE_KEY);
+      return later(await signInTo(account), delay);
+    },
+    currentViewerId: () => currentId,
+  };
+
+  return { ...data, ...session, fake: controls };
 }

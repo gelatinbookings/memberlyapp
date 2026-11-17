@@ -1,15 +1,17 @@
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { CalendarDays, Gift, LogOut, Moon, QrCode, SlidersHorizontal, Wrench } from 'lucide-react-native';
+import { CalendarDays, Gift, LogOut, Moon, QrCode, SlidersHorizontal, Users, Wrench } from 'lucide-react-native';
 import { Alert, StyleSheet, View } from 'react-native';
 
 import { Avatar, Card, ErrorState, GroupedList, ListRow, PillButton, Screen, SectionHeader, Skeleton, Text } from '@/components/ui';
 import { useMyEvents, useOrganizedCommunities, usePreferences, useViewer } from '@/data/RepositoryProvider';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { CommunityThumb } from '@/features/communities/CommunityThumb';
 import { LATER } from '@/features/navigation/later';
 import { countPicked } from '@/features/preferences/steps';
 import { useTheme } from '@/theme/theme';
-import { radius, space } from '@/theme/tokens';
+import { space } from '@/theme/tokens';
+
+export const START_COMMUNITY = 'Start a community';
 
 /** Not native yet: the labelled stop for the web page. */
 function onWeb(title: string) {
@@ -25,6 +27,9 @@ export default function MeScreen() {
   const auth = useAuth();
   const v = viewer.data;
   const passes = (upcoming.data ?? []).filter((e) => e.relation === 'pass').length;
+  const runsCommunity = !!v?.roles.includes('organizer') || (organized.data ?? []).length > 0;
+  // Offered to anyone signed in who runs no community of their own (GEL-1056).
+  const canStartCommunity = !!v && organized.isSuccess && !runsCommunity;
 
   const confirmSignOut = () =>
     Alert.alert('Sign out of Memberly?', 'You’ll sign back in with a code sent to your email.', [
@@ -81,19 +86,35 @@ export default function MeScreen() {
           <SectionHeader title="You organize" />
           {(organized.data ?? []).map((community) => (
             <Card key={community.id} selected padding={12} style={styles.organize}>
-              <Image source={community.cover} style={styles.cover} contentFit="cover" />
+              <CommunityThumb cover={community.cover} />
               <View style={styles.flex}>
                 <Text variant="cardTitle" numberOfLines={1}>
                   {community.name}
                 </Text>
                 <Text variant="helper" tone="brand">
-                  Owner · {community.memberCount.toLocaleString('en-US')} members
+                  Owner · {community.memberCount.toLocaleString('en-US')} {community.memberCount === 1 ? 'member' : 'members'}
                 </Text>
               </View>
-              <PillButton label="Manage" filled onPress={() => router.push('/manage')} />
+              <PillButton
+                label="Manage"
+                filled
+                accessibilityLabel={`Manage ${community.name}`}
+                onPress={() => router.navigate({ pathname: '/manage', params: { community: community.id } })}
+              />
             </Card>
           ))}
         </View>
+      ) : null}
+
+      {canStartCommunity ? (
+        <GroupedList>
+          <ListRow
+            testID="start-community"
+            label={START_COMMUNITY}
+            icon={icon(Users)}
+            onPress={() => router.push('/organizer/communities/new')}
+          />
+        </GroupedList>
       ) : null}
 
       <GroupedList>
@@ -116,5 +137,4 @@ const styles = StyleSheet.create({
   profile: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   section: { gap: space.stack },
   organize: { flexDirection: 'row', alignItems: 'center', gap: space.row },
-  cover: { width: 44, height: 44, borderRadius: radius.notice },
 });

@@ -1,3 +1,4 @@
+import { ArrowLeft } from 'lucide-react-native';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, View, type GestureResponderEvent, type ViewProps } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -6,6 +7,7 @@ import { useTheme } from '@/theme/theme';
 import { motion, space } from '@/theme/tokens';
 
 import { BottomSheetFrame } from './BottomSheetFrame';
+import { IconButton } from './IconButton';
 import { Text } from './Text';
 
 /** How far, or how fast (points per millisecond), a sheet is pulled down before it closes. */
@@ -80,6 +82,7 @@ export function Sheet({
   title,
   subtitle,
   action,
+  onBack,
   children,
   testID,
 }: {
@@ -87,6 +90,8 @@ export function Sheet({
   onClose: () => void;
   title: string;
   subtitle?: string;
+  /** A second step inside the sheet: a back arrow before the title returns to the first. */
+  onBack?: () => void;
   /** A text action on the title row, e.g. Reset. */
   action?: ReactNode;
   children: ReactNode;
@@ -107,6 +112,9 @@ export function Sheet({
           <BottomSheetFrame style={styles.frame} grab={swipe.grab}>
             <View style={styles.head} {...swipe.grab}>
               <View style={styles.titleRow}>
+                {onBack ? (
+                  <IconButton accessibilityLabel="Back" size={36} icon={<ArrowLeft size={18} color={c.foreground} strokeWidth={2} />} onPress={onBack} />
+                ) : null}
                 <Text variant="headline" accessibilityRole="header" style={styles.title}>
                   {title}
                 </Text>

@@ -23,8 +23,11 @@ export type Community = {
   name: string;
   city: string;
   memberCount: number;
-  cover: ImageAsset;
+  /** Null for a community created without a cover photo: screens show a muted tile. */
+  cover: ImageAsset | null;
   isOwner?: boolean;
+  /** A short description, when the organizer wrote one. */
+  description?: string;
   /** Explore taxonomy: community type, the event types it runs, its sound and its vibe. */
   type?: string;
   categories?: string[];
@@ -106,10 +109,17 @@ export type TalentPage = {
   total?: number;
 };
 
+/**
+ * A booking's status as the server sends it. The eight the app knows, or
+ * anything Gelatin adds later: an unknown one passes through untouched and
+ * reads "Checking status" (GEL-1022).
+ */
+export type AnyBookingStatus = BookingStatus | (string & {});
+
 export type Booking = {
   requestId: string;
   dj: Dj;
-  status: BookingStatus;
+  status: AnyBookingStatus;
   offerCents: number;
   /** Server-calculated. The app never computes this. */
   totalCents: number;
@@ -118,6 +128,22 @@ export type Booking = {
   /** The DJ's new price after a counter (reauthorization_required), when Gelatin sends it. */
   newOfferCents?: number | null;
 };
+
+/**
+ * An event's bookings with the ETag that names this exact body (GEL-1021).
+ * `stale` is set when Gelatin was slow and the backend answered with the last
+ * body it had.
+ */
+export type EventBookings = { bookings: Booking[]; etag: string; stale?: boolean };
+
+/** `notModified` is HTTP 304: the body the app already holds is still current. */
+export type EventBookingsAnswer = { notModified: true } | EventBookings;
+
+/**
+ * A way into Gelatin's portal for one booking: single use, valid for 60
+ * seconds. Asked for at the moment it is opened and never kept, cached or logged.
+ */
+export type PortalLaunch = { launchUrl: string; expiresAt: string };
 
 export type OrganizerEvent = {
   id: string;
@@ -264,12 +290,90 @@ export type PassOrder = {
   payment?: PaymentSession;
 };
 
+// ---------------------------------------------------------------------------
+// Create community and pass setup (GEL-1056, GEL-1057; backend GEL-1058)
+
+/** A task on Manage's "Finish setting up" card. */
+export type SetupTask = { id: string; title: string; detail: string; actionLabel: string };
+
+/** How people join: free, or a named membership at a monthly price. */
+export type MembershipInput = { kind: 'free' } | { kind: 'paid'; name: string; monthlyPriceCents: number };
+
+/** Body of POST /app/organizer/communities. */
+export type CreateCommunityInput = {
+  name: string;
+  /** A city name from `getCities()`. */
+  city: string;
+  /** One of the Explore community types. */
+  type: string;
+  description?: string;
+  /**
+   * A photo picked on the phone, or null. The HTTP repository uploads it
+   * first (POST /app/uploads/cover) and sends `cover_upload_id`.
+   */
+  cover?: { uri: string } | null;
+  membership: MembershipInput;
+  /** Made on the device and reused on a retry, so a community is never created twice. */
+  idempotencyKey: string;
+};
+
+export type CreateCommunityResult = { community: Community; setupTasks: SetupTask[] };
+
+/** A pass as its organizer sees it: a community pass is a membership, an event pass is entry to one event. */
+export type OrganizerPass = {
+  id: string;
+  scope: 'community' | 'event';
+  communityId: string;
+  /** Set for an event pass. */
+  eventId: string | null;
+  name: string;
+  /** Null is free. A community pass's price is monthly. Whole dollars, in cents. */
+  priceCents: number | null;
+  /** One line of what the pass includes. */
+  included: string;
+  /** A member limit (community) or a quantity (event). Null is no limit. */
+  limit: number | null;
+  /** Event passes only: members of the community get it free. */
+  freeForMembers: boolean;
+  /** False once turned off: nobody new can get it. */
+  active: boolean;
+  /** How many people hold it. Above zero, it can be turned off but not deleted. */
+  heldCount: number;
+  /** False while it has a price and the community's Stripe account is not connected. */
+  sellable: boolean;
+};
+
+/** Body of POST /app/organizer/communities/:id/passes. */
+export type CreateCommunityPassInput = {
+  name: string;
+  monthlyPriceCents: number | null;
+  included: string;
+  memberLimit?: number | null;
+  idempotencyKey: string;
+};
+
+/** Body of POST /app/organizer/events/:id/passes. */
+export type CreateEventPassInput = {
+  name: string;
+  priceCents: number | null;
+  included: string;
+  quantity?: number | null;
+  freeForMembers: boolean;
+  idempotencyKey: string;
+};
+
+/** Body of PATCH /app/organizer/passes/:id. Only what is given changes. */
+export type UpdatePassInput = Partial<Pick<OrganizerPass, 'name' | 'priceCents' | 'included' | 'limit' | 'freeForMembers' | 'active'>>;
+
 export type CommunityOverview = {
   community: Community;
   revenueMonthCents: number;
   newMembersMonth: number;
-  churnPercent: number;
-  setupTasks: { id: string; title: string; detail: string; actionLabel: string }[];
+  /** Null until there are members who could have left. */
+  churnPercent: number | null;
+  /** True while the figures are placeholders rather than the community's own. */
+  sampleNumbers: boolean;
+  setupTasks: SetupTask[];
   upcoming: OrganizerEvent[];
 };
 
@@ -367,7 +471,7 @@ export type MyEvent = MemberEvent & { relation: EventRelation };
 export type Membership = {
   communityId: string;
   communityName: string;
-  cover: ImageAsset;
+  cover: ImageAsset | null;
   /** "Inner Circle · renews Dec 1", "Free tier". */
   tierLabel: string;
   status: 'active' | 'expired';

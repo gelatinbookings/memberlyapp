@@ -2,9 +2,11 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Map as MapIcon } from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Avatar, ErrorState, IconButton, Screen, SectionHeader, Skeleton, Text } from '@/components/ui';
+import { Avatar, ErrorState, Fab, FAB_SIZE, IconButton, Screen, SectionHeader, Skeleton, Text } from '@/components/ui';
 import { useMyEvents, useRepository, useTonight, useViewer } from '@/data/RepositoryProvider';
+import { useCreateSheet } from '@/features/create/CreateSheet';
 import type { MemberEvent } from '@/data/types';
 import { featuredLabel, greeting, isTonight, lineupLine, longDate, passLine, pickFeatured, type Featured } from '@/features/home/featured';
 import { formatEventDate, formatEventTime } from '@/lib/dates';
@@ -28,7 +30,7 @@ function MemberCardTeaser({ name, communities, line }: { name: string; communiti
       <View style={styles.memberTop}>
         <Image source={logo} style={styles.memberLogo} contentFit="contain" accessibilityLabel="Memberly" />
         <Text variant="helper" tone="onBrand" style={styles.soft}>
-          {communities} {communities === 1 ? 'community' : 'communities'}
+          {communities === 0 ? 'No communities yet' : `${communities} ${communities === 1 ? 'community' : 'communities'}`}
         </Text>
       </View>
       <View style={styles.memberBottom}>
@@ -130,9 +132,15 @@ function HomeSkeleton() {
   );
 }
 
-/** Home, "2 · Exploring": greeting, the purple Memberly card, tonight's pass, and what else is on. */
+/** The "+" sits 12pt above the floating tab bar and 16pt from the right edge (DESIGN.md: Floating action button). */
+const FAB_GAP = 12;
+const FAB_EDGE = 16;
+
+/** Home, "2 · Exploring": greeting, the purple Memberly card, tonight's pass, what else is on, and the "+" to create. */
 export default function HomeScreen() {
   const c = useTheme();
+  const insets = useSafeAreaInsets();
+  const create = useCreateSheet();
   const repo = useRepository();
   const viewer = useViewer();
   const v = viewer.data;
@@ -145,103 +153,145 @@ export default function HomeScreen() {
   const also = events.filter((e) => e.id !== featured?.event.id);
 
   return (
-    <Screen tabs testID="home">
-      <View style={styles.header}>
-        <View style={styles.flex}>
-          <Text variant="secondary" tone="muted">
-            {longDate(now, CITY_ZONE)}
-          </Text>
-          <Text variant="display" accessibilityRole="header" style={styles.greeting}>
-            {greeting(now, CITY_ZONE)},{'\n'}
-            {v?.firstName ?? ' '}
-          </Text>
+    <View style={styles.fill}>
+      {/* Content scrolls clear of the "+": the button's height and its gap are added under the last row. */}
+      <Screen tabs footerSpace={FAB_SIZE + FAB_GAP} testID="home">
+        <View style={styles.header}>
+          <View style={styles.flex}>
+            <Text variant="secondary" tone="muted">
+              {longDate(now, CITY_ZONE)}
+            </Text>
+            <Text variant="display" accessibilityRole="header" style={styles.greeting}>
+              {greeting(now, CITY_ZONE)},{'\n'}
+              {v?.firstName ?? ' '}
+            </Text>
+          </View>
+          <View style={styles.headerActions}>
+            <IconButton
+              accessibilityLabel="Tonight on the map"
+              variant="card"
+              size={size.field}
+              icon={<MapIcon size={20} color={c.foreground} strokeWidth={2} />}
+              onPress={() => router.push({ pathname: '/tonight', params: { view: 'map' } })}
+            />
+            <Pressable accessibilityRole="button" accessibilityLabel="Me" onPress={() => router.navigate('/me')}>
+              <Avatar initials={v?.initials ?? ''} size={size.field} />
+            </Pressable>
+          </View>
         </View>
-        <View style={styles.headerActions}>
-          <IconButton
-            accessibilityLabel="Tonight on the map"
-            variant="card"
-            size={size.field}
-            icon={<MapIcon size={20} color={c.foreground} strokeWidth={2} />}
-            onPress={() => router.push({ pathname: '/tonight', params: { view: 'map' } })}
+
+        {viewer.isError || tonight.isError ? (
+          <ErrorState
+            title="Couldn’t load tonight"
+            detail="Check your connection and try again."
+            onRetry={() => {
+              viewer.refetch();
+              tonight.refetch();
+              upcoming.refetch();
+            }}
           />
-          <Pressable accessibilityRole="button" accessibilityLabel="Me" onPress={() => router.navigate('/me')}>
-            <Avatar initials={v?.initials ?? ''} size={size.field} />
-          </Pressable>
-        </View>
-      </View>
+        ) : null}
 
-      {viewer.isError || tonight.isError ? (
-        <ErrorState
-          title="Couldn’t load tonight"
-          detail="Check your connection and try again."
-          onRetry={() => {
-            viewer.refetch();
-            tonight.refetch();
-            upcoming.refetch();
-          }}
-        />
-      ) : null}
+        {!ready && !viewer.isError && !tonight.isError ? <HomeSkeleton /> : null}
 
-      {!ready && !viewer.isError && !tonight.isError ? <HomeSkeleton /> : null}
+        {ready && v ? (
+          <>
+            <MemberCardTeaser name={`${v.firstName} ${v.lastName}`} communities={v.communityCount} line={passLine(events, featured)} />
+            {featured ? <FeaturedCard featured={featured} now={now} /> : null}
 
-      {ready && v ? (
-        <>
-          <MemberCardTeaser name={`${v.firstName} ${v.lastName}`} communities={v.communityCount} line={passLine(events, featured)} />
-          {featured ? <FeaturedCard featured={featured} now={now} /> : null}
+            {events.length === 0 ? (
+              <View style={styles.empty} testID="home-empty">
+                <Text variant="title">Nothing on tonight in {v.city}</Text>
+                <Text tone="muted">See what’s coming up this week.</Text>
+                <Pressable accessibilityRole="link" onPress={() => router.navigate('/explore')} style={styles.link}>
+                  <Text variant="bodyStrong" tone="brand">
+                    Explore this week
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
 
-          {events.length === 0 ? (
-            <View style={styles.empty} testID="home-empty">
-              <Text variant="title">Nothing on tonight in {v.city}</Text>
-              <Text tone="muted">See what’s coming up this week.</Text>
-              <Pressable accessibilityRole="link" onPress={() => router.navigate('/explore')} style={styles.link}>
-                <Text variant="bodyStrong" tone="brand">
-                  Explore this week
-                </Text>
-              </Pressable>
-            </View>
-          ) : null}
-
-          {also.length > 0 ? (
-            <View style={styles.section}>
-              <SectionHeader title="Also tonight" actionLabel="See all" onAction={() => router.push('/tonight')} />
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bleed} contentContainerStyle={styles.carousel}>
-                {also.map((e) => (
-                  <CarouselCard key={e.id} event={e} />
-                ))}
-              </ScrollView>
-            </View>
-          ) : null}
-        </>
-      ) : null}
-    </Screen>
+            {also.length > 0 ? (
+              <View style={styles.section}>
+                <SectionHeader title="Also tonight" actionLabel="See all" onAction={() => router.push('/tonight')} />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bleed} contentContainerStyle={styles.carousel}>
+                  {also.map((e) => (
+                    <CarouselCard key={e.id} event={e} />
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+          </>
+        ) : null}
+      </Screen>
+      <Fab testID="home-create" onPress={create.open} style={[styles.fab, { bottom: Math.max(insets.bottom, space.md) + size.tabBar + FAB_GAP }]} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  fab: { position: 'absolute', right: FAB_EDGE },
   flex: { flex: 1, minWidth: 0 },
   header: { flexDirection: 'row', alignItems: 'flex-end', gap: space.row },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   greeting: { fontSize: 34, lineHeight: 36, letterSpacing: -1, marginTop: 2 },
   member: { borderRadius: radius.card, padding: 18, gap: 28 },
-  memberTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  memberTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   memberLogo: { height: 22, width: 22 * LOGO_RATIO },
-  memberBottom: { flexDirection: 'row', alignItems: 'flex-end', gap: space.row },
+  memberBottom: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: space.row,
+  },
   soft: { opacity: 0.85 },
   semibold: { fontFamily: font.semibold },
-  showCard: { minHeight: size.minTarget, paddingHorizontal: space.md, borderRadius: radius.pill, justifyContent: 'center' },
+  showCard: {
+    minHeight: size.minTarget,
+    paddingHorizontal: space.md,
+    borderRadius: radius.pill,
+    justifyContent: 'center',
+  },
   showCardLabel: { fontFamily: font.bold },
-  featured: { height: 300, borderRadius: radius.card, overflow: 'hidden', justifyContent: 'space-between' },
-  featuredPills: { flexDirection: 'row', gap: space.label, padding: space.card },
-  scrimPill: { height: 30, paddingHorizontal: space.stack, borderRadius: radius.pill, justifyContent: 'center' },
+  featured: {
+    height: 300,
+    borderRadius: radius.card,
+    overflow: 'hidden',
+    justifyContent: 'space-between',
+  },
+  featuredPills: {
+    flexDirection: 'row',
+    gap: space.label,
+    padding: space.card,
+  },
+  scrimPill: {
+    height: 30,
+    paddingHorizontal: space.stack,
+    borderRadius: radius.pill,
+    justifyContent: 'center',
+  },
   featuredBand: { padding: space.card, gap: space.xs },
   featuredTitle: { fontFamily: font.extrabold, fontSize: 22, lineHeight: 25 },
   section: { gap: space.row },
   bleed: { marginHorizontal: -space.gutter },
   carousel: { gap: space.row, paddingHorizontal: space.gutter },
   carouselCard: { width: 150, gap: 2 },
-  carouselImage: { width: 150, height: 110, borderRadius: radius.card, marginBottom: 4 },
+  carouselImage: {
+    width: 150,
+    height: 110,
+    borderRadius: radius.card,
+    marginBottom: 4,
+  },
   empty: { gap: space.xs },
-  link: { minHeight: size.minTarget, justifyContent: 'center', alignSelf: 'flex-start' },
+  link: {
+    minHeight: size.minTarget,
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
+  },
   skeleton: { gap: space.section },
   skeletonRow: { flexDirection: 'row', gap: space.row },
 });

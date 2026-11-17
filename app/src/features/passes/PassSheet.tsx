@@ -16,15 +16,16 @@ import { PASS_CONFIRMING, PASS_ON_CARD, usePassPurchase } from './usePassPurchas
 
 export const FREE_FOR_MEMBERS = 'Free for members';
 
-/** The price as the row shows it: "$30", or "Free for members". */
+/** The price as the row shows it: "$30", "Free" (a pass with no price, GEL-1057), or "Free for members". */
 export function passPriceLabel(type: Pick<PassType, 'priceCents' | 'freeForMembers'>): string {
-  return type.freeForMembers ? FREE_FOR_MEMBERS : formatRate(type.priceCents);
+  if (type.freeForMembers) return FREE_FOR_MEMBERS;
+  return type.priceCents === 0 ? 'Free' : formatRate(type.priceCents);
 }
 
 function PassRow({ type, busy, disabled, onGet }: { type: PassType; busy: boolean; disabled: boolean; onGet: () => void }) {
   const c = useTheme();
   const price = passPriceLabel(type);
-  const action = type.freeForMembers ? 'Claim' : 'Get';
+  const action = type.freeForMembers || type.priceCents === 0 ? 'Claim' : 'Get';
   return (
     <View
       testID={`pass-${type.id}`}

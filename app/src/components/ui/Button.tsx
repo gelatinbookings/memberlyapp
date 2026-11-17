@@ -17,6 +17,8 @@ export type ButtonProps = {
   loading?: boolean;
   icon?: ReactNode;
   trailingIcon?: ReactNode;
+  /** A smaller label (14px) for two buttons side by side in a dialog. */
+  compact?: boolean;
   accessibilityHint?: string;
   style?: StyleProp<ViewStyle>;
   testID?: string;
@@ -36,6 +38,7 @@ export function Button({
   loading = false,
   icon,
   trailingIcon,
+  compact = false,
   accessibilityHint,
   style,
   testID,
@@ -92,7 +95,7 @@ export function Button({
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.75}
-            style={styles.label}>
+            style={[styles.label, compact ? styles.compact : null]}>
             {label}
           </Text>
           {trailingIcon}
@@ -112,4 +115,5 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm, maxWidth: '100%' },
   label: { flexShrink: 1 },
+  compact: { fontSize: 14, lineHeight: 19 },
 });

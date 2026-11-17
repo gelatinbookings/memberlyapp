@@ -20,14 +20,14 @@ export function statusLine(b: Pick<Booking, 'status' | 'totalCents' | 'newOfferC
     case 'negotiating':
       return [{ text: `You and ${dj} are working out the fee in Gelatin.` }];
     case 'reauthorization_required':
-      return [
-        {
-          text:
-            b.newOfferCents != null
-              ? `${dj} came back at ${formatRate(b.newOfferCents)}. Your ${total} hold was released. A new price means a new hold.`
-              : `${dj} came back with a new price. Your ${total} hold was released. A new price means a new hold.`,
-        },
-      ];
+      // With the DJ's price: the "Back from Gelatin" board. Without it: the helper from GEL-1024.
+      return b.newOfferCents != null
+        ? [
+            { text: `${dj} came back at ` },
+            { text: formatRate(b.newOfferCents), strong: true },
+            { text: `. Your ${total} hold was released. A new price means a new hold.` },
+          ]
+        : [{ text: `${dj} proposed new terms. Review them in Gelatin; your card is re-held only if you accept.` }];
     case 'confirmed':
       return [{ text: total, strong: true }, { text: ` charged. ${dj} is on your public lineup.` }];
     case 'declined':

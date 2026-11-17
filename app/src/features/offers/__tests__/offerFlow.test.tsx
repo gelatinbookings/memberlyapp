@@ -11,6 +11,8 @@ import { renderWithProviders } from '@/test-utils/renderWithProviders';
 import { CONFIRMING_HOLD, OFFLINE_OFFERS_NOTICE, PAYMENT_FAILED_TITLE, paymentFailedBody, SEND_FAILED, TAKEN_BODY } from '../copy';
 import { listPendingOffers } from '../pendingOffers';
 import { PendingOfferSync } from '../sync';
+import { bookingsOf } from '@/test-utils/bookings';
+import { unbrokenParts } from '@/features/booking/lineupSummary';
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), dismissTo: jest.fn(), canGoBack: () => true },
@@ -197,7 +199,7 @@ describe('the card hold', () => {
     expect(payment.getByText('Hold for KOYO · Late Service')).toBeTruthy();
     expect(payment.getByText('Held now. Charged only if KOYO accepts.')).toBeTruthy();
     // Until the hold succeeds the request is only "Payment needed".
-    expect((await repository.getEventBookings(EVENT))[0].status).toBe('authorization_required');
+    expect((await bookingsOf(repository, EVENT))[0].status).toBe('authorization_required');
 
     await press(payment.getByTestId('test-payment-pay'));
     const held = within(await screen.findByTestId('card-held'));
@@ -206,7 +208,7 @@ describe('the card hold', () => {
     expect(held.getByText('Card held')).toBeTruthy();
     // Nothing says the card was charged before the DJ accepts.
     expect(held.queryByText(/(?<!not )charged(?! only)/i)).toBeNull();
-    expect((await repository.getEventBookings(EVENT))[0].status).toBe('requested');
+    expect((await bookingsOf(repository, EVENT))[0].status).toBe('requested');
 
     await press(held.getByRole('button', { name: 'Back to your lineup' }));
     expect(screen.queryByTestId('card-held')).toBeNull();
@@ -228,7 +230,7 @@ describe('the card hold', () => {
     const held = within(await screen.findByTestId('card-held'));
     expect(held.getByRole('header', { name: 'Card held. KOYO has your offer.' })).toBeTruthy();
     expect(held.getByRole('button', { name: 'Back to your lineup' })).toBeTruthy();
-    expect(await repository.getEventBookings(EVENT)).toHaveLength(1);
+    expect(await bookingsOf(repository, EVENT)).toHaveLength(1);
   });
 
   it('never marks the hold done on its own: if the server still says payment needed, so does the app', async () => {
@@ -276,7 +278,7 @@ describe('the card hold', () => {
     expect(failed.getByText(paymentFailedBody('KOYO'))).toBeTruthy();
     expect(failed.getByText('Offer $450 · total $457.00')).toBeTruthy();
     expect(failed.getByText('Payment needed')).toBeTruthy();
-    expect((await repository.getEventBookings(EVENT))[0].status).toBe('authorization_required');
+    expect((await bookingsOf(repository, EVENT))[0].status).toBe('authorization_required');
 
     // Not now: the card on Lineup keeps saying so, still under "Payment needed".
     await press(failed.getByRole('button', { name: 'Not now' }));
@@ -313,7 +315,7 @@ describe('the card hold', () => {
     expect(payment.getByTestId('test-payment-total')).toHaveTextContent('$607.00');
     await press(payment.getByTestId('test-payment-pay'));
     await screen.findByTestId('card-held');
-    expect((await repository.getEventBookings('e_warehouse_friday')).find((b) => b.dj.id === 'dj_nightform')?.status).toBe('requested');
+    expect((await bookingsOf(repository, 'e_warehouse_friday')).find((b) => b.dj.id === 'dj_nightform')?.status).toBe('requested');
   });
 
   it('runs the same hold from Pay now on the Published screen', async () => {
@@ -353,7 +355,7 @@ describe('several DJs', () => {
     expect(unpaid.getByText('Payment needed')).toBeTruthy();
     expect(unpaid.getByText('$607.00')).toBeTruthy();
     expect(unpaid.getByRole('button', { name: 'Pay now' })).toBeTruthy();
-    expect(screen.getByText('1 waiting · 1 to pay')).toBeTruthy();
+    expect(screen.getByText(unbrokenParts('1 waiting · 1 to pay'))).toBeTruthy();
     expect(repository.fake.requestCount(EVENT)).toBe(2);
     expect(await repository.getDraftOffers(EVENT)).toEqual([]);
   });

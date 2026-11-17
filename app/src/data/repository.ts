@@ -4,11 +4,16 @@ import type {
   City,
   Community,
   CommunityOverview,
+  CreateCommunityInput,
+  CreateCommunityPassInput,
+  CreateCommunityResult,
+  CreateEventPassInput,
   CreateOfferInput,
   CreatePassOrderInput,
   DraftOffer,
   DraftOfferPatch,
   Dj,
+  EventBookingsAnswer,
   BudgetBand,
   ExploreQuery,
   ExploreResult,
@@ -18,9 +23,11 @@ import type {
   MyEventsScope,
   OfferQuote,
   OrganizerEventDetail,
+  OrganizerPass,
   PassOrder,
   PassType,
   PaymentSession,
+  PortalLaunch,
   Preferences,
   SaveEventInput,
   SendCodeInput,
@@ -28,6 +35,7 @@ import type {
   Session,
   TalentPage,
   TalentQuery,
+  UpdatePassInput,
   VerifyCodeResult,
   Viewer,
 } from './types';
@@ -92,13 +100,23 @@ export interface MemberlyRepository {
    * Create or update an event; `publish` decides draft or live.
    * HTTP: POST /app/organizer/events, PATCH /app/organizer/events/:id {publish}.
    * Never touches bookings and never waits on them.
+   * A changed date on an event with bookings is refused (GEL-1025): throws
+   * RepositoryError `confirmed_booking` (409) when a DJ is confirmed for the
+   * current date, or `open_bookings` (409) while offers for it are still open.
+   * Each carries the `requestId` of a booking that blocks the change.
    */
   saveEvent(input: SaveEventInput): Promise<OrganizerEventDetail>;
 
   // Organizer: Lineup (GEL-1009)
 
-  /** Booking requests on the event. HTTP: GET /app/events/:id/bookings */
-  getEventBookings(eventId: string): Promise<Booking[]>;
+  /**
+   * Booking requests on the event, with the ETag for this body. Pass the last
+   * ETag as `ifNoneMatch` and an unchanged lineup answers `{ notModified: true }`
+   * with no body. `stale: true` means the backend answered with the last body
+   * it had. Unknown statuses pass through untouched.
+   * HTTP: GET /app/events/:id/bookings with If-None-Match; 304 → notModified.
+   */
+  getEventBookings(eventId: string, options?: { ifNoneMatch?: string | null }): Promise<EventBookingsAnswer>;
   /** DJs added to the lineup whose offers are not sent yet (fee and note). */
   getDraftOffers(eventId: string): Promise<DraftOffer[]>;
   /** Add a DJ from Browse talent. The offer starts at the published rate, or empty for a private rate. */
@@ -148,6 +166,24 @@ export interface MemberlyRepository {
    */
   createPaymentSession(requestId: string): Promise<PaymentSession>;
 
+  // Organizer: after the first payment (GEL-1021, GEL-1023, GEL-1024)
+
+  /**
+   * DJs open on the same night in the same city as a booking that passed,
+   * expired or was cancelled. Never a reason, a message or any history.
+   * HTTP: GET /app/bookings/:request_id/alternates
+   * Throws CatalogUnavailableError on 503 catalog_unavailable.
+   */
+  getAlternates(requestId: string): Promise<Dj[]>;
+  /**
+   * A single-use way into Gelatin's portal for one booking, valid for 60
+   * seconds. Call it at the moment the organizer opens Gelatin, once per
+   * opening; never ahead of time, and never keep, cache or log the answer.
+   * HTTP: POST /app/bookings/:request_id/portal-launch
+   * Throws RepositoryError `portal_unavailable` (409) before any card hold exists.
+   */
+  createPortalLaunch(requestId: string): Promise<PortalLaunch>;
+
   // Member: Get a pass (GEL-1035, GEL-1036)
 
   /** The event's pass types, from Memberly's pass setup. HTTP: GET /app/events/:id/pass-types */
@@ -161,4 +197,45 @@ export interface MemberlyRepository {
   createPassOrder(eventId: string, input: CreatePassOrderInput): Promise<PassOrder>;
   /** HTTP: GET /app/pass-orders/:id */
   getPassOrder(orderId: string): Promise<PassOrder>;
+
+  // Organizer: create a community and set up passes (GEL-1056, GEL-1057; backend GEL-1058)
+
+  /**
+   * Create a community; the caller becomes its owner and an organizer at
+   * once. Idempotent by `idempotencyKey`: a repeat returns the same community.
+   * A paid membership with no connected Stripe account saves, and the setup
+   * tasks include Connect Stripe.
+   * HTTP: POST /app/organizer/communities {name, city, type, description?, cover_upload_id?, membership, idempotency_key}
+   * Throws RepositoryError `invalid_input` (400).
+   */
+  createCommunity(input: CreateCommunityInput): Promise<CreateCommunityResult>;
+  /**
+   * A community's passes (its memberships), as the organizer sees them, turned-off ones included.
+   * HTTP: GET /app/organizer/communities/:id/passes. `not_found` (404) for anyone who is not its organizer.
+   */
+  getCommunityPasses(communityId: string): Promise<OrganizerPass[]>;
+  /**
+   * Add a community pass. Idempotent by `idempotencyKey`.
+   * HTTP: POST /app/organizer/communities/:id/passes {name, monthly_price_cents | null, included, member_limit?, idempotency_key}
+   */
+  createCommunityPass(communityId: string, input: CreateCommunityPassInput): Promise<OrganizerPass>;
+  /**
+   * An event's passes as the organizer sees them, turned-off ones included.
+   * The ones on sale are what `getPassTypes(eventId)` gives members.
+   * HTTP: GET /app/organizer/events/:id/passes
+   */
+  getOrganizerEventPasses(eventId: string): Promise<OrganizerPass[]>;
+  /**
+   * Add an event pass. Idempotent by `idempotencyKey`.
+   * HTTP: POST /app/organizer/events/:id/passes {name, price_cents | null, included, quantity?, free_for_members, idempotency_key}
+   */
+  createEventPass(eventId: string, input: CreateEventPassInput): Promise<OrganizerPass>;
+  /** Edit a pass, or turn it off or on. HTTP: PATCH /app/organizer/passes/:id {…fields, active} */
+  updatePass(passId: string, patch: UpdatePassInput): Promise<OrganizerPass>;
+  /**
+   * Remove a pass nobody holds. Throws RepositoryError `pass_held` (409) once
+   * anyone holds it: turn it off instead.
+   * HTTP: not listed in GEL-1058, which only has PATCH {active}. See README, open questions.
+   */
+  deletePass(passId: string): Promise<void>;
 }

@@ -15,6 +15,7 @@ import { AnimatedSplash, LaunchProvider } from '@/features/launch/AnimatedSplash
 import { PendingOfferSync } from '@/features/offers/sync';
 import { PassOrderWatcher } from '@/features/passes/passOrders';
 import { PaymentsProvider } from '@/lib/payments';
+import { PortalProvider } from '@/lib/portal';
 import { createQueryClient, useAppStateFocus, useOnlineSync } from '@/lib/queryClient';
 import { ThemeProvider } from '@/theme/theme';
 import { darkPalette, font } from '@/theme/tokens';
@@ -78,6 +79,10 @@ function Screens() {
       <Stack.Screen name="event/[id]/pass" options={{ presentation: 'transparentModal', animation: 'none', contentStyle: { backgroundColor: 'transparent' } }} />
       {/* Browse talent rises over Lineup as its own full-screen modal and closes back to it. */}
       <Stack.Screen name="organizer/events/[id]/browse" options={{ presentation: 'fullScreenModal' }} />
+      {/* Where Gelatin's portal sends the organizer back; it closes the browser and lands on the event's Lineup. */}
+      <Stack.Screen name="return/portal" options={{ animation: 'none' }} />
+      {/* Create community asks before discarding what was entered, so the edge swipe can't skip that question. */}
+      <Stack.Screen name="organizer/communities/new" options={{ gestureEnabled: false }} />
       <Stack.Screen name="later" />
       <Stack.Screen name="kit" />
     </Stack>
@@ -107,13 +112,16 @@ export default function RootLayout() {
             <ThemeProvider appearance="dark">
               {/* The test payment sheet until M8; see "Where Stripe plugs in" in README.md. */}
               <PaymentsProvider>
-                <EventDraftProvider>
-                  <StatusBar style="light" />
-                  {/* Queued offers send on reconnect; pass orders still confirming are followed until they settle. */}
-                  <PendingOfferSync />
-                  <PassOrderWatcher />
-                  <AppNavigator />
-                </EventDraftProvider>
+                {/* The test portal on sample data, Gelatin's page in the in-app browser otherwise; see "Where the real portal plugs in" in README.md. */}
+                <PortalProvider>
+                  <EventDraftProvider>
+                    <StatusBar style="light" />
+                    {/* Queued offers send on reconnect; pass orders still confirming are followed until they settle. */}
+                    <PendingOfferSync />
+                    <PassOrderWatcher />
+                    <AppNavigator />
+                  </EventDraftProvider>
+                </PortalProvider>
               </PaymentsProvider>
             </ThemeProvider>
           </AuthProvider>

@@ -1,5 +1,6 @@
 import { isRepositoryError } from '../errors';
 import { createFakeRepository, DECLINED_MESSAGE, TAKEN_ON_SEND_DJ_ID } from '../fakeRepository';
+import { bookingsOf } from '@/test-utils/bookings';
 
 /** Late Service: Sat, Nov 28 in Atlanta, a draft with KOYO and NIGHTFORM added and no offers sent. */
 const EVENT = 'e_late_service';
@@ -17,7 +18,7 @@ describe('fake server: offers and the card hold', () => {
     const repo = make();
     const booking = await repo.createOffer(EVENT, KOYO);
     expect(booking).toMatchObject({ status: 'authorization_required', offerCents: 45000, totalCents: 45700, note: 'Headline set' });
-    expect((await repo.getEventBookings(EVENT)).map((b) => b.requestId)).toEqual([booking.requestId]);
+    expect((await bookingsOf(repo, EVENT)).map((b) => b.requestId)).toEqual([booking.requestId]);
     expect((await repo.getDraftOffers(EVENT)).map((o) => o.dj.id)).toEqual(['dj_nightform']);
   });
 
@@ -84,7 +85,7 @@ describe('fake server: offers and the card hold', () => {
     expect(Object.keys(session).join(' ')).not.toMatch(/customer|ephemeral/i);
 
     expect(await repo.fake.confirmPayment(session.clientSecret)).toEqual({ status: 'succeeded' });
-    expect((await repo.getEventBookings(EVENT))[0].status).toBe('requested');
+    expect((await bookingsOf(repo, EVENT))[0].status).toBe('requested');
     // Paid for: there is nothing left to pay.
     expect(await code(repo.createPaymentSession(booking.requestId))).toBe('not_payable');
   });
@@ -94,7 +95,7 @@ describe('fake server: offers and the card hold', () => {
     const booking = await repo.createOffer(EVENT, KOYO);
     const session = await repo.createPaymentSession(booking.requestId);
     expect(await repo.fake.declinePayment(session.clientSecret)).toEqual({ status: 'failed', message: DECLINED_MESSAGE });
-    expect((await repo.getEventBookings(EVENT))[0].status).toBe('authorization_required');
+    expect((await bookingsOf(repo, EVENT))[0].status).toBe('authorization_required');
   });
 
   it('makes a fresh session each time, and can hand back one that has already expired', async () => {
@@ -106,7 +107,7 @@ describe('fake server: offers and the card hold', () => {
     const fresh = await repo.createPaymentSession(booking.requestId);
     expect(fresh.clientSecret).not.toBe(expired.clientSecret);
     expect(Date.parse(fresh.expiresAt)).toBeGreaterThan(Date.now());
-    expect((await repo.getEventBookings(EVENT))[0].status).toBe('authorization_required');
+    expect((await bookingsOf(repo, EVENT))[0].status).toBe('authorization_required');
   });
 
   it('fails every call as offline when told to', async () => {

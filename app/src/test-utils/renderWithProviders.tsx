@@ -8,8 +8,10 @@ import { RepositoryProvider } from '@/data/RepositoryProvider';
 import type { MemberlyRepository } from '@/data/repository';
 import type { KeyValueStorage } from '@/data/types';
 import { AuthProvider } from '@/features/auth/AuthProvider';
+import { CreateSheetProvider } from '@/features/create/CreateSheet';
 import { EventDraftProvider, type EventDraft } from '@/features/events/EventDraftProvider';
 import { PaymentsProvider } from '@/lib/payments';
+import { PortalProvider } from '@/lib/portal';
 import { ThemeProvider } from '@/theme/theme';
 
 const metrics = {
@@ -39,7 +41,11 @@ export function renderWithProviders(
           <AuthProvider>
             <ThemeProvider>
               <PaymentsProvider>
-                <EventDraftProvider initial={draft}>{ui}</EventDraftProvider>
+                <PortalProvider>
+                  <EventDraftProvider initial={draft}>
+                    <CreateSheetProvider>{ui}</CreateSheetProvider>
+                  </EventDraftProvider>
+                </PortalProvider>
               </PaymentsProvider>
             </ThemeProvider>
           </AuthProvider>

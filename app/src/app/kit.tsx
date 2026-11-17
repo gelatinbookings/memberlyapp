@@ -9,6 +9,7 @@ import {
   Button,
   Card,
   Chip,
+  Fab,
   GroupedList,
   IconButton,
   ListRow,
@@ -92,6 +93,16 @@ export default function KitScreen() {
           <PillButton label="New event" filled icon={<Plus size={14} color={c.onBrand} strokeWidth={2.5} />} />
           <IconButton accessibilityLabel="Search" variant="card" size={48} icon={<Search size={20} color={c.foreground} strokeWidth={2} />} />
         </View>
+      </View>
+
+      <View style={styles.section}>
+        <SectionHeader title="Floating action button" />
+        <View style={styles.wrap}>
+          <Fab testID="kit-fab" onPress={() => undefined} />
+        </View>
+        <Text variant="helper" tone="muted">
+          56px, brand fill, white plus, no shadow. On Home only: it opens the Create sheet.
+        </Text>
       </View>
 
       <View style={styles.section}>

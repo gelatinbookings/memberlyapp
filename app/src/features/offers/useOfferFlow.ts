@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { onlineManager, useQueryClient } from '@tanstack/react-query';
 
 import { isRepositoryError } from '@/data/errors';
-import { queryKeys, useDraftOfferActions, useRepository, useStorage } from '@/data/RepositoryProvider';
+import { fetchEventBookings, queryKeys, useDraftOfferActions, useRepository, useStorage } from '@/data/RepositoryProvider';
 import type { Booking, Dj, DraftOffer, PaymentSession } from '@/data/types';
 import { sessionExpired, usePayments, type PaymentResult } from '@/lib/payments';
 
@@ -66,7 +66,7 @@ export function useOfferFlow({
     qc.invalidateQueries({ queryKey: ['community-overview'] });
     qc.invalidateQueries({ queryKey: ['talent', eventId] });
     try {
-      return await qc.fetchQuery({ queryKey: queryKeys.bookings(eventId), queryFn: () => repo.getEventBookings(eventId), staleTime: 0 });
+      return await fetchEventBookings(qc, repo, eventId);
     } catch {
       return null;
     }

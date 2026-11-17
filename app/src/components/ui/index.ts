@@ -14,6 +14,7 @@ export { PillButton } from './PillButton';
 export { Screen, useTabBarClearance } from './Screen';
 export { SectionHeader } from './SectionHeader';
 export { ErrorState, LoadingRows, Skeleton, Spinner } from './StateViews';
+export { Fab, FAB_SIZE } from './Fab';
 export { StatusPill } from './StatusPill';
 export { Text } from './Text';
 export { TierPill } from './TierPill';

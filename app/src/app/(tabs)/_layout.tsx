@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabButton, tabBarStyles } from '@/components/navigation/TabBar';
 import { useViewer } from '@/data/RepositoryProvider';
+import { CreateSheetProvider } from '@/features/create/CreateSheet';
 import { useTheme } from '@/theme/theme';
 import { space } from '@/theme/tokens';
 
@@ -19,39 +20,42 @@ export default function TabsLayout() {
   const isOrganizer = !!viewer?.roles.includes('organizer');
 
   return (
-    <Tabs>
-      <TabSlot />
-      <TabList style={{ display: 'none' }}>
-        <TabTrigger name="index" href="/" />
-        <TabTrigger name="explore" href="/explore" />
-        <TabTrigger name="events" href="/events" />
-        {isOrganizer ? <TabTrigger name="manage" href="/manage" /> : null}
-        <TabTrigger name="me" href="/me" />
-      </TabList>
-      <View
-        accessibilityRole="tablist"
-        style={[
-          tabBarStyles.bar,
-          { bottom: Math.max(insets.bottom, space.md), backgroundColor: c.card, borderColor: c.border },
-        ]}>
-        <TabTrigger name="index" asChild>
-          <TabButton label="Home" Icon={House} />
-        </TabTrigger>
-        <TabTrigger name="explore" asChild>
-          <TabButton label="Explore" Icon={Compass} />
-        </TabTrigger>
-        <TabTrigger name="events" asChild>
-          <TabButton label="Events" Icon={CalendarDays} />
-        </TabTrigger>
-        {isOrganizer ? (
-          <TabTrigger name="manage" asChild>
-            <TabButton label="Manage" Icon={LayoutGrid} />
+    // The Create sheet lives here, above every tab, so nothing under it can take it away while it is open.
+    <CreateSheetProvider>
+      <Tabs>
+        <TabSlot />
+        <TabList style={{ display: 'none' }}>
+          <TabTrigger name="index" href="/" />
+          <TabTrigger name="explore" href="/explore" />
+          <TabTrigger name="events" href="/events" />
+          {isOrganizer ? <TabTrigger name="manage" href="/manage" /> : null}
+          <TabTrigger name="me" href="/me" />
+        </TabList>
+        <View
+          accessibilityRole="tablist"
+          style={[
+            tabBarStyles.bar,
+            { bottom: Math.max(insets.bottom, space.md), backgroundColor: c.card, borderColor: c.border },
+          ]}>
+          <TabTrigger name="index" asChild>
+            <TabButton label="Home" Icon={House} />
           </TabTrigger>
-        ) : null}
-        <TabTrigger name="me" asChild>
-          <TabButton label="Me" Icon={User} />
-        </TabTrigger>
-      </View>
-    </Tabs>
+          <TabTrigger name="explore" asChild>
+            <TabButton label="Explore" Icon={Compass} />
+          </TabTrigger>
+          <TabTrigger name="events" asChild>
+            <TabButton label="Events" Icon={CalendarDays} />
+          </TabTrigger>
+          {isOrganizer ? (
+            <TabTrigger name="manage" asChild>
+              <TabButton label="Manage" Icon={LayoutGrid} />
+            </TabTrigger>
+          ) : null}
+          <TabTrigger name="me" asChild>
+            <TabButton label="Me" Icon={User} />
+          </TabTrigger>
+        </View>
+      </Tabs>
+    </CreateSheetProvider>
   );
 }

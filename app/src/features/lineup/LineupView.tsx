@@ -4,14 +4,21 @@ import {
   AlertCircle,
   Check,
   ChevronRight,
+  Clock,
   Music,
   Pencil,
   Plus,
   RefreshCw,
   WifiOff,
 } from "lucide-react-native";
-import { useState, type ReactNode } from "react";
-import { Keyboard, Pressable, StyleSheet, View } from "react-native";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  AccessibilityInfo,
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
 
 import {
   Button,
@@ -25,6 +32,7 @@ import {
 } from "@/components/ui";
 import {
   queryKeys,
+  useBookingsFreshness,
   useDraftOfferActions,
   useDraftOffers,
   useEventBookings,
@@ -32,10 +40,17 @@ import {
   useRepository,
   useSaveEvent,
 } from "@/data/RepositoryProvider";
-import type { Booking, DraftOffer, EventFields } from "@/data/types";
-import { lineupSummary } from "@/features/booking/lineupSummary";
+import type { Booking, Dj, DraftOffer, EventFields } from "@/data/types";
+import {
+  LAST_UPDATED_TICK_MS,
+  lastUpdatedLabel,
+} from "@/features/booking/freshness";
+import {
+  lineupSummary,
+  unbrokenParts,
+} from "@/features/booking/lineupSummary";
 import { canSendOffers, sendOffersLabel } from "@/features/booking/offers";
-import { shouldPoll } from "@/features/booking/status";
+import { shouldPoll, statusUi } from "@/features/booking/status";
 import {
   addedSummary,
   lineupUnlocked,
@@ -51,13 +66,22 @@ import {
   OFFLINE_OFFERS_NOTICE,
   PAYMENT_UNAVAILABLE,
 } from "@/features/offers/copy";
+import { BACK_FROM_GELATIN } from "@/features/handoff/copy";
+import { GelatinHandoffHost } from "@/features/handoff/GelatinHandoffHost";
+import {
+  useGelatinHandoff,
+  type GelatinHandoff,
+} from "@/features/handoff/useGelatinHandoff";
 import { OfferFlowHost } from "@/features/offers/OfferFlowHost";
 import { useOfferFlow } from "@/features/offers/useOfferFlow";
-import { formatIsoDate } from "@/lib/dates";
+import { formatIsoDate, formatIsoDateShort } from "@/lib/dates";
+import { usePortalReturn } from "@/lib/portal";
+import { useQueryOnline } from "@/lib/queryClient";
 import { useTheme } from "@/theme/theme";
 import { radius, space } from "@/theme/tokens";
 
 import { AddedDjCard } from "./AddedDjCard";
+import { AlternatesSheet } from "./AlternatesSheet";
 import { BookingCard } from "./BookingCard";
 
 export const FEE_FOOTER =
@@ -77,6 +101,14 @@ export type LineupState = "blocked" | "empty" | "lineup";
 /** What the Browse talent buttons need: the action, whether a save is running, and anything to say first. */
 type Browse = { open: () => void; pending: boolean; notice: string | null };
 
+/**
+ * How current the bookings on screen are. `polling`: the list is asking again
+ * every few seconds. `behind`: it may be out of date (the backend's last known
+ * body, a refresh that failed, or no connection) and `since` is when a current
+ * answer last arrived.
+ */
+type Freshness = { polling: boolean; behind: boolean; since: number | null };
+
 /** Which Lineup screen to show: any booking or added DJ wins; otherwise the night and city decide. */
 export function lineupState(
   fields: Pick<EventFields, "date" | "city">,
@@ -95,9 +127,12 @@ export function lineupState(
 export function LineupView({
   eventId,
   fromForm = false,
+  focused = true,
 }: {
   eventId: string;
   fromForm?: boolean;
+  /** False while another screen is in front of this one: the Lineup stops polling until it is back. */
+  focused?: boolean;
 }) {
   // A new event gets its id the first time Browse talent saves it as a draft.
   const [savedAs, setSavedAs] = useState<string | null>(null);
@@ -107,12 +142,34 @@ export function LineupView({
   const draft = useDraftFor(id);
   const { rekey } = useEventDraft();
   const event = useOrganizerEvent(saved);
-  const bookingsQ = useEventBookings(saved);
+  // The hand-off and the alternates sheet are held here, above every lineup state, so a status
+  // changing underneath (or the list emptying) never takes an open sheet or the portal with it.
+  const handoff = useGelatinHandoff({ eventId: saved });
+  const [alternatesFor, setAlternatesFor] = useState<Booking | null>(null);
+  const { takeReturn } = usePortalReturn();
+  const online = useQueryOnline();
+  // Status is polled only while this screen is in front and Gelatin's portal is not over it (GEL-1022).
+  const live = focused && !handoff.portalOpen;
+  const bookingsQ = useEventBookings(saved, { live });
+  const { behind, since } = useBookingsFreshness(saved, !online);
   const offersQ = useDraftOffers(saved);
   const repo = useRepository();
   const qc = useQueryClient();
   const save = useSaveEvent();
   const [saveFirst, setSaveFirst] = useState(false);
+
+  // Back in front: read the bookings once, at once. If the organizer has just come back from
+  // Gelatin (the return link, or a hand-off started from another screen), say so after that read.
+  const { arrived } = handoff;
+  const { refetch: refetchBookings } = bookingsQ;
+  const wasFocused = useRef(focused);
+  useEffect(() => {
+    const returning = focused && !wasFocused.current;
+    wasFocused.current = focused;
+    if (!focused || !saved) return;
+    if (takeReturn(saved)) void arrived();
+    else if (returning) void refetchBookings();
+  }, [focused, saved, takeReturn, arrived, refetchBookings]);
 
   // The open draft wins over the saved event; the saved one only says what Gelatin will be asked for.
   const fields: EventFields | null = draft?.fields ?? event.data ?? null;
@@ -127,7 +184,12 @@ export function LineupView({
       </Screen>
     );
   }
-  if ((!draft && event.isError) || bookingsQ.isError || offersQ.isError) {
+  // Only a first load that failed is an error screen. A refresh that fails keeps the last known lineup.
+  if (
+    (!draft && event.isError && !event.data) ||
+    (bookingsQ.isError && !bookingsQ.data) ||
+    (offersQ.isError && !offersQ.data)
+  ) {
     return (
       <Screen>
         <ScreenHeader title="Lineup" />
@@ -260,6 +322,15 @@ export function LineupView({
       edit={edit}
       browse={browse}
       other={other}
+      handoff={handoff}
+      alternatesFor={alternatesFor}
+      onAlternates={setAlternatesFor}
+      onEditWhen={editWhen}
+      freshness={{
+        polling: live && online && !behind && bookings.some((b) => shouldPoll(b.status)),
+        behind,
+        since,
+      }}
     />
   );
 }
@@ -268,6 +339,8 @@ export function LineupView({
  * A saved event's Lineup in any state, with the offer flow above it. The flow
  * sits here, not in the list, so its sheets (Card held, DJ taken) survive the
  * list emptying underneath them, as it does when the only DJ's draft goes.
+ * The alternates sheet and the hand-off to Gelatin are drawn here too, from
+ * state LineupView holds, for the same reason.
  */
 function LineupWithOffers({
   eventId,
@@ -277,6 +350,11 @@ function LineupWithOffers({
   edit,
   browse,
   other,
+  handoff,
+  alternatesFor,
+  onAlternates,
+  onEditWhen,
+  freshness,
 }: {
   eventId: string;
   fields: EventFields;
@@ -286,9 +364,18 @@ function LineupWithOffers({
   browse: Browse;
   /** The blocked or empty screen, when there is nothing in the lineup. */
   other: ReactNode;
+  handoff: GelatinHandoff;
+  /** The ended booking whose alternates sheet is open. */
+  alternatesFor: Booking | null;
+  onAlternates: (booking: Booking | null) => void;
+  /** Open Date & time. */
+  onEditWhen: () => void;
+  freshness: Freshness;
 }) {
   const eventName = fields.name.trim() || "New event";
   const flow = useOfferFlow({ eventId, eventName, bookings, offers });
+  const actions = useDraftOfferActions(eventId);
+  const closeAlternates = () => onAlternates(null);
   return (
     <View style={styles.fill}>
       {other ?? (
@@ -299,6 +386,10 @@ function LineupWithOffers({
           edit={edit}
           browse={browse}
           flow={flow}
+          onManage={handoff.open}
+          onAlternates={onAlternates}
+          backFromGelatin={handoff.back && !freshness.behind}
+          freshness={freshness}
         />
       )}
       <OfferFlowHost
@@ -307,6 +398,32 @@ function LineupWithOffers({
         eventName={eventName}
         day={fields.date ? formatIsoDate(fields.date) : ""}
         onBrowse={browse.open}
+      />
+      {alternatesFor ? (
+        <AlternatesSheet
+          eventId={eventId}
+          booking={alternatesFor}
+          shortDay={fields.date ? formatIsoDateShort(fields.date) : ""}
+          onOffer={(dj: Dj) => {
+            // The DJ joins the lineup as an unsent offer; the booking that ended stays where it is.
+            actions.add(dj).catch(() => undefined);
+            closeAlternates();
+          }}
+          onSeeEveryone={() => {
+            closeAlternates();
+            browse.open();
+          }}
+          onSearchDate={() => {
+            closeAlternates();
+            onEditWhen();
+          }}
+          onClose={closeAlternates}
+        />
+      ) : null}
+      <GelatinHandoffHost
+        handoff={handoff}
+        eventName={eventName}
+        bookings={bookings}
       />
     </View>
   );
@@ -535,6 +652,10 @@ function ActiveLineup({
   edit,
   browse,
   flow,
+  onManage,
+  onAlternates,
+  backFromGelatin,
+  freshness,
 }: {
   eventId: string;
   bookings: Booking[];
@@ -542,12 +663,33 @@ function ActiveLineup({
   edit?: ReactNode;
   browse: Browse;
   flow: ReturnType<typeof useOfferFlow>;
+  /** Manage in Gelatin, or Review the new offer in Gelatin, for one booking. */
+  onManage: (booking: Booking) => void;
+  /** Other DJs open that night, for a booking that is over. */
+  onAlternates: (booking: Booking) => void;
+  /** The organizer has just come back from Gelatin and the lineup has been read again. */
+  backFromGelatin: boolean;
+  freshness: Freshness;
 }) {
   const c = useTheme();
   const actions = useDraftOfferActions(eventId);
-  const polling = bookings.some((b) => shouldPoll(b.status));
+  // Bookings still in play come first, then DJs added but not sent, then bookings that are over.
+  const ended = (b: Booking) => statusUi(b.status).action === "other_djs";
+  const card = (b: Booking) => (
+    <BookingCard
+      key={`booking:${b.requestId}`}
+      booking={b}
+      onPay={() => flow.pay(b)}
+      paying={flow.payingId === b.requestId}
+      paymentFailed={flow.paymentFailed(b.requestId)}
+      onManage={() => onManage(b)}
+      onAlternates={() => onAlternates(b)}
+    />
+  );
   const subtitle =
-    bookings.length > 0 ? lineupSummary(bookings) : addedSummary(offers.length);
+    bookings.length > 0
+      ? unbrokenParts(lineupSummary(bookings))
+      : addedSummary(offers.length);
   const ready = canSendOffers(offers);
 
   const footer =
@@ -585,6 +727,7 @@ function ActiveLineup({
         <ScreenHeader
           title="Lineup"
           subtitle={subtitle}
+          subtitleLines={2}
           right={
             <View style={styles.headActions}>
               {edit}
@@ -597,6 +740,7 @@ function ActiveLineup({
           }
         />
       </View>
+      {backFromGelatin ? <BackFromGelatin /> : null}
       {browse.notice ? <Notice tone="warning">{browse.notice}</Notice> : null}
       {flow.queued ? (
         <Notice
@@ -610,16 +754,23 @@ function ActiveLineup({
           {flow.notice === "confirming" ? CONFIRMING_HOLD : PAYMENT_UNAVAILABLE}
         </Notice>
       ) : null}
-      {bookings.map((b) => (
-        <BookingCard
-          key={b.requestId}
-          booking={b}
-          onPay={() => flow.pay(b)}
-          paying={flow.payingId === b.requestId}
-          paymentFailed={flow.paymentFailed(b.requestId)}
-        />
-      ))}
-      {polling ? (
+      {
+        // One keyed list, so a card that moves down when its booking ends is the same card:
+        // its pill fades to the new status and the change is announced.
+        [
+          ...bookings.filter((b) => !ended(b)).map(card),
+          ...offers.map((o) => (
+            <AddedDjCard
+              key={`added:${o.dj.id}`}
+              offer={o}
+              onChange={(patch) => actions.update(o.dj.id, patch)}
+              onRemove={() => actions.remove(o.dj.id)}
+            />
+          )),
+          ...bookings.filter(ended).map(card),
+        ]
+      }
+      {freshness.polling ? (
         <View style={styles.poll} testID="poll-line">
           <RefreshCw size={12} color={c.mutedText} strokeWidth={2} />
           <Text variant="helper" tone="muted">
@@ -627,15 +778,49 @@ function ActiveLineup({
           </Text>
         </View>
       ) : null}
-      {offers.map((o) => (
-        <AddedDjCard
-          key={o.dj.id}
-          offer={o}
-          onChange={(patch) => actions.update(o.dj.id, patch)}
-          onRemove={() => actions.remove(o.dj.id)}
-        />
-      ))}
+      {freshness.behind && bookings.length > 0 ? (
+        <LastUpdated since={freshness.since} />
+      ) : null}
     </Screen>
+  );
+}
+
+/** The "Back from Gelatin" notice (the PortalReturn board), spoken once as it appears. */
+function BackFromGelatin() {
+  const c = useTheme();
+  useEffect(() => {
+    AccessibilityInfo.announceForAccessibility(BACK_FROM_GELATIN);
+  }, []);
+  return (
+    <View testID="back-from-gelatin">
+      <Notice
+        tone="tint"
+        icon={<Check size={16} color={c.brandText} strokeWidth={2} />}
+      >
+        {BACK_FROM_GELATIN}
+      </Notice>
+    </View>
+  );
+}
+
+/**
+ * "Last updated 2 min ago": the lineup on screen is the last one the app has,
+ * and may be behind. Quiet, under the cards; never an error screen.
+ */
+function LastUpdated({ since }: { since: number | null }) {
+  const c = useTheme();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), LAST_UPDATED_TICK_MS);
+    return () => clearInterval(tick);
+  }, []);
+  return (
+    <View style={styles.poll} testID="last-updated">
+      <Clock size={12} color={c.mutedText} strokeWidth={2} />
+      <Text variant="helper" tone="muted">
+        {lastUpdatedLabel(since, Math.max(now, since ?? 0))}
+      </Text>
+    </View>
   );
 }
 
