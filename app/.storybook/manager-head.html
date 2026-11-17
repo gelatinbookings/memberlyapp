@@ -1,0 +1,14 @@
+<script>
+  // The browser tab reads "<page> ⋅ Memberly Design System", not Storybook's own name.
+  (function () {
+    var NAME = 'Memberly Design System';
+    function rename() {
+      var t = document.title;
+      var next = /storybook/i.test(t) ? t.replace(/^storybook - Storybook$/i, NAME).replace(/Storybook$/, NAME) : t;
+      if (!next) next = NAME;
+      if (next !== t) document.title = next;
+    }
+    rename();
+    new MutationObserver(rename).observe(document.querySelector('title') || document.head, { childList: true, subtree: true, characterData: true });
+  })();
+</script>

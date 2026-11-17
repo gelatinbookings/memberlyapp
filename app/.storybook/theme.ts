@@ -5,7 +5,7 @@ import { darkPalette } from '../src/theme/tokens';
 /** Storybook's own chrome and docs pages in Memberly's dark roles. */
 export const memberlyTheme = create({
   base: 'dark',
-  brandTitle: 'Memberly components',
+  brandTitle: 'Memberly Design System',
   colorPrimary: darkPalette.brand,
   colorSecondary: darkPalette.brand,
   appBg: darkPalette.card,
