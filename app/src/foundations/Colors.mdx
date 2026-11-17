@@ -1,0 +1,20 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+import { ColorTable } from './FoundationBlocks';
+
+<Meta title="Foundations/Colors" />
+
+# Colors
+
+Black ground, white type, one purple. Surfaces step from black to near-black to a muted grey; one purple carries intent; three status tints are read rather than looked at. Dark is the only appearance the app ships.
+
+Components never use a hex value. They ask `useTheme()` for a role, and the role's value comes from `darkPalette` in `src/theme/tokens.ts`. The table below is that palette, read live.
+
+<ColorTable />
+
+## Rules
+
+- **The One Purple Rule.** Purple is for actions, selection and state. It never tints a surface for decoration; a tinted card means selected, yours or held.
+- **The Photo Scrim Rule.** The only wash is `scrim` (60% black), as a round pill under white text over a photo. No gradient washes.
+- **Status labels keep their colour.** Payment needed and New offer are warning; Card held and Negotiating are the tint; Confirmed and Pass are success; Passed, Expired and Cancelled are grey.
+- Don't add a colour. If a role is missing, it's a design decision for DESIGN.md first.

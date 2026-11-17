@@ -3,10 +3,13 @@
  * is invented for demonstration, matching the design canvas.
  */
 import type { MemberlyRepository } from './repository';
+import { formatCents } from '@/features/booking/money';
 import { runExplore } from '@/features/explore/filters';
 import { addDays, endsNextMorning, formatEventDate, formatIsoDate, zonedIso, type IsoDate } from '@/lib/dates';
 
 import { CatalogUnavailableError, RepositoryError } from './errors';
+import { SAMPLE_COMMUNITY_PAGES } from './sampleCommunityPages';
+import { defaultEventPage, SAMPLE_EVENT_PAGES } from './sampleEventPages';
 import { COMMUNITY_TYPES, EVENT_THEMES, EVENT_TYPES, EVENT_VIBES, MUSIC_GENRES } from './taxonomy';
 import {
   DEFAULT_TEST_ACCOUNT,
@@ -23,6 +26,7 @@ import type {
   BudgetBand,
   CardPass,
   City,
+  CommunityPage,
   Community,
   CommunityOverview,
   DraftOffer,
@@ -33,7 +37,10 @@ import type {
   EventRelation,
   KeyValueStorage,
   MemberCard,
+  EventAccess,
+  EventPageDetails,
   MemberEvent,
+  SocialNetwork,
   MyEvent,
   OrganizerEvent,
   OrganizerEventDetail,
@@ -622,7 +629,10 @@ export const sampleEvents: MemberEvent[] = [
     priceLabel: 'From $30',
     viewerHasPass: false,
     description: 'Cocktails over the skyline with a members-first guest list.',
-    publicLineup: [],
+    publicLineup: [
+      { djName: 'Sable Hart', genres: 'Soul · Disco', setTime: '9 to 11', tier: 'Verified' },
+      { djName: null, setTime: '11 to 1' },
+    ],
     mapPin: { x: 0.58, y: 0.52 },
     category: 'Nightlife',
     genres: ['R&B', 'House'],
@@ -643,7 +653,7 @@ export const sampleEvents: MemberEvent[] = [
     priceLabel: 'Members',
     viewerHasPass: false,
     description: 'Low lights, loud system. Members only.',
-    publicLineup: [],
+    publicLineup: [{ djName: 'NIGHTFORM', djPhoto: img.nightform, genres: 'Techno · Bass', setTime: '11 to 3', tier: 'City pillar' }],
     mapPin: { x: 0.2, y: 0.7 },
     category: 'Nightlife',
     genres: ['Techno'],
@@ -664,7 +674,7 @@ export const sampleEvents: MemberEvent[] = [
     priceLabel: 'From $85',
     viewerHasPass: false,
     description: 'Forty-eight seats, one long table, a chef you will want to meet.',
-    publicLineup: [],
+    publicLineup: [{ djName: 'Sable Hart', genres: 'Soul · Disco', setTime: 'Dinner set, 7:30 to 10', tier: 'Verified' }],
     mapPin: { x: 0.62, y: 0.78 },
     category: 'Dinners',
     genres: ['R&B'],
@@ -686,7 +696,10 @@ const dayparty: MemberEvent = {
   priceLabel: 'From $25',
   viewerHasPass: false,
   description: 'Sun, a big patio and a DJ booth under the canopy.',
-  publicLineup: [],
+  publicLineup: [
+    { djName: 'Mara Sol', genres: 'Amapiano · Afrobeats', setTime: '2 to 5', tier: 'Verified' },
+    { djName: 'BLKMTN', genres: 'Baile funk · Jersey club', setTime: '5 to 7', tier: 'Resident' },
+  ],
   mapPin: { x: 0.5, y: 0.5 },
   category: 'Day parties',
   genres: ['Afrobeats', 'Amapiano'],
@@ -710,7 +723,7 @@ const exploreOnlyEvents: MemberEvent[] = [
     priceLabel: 'From $20',
     viewerHasPass: false,
     description: 'A new R&B record played front to back on a proper system, then a conversation with the producer.',
-    publicLineup: [],
+    publicLineup: [{ djName: null, setTime: '7 to 9' }],
     mapPin: { x: 0.44, y: 0.6 },
     category: 'Concerts',
     genres: ['R&B'],
@@ -731,7 +744,7 @@ const exploreOnlyEvents: MemberEvent[] = [
     priceLabel: 'From $45',
     viewerHasPass: false,
     description: 'Throw a bowl, drink something good, take it home after the kiln.',
-    publicLineup: [],
+    publicLineup: [{ djName: 'Sable Hart', genres: 'Soul · Disco', setTime: 'Studio set, 7 to 9:30', tier: 'Verified' }],
     mapPin: { x: 0.3, y: 0.4 },
     category: 'Workshops',
     genres: [],
@@ -1349,6 +1362,87 @@ function createWorld(options: FakeRepositoryOptions, seed: WorldSeed): World {
   const communityOfPass = (p: StoredPass) => p.communityId ?? (p.eventId ? communityOfEvent(p.eventId) : null);
   const isMember = (communityId: string | null) =>
     !!communityId && (!!ownedById(communityId) || seed.memberships.some((m) => m.communityId === communityId && m.status === 'active'));
+  /** A community's public page (GET /app/communities/:id). Tiers and prices are worded here, as the server will. */
+  const communityPageOf = (id: string): CommunityPage | null => {
+    const mine = ownedById(id);
+    const base = mine?.community ?? sampleCommunities.find((c) => c.id === id);
+    if (!base) return null;
+    const page = SAMPLE_COMMUNITY_PAGES[id];
+    const stored = mine ? (communityPasses.get(id) ?? []) : seedCommunityPasses(id);
+    const tiers = stored.length
+      ? stored.filter((p) => p.active).map((p) => ({ id: p.id, name: p.name, priceCents: p.priceCents, included: p.included }))
+      : (page?.tiers ?? []);
+    const whole = (cents: number) => formatCents(cents).replace(/\.00$/, '');
+    const priceOf = (cents: number | null) => (cents ? `${whole(cents)} a month` : 'Free');
+    const paid = tiers.map((t) => t.priceCents ?? 0).filter((cents) => cents > 0);
+    const joinLine = tiers.length === 0 || paid.length < tiers.length ? 'Free to join' : `Memberships from ${whole(Math.min(...paid))} a month`;
+    const membership = seed.memberships.find((m) => m.communityId === id && m.status === 'active');
+    const tags = [base.type, ...(base.categories ?? []), ...(base.genres ?? []), ...(base.vibes ?? []), ...(base.customTags ?? [])].filter(
+      (t, i, all): t is string => !!t && all.indexOf(t) === i,
+    );
+    return {
+      community: { ...base, tagline: base.tagline ?? page?.tagline },
+      location: base.location ?? page?.location ?? base.city,
+      verified: page?.verified ?? false,
+      about: base.description ?? page?.about ?? '',
+      tags,
+      links: base.links
+        ? Object.entries(base.links).flatMap(([network, url]) => (url ? [{ network: network as SocialNetwork, url }] : []))
+        : (page?.links ?? []),
+      gallery: base.gallery ?? (page?.gallery ?? []).map((k) => img[k]),
+      memberships: tiers.map((t) => ({ id: t.id, name: t.name, price: priceOf(t.priceCents), included: t.included })),
+      joinLine,
+      viewerMembership: mine ? { tierLabel: 'Owner', owner: true } : membership ? { tierLabel: membership.tierLabel, owner: false } : null,
+      upcoming: allEvents()
+        .filter((e) => e.communityId === id)
+        .map(withPass)
+        .sort((a, b) => a.startsAt.localeCompare(b.startsAt)),
+    };
+  };
+
+  /**
+   * The event page's details, as the server would send them. Access and the
+   * price wording come from the event's passes on sale: a members-free pass
+   * makes it free for members; with no guest pass it's members only.
+   */
+  const eventPageOf = (e: MemberEvent): EventPageDetails => {
+    const page = SAMPLE_EVENT_PAGES[e.id] ?? defaultEventPage(e.description, e.neighborhood, e.city);
+    const onSale = (eventPasses.get(e.id) ?? []).filter((p) => p.active && sellable(p));
+    const membersFree = onSale.some((p) => p.freeForMembers);
+    const guestPrices = onSale.filter((p) => !p.freeForMembers && (p.priceCents ?? 0) > 0).map((p) => p.priceCents!);
+    const from = guestPrices.length > 0 ? Math.min(...guestPrices) : null;
+    const whole = (cents: number) => formatCents(cents).replace(/\.00$/, '');
+    const access: EventAccess = membersFree ? (from == null ? 'members-only' : 'free-for-members') : 'open';
+    const price =
+      access === 'members-only'
+        ? { headline: 'Free', line: 'Members only · free for members', free: true }
+        : access === 'free-for-members'
+          ? { headline: whole(from!), line: `Free for members · guests from ${whole(from!)}`, free: false }
+          : from == null
+            ? { headline: 'Free', line: 'Free to attend', free: true }
+            : { headline: whole(from), line: `Passes from ${whole(from)}`, free: false };
+    const home = ownedById(e.communityId)?.community ?? sampleCommunities.find((c) => c.id === e.communityId);
+    return {
+      access,
+      sales: page.salesEnded ? 'ended' : 'on-sale',
+      host: {
+        communityId: e.communityId,
+        name: e.communityName,
+        logo: home?.logo ?? home?.cover ?? null,
+        verified: page.verified,
+        about: page.hostAbout,
+      },
+      viewerIsMember: isMember(e.communityId),
+      venue: page.venue,
+      price,
+      going: {
+        people: page.going.names.map((name) => ({ name, initials: name.split(' ').map((w) => w.charAt(0)).join('').slice(0, 2) })),
+        othersCount: page.going.othersCount,
+      },
+      about: page.about,
+      memberPerks: page.memberPerks,
+    };
+  };
   /**
    * A priced pass can be sold only once its community's Stripe account is
    * connected. Nothing in this build connects one, so a new paid pass saves
@@ -1484,9 +1578,10 @@ function createWorld(options: FakeRepositoryOptions, seed: WorldSeed): World {
           .sort((a, b) => Number(b.viewerHasPass) - Number(a.viewerHasPass)),
         delay,
       ),
+    getCommunityPage: (id) => later(communityPageOf(id), delay),
     getEvent: (id) => {
       const e = allEvents().find((x) => x.id === id);
-      return later(e ? withPass(e) : null, delay);
+      return later(e ? { ...withPass(e), details: eventPageOf(e) } : null, delay);
     },
     getMyEvents: (scope) => {
       // A pass outranks going or saved, and puts the event on the list.
@@ -1768,7 +1863,7 @@ function createWorld(options: FakeRepositoryOptions, seed: WorldSeed): World {
       return later(orderView(order), delay);
     },
 
-    createCommunity: async ({ name, tagline, description, country, state, city, logo, banner, gallery, tags, membership, idempotencyKey }) => {
+    createCommunity: async ({ name, tagline, description, country, state, city, logo, banner, gallery, tags, links, membership, idempotencyKey }) => {
       await network();
       const key = `community:${idempotencyKey}`;
       let id = savedByKey.get(key);
@@ -1800,6 +1895,9 @@ function createWorld(options: FakeRepositoryOptions, seed: WorldSeed): World {
             id,
             name: trimmed,
             city: city ?? state ?? country,
+            location: [city, state, country].filter(Boolean).join(', '),
+            gallery: gallery.map((p) => ({ uri: p.uri })),
+            links: { ...links },
             memberCount: 1,
             cover: banner,
             logo,

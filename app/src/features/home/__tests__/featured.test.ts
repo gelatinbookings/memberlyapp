@@ -22,7 +22,9 @@ describe('Home featured card', () => {
 
   it('names confirmed DJs only, never fees or offers', () => {
     expect(lineupLine(sampleEvents[0])).toBe('Second Sundays · KOYO on the lineup');
-    expect(lineupLine(sampleEvents[1])).toBe('Rooftop Society');
+    expect(lineupLine(sampleEvents[1])).toBe('Rooftop Society · Sable Hart on the lineup');
+    // TBA slots aren't names: with no one confirmed yet, the line is the community alone.
+    expect(lineupLine({ ...sampleEvents[1], publicLineup: [{ djName: null, setTime: '9 to 11' }] })).toBe('Rooftop Society');
     expect(lineupLine(sampleEvents[0])).not.toMatch(/\$|fee|offer|TBA/i);
   });
 

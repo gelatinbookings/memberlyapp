@@ -1,0 +1,94 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Start here" />
+
+# Memberly components
+
+This is the Memberly iPhone app's component library. Every story renders the real React Native component from `src/`, in the browser through react-native-web, inside a 390-wide phone column on the black ground. What you see here is what ships, at the sizes DESIGN.md sets.
+
+Use it to find the part you need before you build one, to check every state of a part without clicking through the app, and to read the rules that come with it. The design rules are in `DESIGN.md` and the product rules in `PRODUCT.md` at the root of the repo; both are binding, and every docs page here points back to them.
+
+## How it's organized
+
+The sidebar follows atomic design. Each level is built only from the levels above it.
+
+| Level | What goes in it | The rule |
+| --- | --- | --- |
+| **Foundations** | Colors, type, spacing, radius, icons, motion | Values only. Read straight from `src/theme/tokens.ts`, never retyped. |
+| **Atoms** | Text, Button, Chip, pills, Toggle, Avatar, Fab… | One thing that can't be split further and still mean something. No data reads. |
+| **Molecules** | Fields, rows, cards, notices, a DJ card, a calendar… | A few atoms doing one job together. Props in, events out; at most one small data read. |
+| **Organisms** | Headers, sheets, the Lineup, the Memberly Card… | A self-contained piece of a screen. Can read the repository and hold its own state. |
+| **Templates** | Pushed screen, tab screen, step form, bottom sheet, dialog | Layout only, with placeholder content. No real data. |
+| **Pages** | Home, Explore, Lineup, Create community… | Real screens on the sample repository, one story per account or state that matters. |
+
+Each component has one Docs page and one story per state you'd meet in the app. Every story says, in one line, when you'd see it. The Docs page says what the part is, when to use it and when not, shows a usage snippet and the props table, and lists accessibility notes and Do / Don't lines from DESIGN.md.
+
+### Where a few parts landed, and why
+
+The assignment of components to levels follows the plan, with these moves where the code said otherwise:
+
+- **VerifyCodeView** is an organism, not a molecule. It is a whole screen: a header, the code boxes, resend, sign-in through the session, and the drawn check.
+- **TestAccountsEntry** and **AuthSheet** are organisms. One opens its own sheet and signs in; the other is the sheet Sign in and Create account rise in.
+- **ProviderButtons, LinkLine, LegalLine, OrRule and the Google / Apple marks** are the small auth parts, so they are molecules (the marks are atoms).
+- **TabBar** (the floating tab bar and its TabButton) and **DrawnCheck** are added: the tab screen template needs the bar, and Verify code draws the check.
+- **Screen** has no story of its own. It is a layout, so it lives in the templates (pushed screen, tab screen, step form).
+
+## Run it
+
+```sh
+cd app
+npm run storybook        # the library at http://localhost:6006
+npm run build-storybook  # a static build in app/storybook-static
+```
+
+Everything runs on sample data. Each story gets a fresh copy of the fake repository (`src/data/fakeRepository.ts`), signed in as the existing organizer unless the story says otherwise, with no delay. Nothing is sent anywhere: there are no keys, no network calls and no live services. Payments go to the test payment sheet and Gelatin hand-offs to the test portal, both of which exist only on sample data. Navigation is logged to the Actions panel instead of moving.
+
+A story picks its sample world through `parameters.memberly`:
+
+```tsx
+parameters: {
+  frame: 'screen',                          // 'padded' (default), 'bare' or 'screen' (a whole 390×844 phone)
+  memberly: {
+    account: 'existing-member',             // one of the four test accounts in src/data/testAccounts.ts
+    signedIn: false,                        // nobody signed in (Welcome, Sign in)
+    simulation: { failBookings: true },     // edge states the fake can be put in
+    talentMode: 'unavailable',              // how the talent catalog answers
+    route: { params: { id: 'e_long_table' } }, // what useLocalSearchParams() returns
+  },
+},
+```
+
+Amounts on a story always come from the fake repository. A story never types a total, a fee or a sum: it reads a booking or a quote through `Sample` (`src/stories/support/Sample.tsx`) and shows what came back.
+
+## Write a story
+
+Stories are CSF3, sit next to their component as `Component.stories.tsx`, and carry `tags: ['autodocs']`. Templates and pages live in `src/stories/templates` and `src/stories/pages`, because every file under `src/app` is a route.
+
+```tsx
+import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
+import { fn } from 'storybook/test';
+
+import { componentDocs, storyDoc } from '@/stories/support/docs';
+
+import { Chip } from './Chip';
+
+const meta = {
+  title: 'Atoms/Chip',
+  component: Chip,
+  tags: ['autodocs'],
+  args: { label: 'House', onPress: fn() },
+  parameters: { docs: { description: { component: componentDocs({ what, use, avoid, usage, a11y, do, dont }) } } },
+} satisfies Meta<typeof Chip>;
+export default meta;
+
+export const Selected: StoryObj<typeof meta> = {
+  args: { selected: true },
+  parameters: storyDoc('A filter that is on.'),
+};
+```
+
+- One story per meaningful state, named for the state (`Selected`, `Fee missing`, `Catalog unavailable`), each with a one-line `storyDoc`.
+- Add controls (`args`, `argTypes`) where a part has real variants. Interactive parts get a story that works when you click it, using local state in a `render` function.
+- Add JSDoc to a prop when the props table doesn't read well without it.
+- Don't change a component to make a story work. Put the state in the sample world instead.
+- `npx jest src/__tests__/stories.test.tsx` renders every story with the app's providers and fails if any throws.

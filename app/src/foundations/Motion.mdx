@@ -1,0 +1,34 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+import { MotionTable } from './FoundationBlocks';
+
+<Meta title="Foundations/Motion" />
+
+# Motion
+
+Motion inside the product says that something changed state, and does nothing else. It is quick (150–250ms), uses transform and opacity only, and never glows, blurs or casts a shadow. The durations come from `motion` in `src/theme/tokens.ts`.
+
+<MotionTable />
+
+## Where it happens
+
+- **Press.** Buttons and the Fab ease to 0.97 and darken while pressed.
+- **Focus.** A text field's ring fades in over its border.
+- **Sheets.** A sheet rises from the bottom edge while the screen behind dims; pulling it down by its head closes it.
+- **Status.** When a booking changes while the Lineup is open, the old pill fades out as the new one fades in, and VoiceOver announces it.
+- **First run.** The launch mark, Welcome's stagger, the code boxes and the drawn check on Verify code are the authored moments (decided 6 Nov 2026).
+
+## Reduce Motion
+
+Reduce Motion is honoured everywhere. Every animated part reads `useReducedMotion()` from Reanimated and, when it is on, either changes instantly or uses a plain 150ms fade:
+
+- Buttons and the Fab only darken; they don't scale.
+- Sheets fade in instead of rising, and don't follow the finger.
+- The status pill simply changes; the Welcome stagger simply appears; the check is drawn at once; a wrong code doesn't shake.
+
+```tsx
+const reduceMotion = useReducedMotion();
+const entering = reduceMotion ? FadeIn.duration(motion.fast) : SlideInDown.duration(motion.slow);
+```
+
+To check a story with Reduce Motion, turn on **Reduce motion** in your operating system's accessibility settings and reload the story.

@@ -67,6 +67,7 @@ export const queryKeys = {
   viewer: ['viewer'] as const,
   tonight: (city: string) => ['tonight', city] as const,
   event: (id: string) => ['event', id] as const,
+  communityPage: (id: string) => ['community-page', id] as const,
   myEvents: (scope: MyEventsScope) => ['my-events', scope] as const,
   preferences: ['preferences'] as const,
   explore: (q: ExploreQuery) => ['explore', q] as const,
@@ -107,6 +108,12 @@ export function useTonight(city: string | undefined) {
 export function useEvent(id: string) {
   const repo = useRepository();
   return useQuery({ queryKey: queryKeys.event(id), queryFn: () => repo.getEvent(id) });
+}
+
+/** A community's public page (GET /app/communities/:id). */
+export function useCommunityPage(id: string) {
+  const repo = useRepository();
+  return useQuery({ queryKey: queryKeys.communityPage(id), queryFn: () => repo.getCommunityPage(id) });
 }
 
 export function useMyEvents(scope: MyEventsScope) {

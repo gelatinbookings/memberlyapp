@@ -11,7 +11,6 @@ import { EXPLORE_CATEGORIES } from '@/data/taxonomy';
 import { EventRow } from '@/features/events/EventRow';
 import { ExploreFiltersSheet } from '@/features/explore/ExploreFiltersSheet';
 import { defaultFilters, filtersActive } from '@/features/explore/filters';
-import { LATER } from '@/features/navigation/later';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import { useTheme } from '@/theme/theme';
 import { font, radius, size, space } from '@/theme/tokens';
@@ -21,8 +20,7 @@ export const SEARCH_DEBOUNCE_MS = 300;
 const WEEK_MS = 7 * 24 * 3600 * 1000;
 
 function openCommunity(c: Community) {
-  // Community pages are not native yet: the labelled stop for the web page.
-  router.push({ pathname: '/later', params: { title: c.name, milestone: LATER.web.milestone, note: LATER.web.note } });
+  router.push({ pathname: '/community/[id]', params: { id: c.id } });
 }
 
 function members(n: number) {

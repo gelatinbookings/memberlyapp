@@ -1,0 +1,20 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+import { TypeTable } from './FoundationBlocks';
+
+<Meta title="Foundations/Typography" />
+
+# Typography
+
+One family, Inter, and weight does the work. Headings are heavy and tight; body is plain 400 at 15px. Each weight is its own face (`Inter-Regular` to `Inter-ExtraBold`) so iOS and Android draw it the same.
+
+All text goes through `<Text variant="…" tone="…">`. Every row below is that component, rendering the variant from `type` in `src/theme/tokens.ts`.
+
+<TypeTable />
+
+## Rules
+
+- **The No Eyebrow Rule.** No kicker or eyebrow labels above headings. The only uppercase text is the 10px `label` inside a pill.
+- **The Tabular Money Rule.** Any amount above body size is `money`: 800 weight, tabular numerals, beside a line that says held, charged or released. It shows the server's total, never one worked out on the phone.
+- Sentence case everywhere. Second person: "Your card is held", not "The card is held".
+- Text scales with Dynamic Type up to 2×, pills up to 1.4×. Don't fix heights that would clip larger text.

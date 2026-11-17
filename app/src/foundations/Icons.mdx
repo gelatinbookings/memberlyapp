@@ -1,0 +1,32 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+import { IconGrid, IconSizes } from './FoundationBlocks';
+
+<Meta title="Foundations/Icons" />
+
+# Icons
+
+One stroke set, Lucide (`lucide-react-native`), always at a 2px stroke. Icons take their colour from a theme role: `foreground` by default, `mutedText` for chevrons and inactive tabs, `brandText` on the tint, `onBrand` on purple.
+
+```tsx
+import { ChevronRight } from 'lucide-react-native';
+
+<ChevronRight size={16} color={c.mutedText} strokeWidth={2} />
+```
+
+## Sizes
+
+<IconSizes />
+
+## The set in use
+
+These are the icons the app imports today. Reach for one of them before adding another.
+
+<IconGrid />
+
+## Rules
+
+- An icon-only control needs a spoken name: `IconButton` requires `accessibilityLabel`.
+- Decorative icons beside a label add nothing for VoiceOver; the label carries the meaning.
+- Third-party marks (Google, Apple) are drawn as their owners require, from `brandMarks`, and are not icons.
+- Don't fill icons, change the stroke, or use emoji in their place.

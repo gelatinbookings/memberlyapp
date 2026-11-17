@@ -2,6 +2,7 @@ import type {
   AuthProviderName,
   Booking,
   City,
+  CommunityPage,
   Community,
   CommunityOverview,
   CreateCommunityInput,
@@ -84,6 +85,8 @@ export interface MemberlyRepository {
   getViewer(): Promise<Viewer>;
   getTonight(city: string): Promise<MemberEvent[]>;
   getEvent(id: string): Promise<MemberEvent | null>;
+  /** A community's public page: profile, memberships, the viewer's membership, upcoming events. HTTP: GET /app/communities/:id */
+  getCommunityPage(id: string): Promise<CommunityPage | null>;
   /** The member's events in one scope, each with pass / going / saved. HTTP: GET /app/me/events?scope= */
   getMyEvents(scope: MyEventsScope): Promise<MyEvent[]>;
   getTopCommunities(city: string): Promise<Community[]>;

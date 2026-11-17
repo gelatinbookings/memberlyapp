@@ -1,0 +1,30 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+import { RadiusTable, SizeTable, SpacingTable } from './FoundationBlocks';
+
+<Meta title="Foundations/Spacing and radius" />
+
+# Spacing and radius
+
+Phone-first at 390 × 844. Screens have 20px gutters and 20px between sections; the tab bar and over-map controls inset 16px. Every value below is read from `space`, `radius` and `size` in `src/theme/tokens.ts`.
+
+## Spacing
+
+<SpacingTable />
+
+## Radius
+
+Four radii and one circle. 6px is the Memberly control radius for the primary thing on a screen; round is for everything lighter.
+
+<RadiusTable />
+
+## Sizes
+
+<SizeTable />
+
+## Rules
+
+- **The Two-Radius Rule.** Primary buttons, fields and sheet actions are 6px. Chips and actions inside a row or card are round pills, so they read lighter than the primary action. Nothing tappable falls between.
+- **The 44 Rule.** Every tappable control is at least 44px tall. Primary buttons 52, fields and secondary buttons 48, chips and in-row pills 44. A 36px round icon button gets a hit area up to 44.
+- **The Flat Rule.** No shadows, blur or glass. Layers are separated by a 1px `border` and, behind a sheet or dialog, the screen dimmed to 35%.
+- Don't nest cards. Rows inside one card are separated by 1px rules.

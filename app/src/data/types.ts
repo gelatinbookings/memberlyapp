@@ -29,6 +29,11 @@ export type Community = {
   logo?: ImageAsset | null;
   /** One line shown under the name. */
   tagline?: string;
+  /** Where it operates, as written publicly ("Atlanta, GA, United States"). */
+  location?: string;
+  /** Up to 10 photos for its page. */
+  gallery?: ImageAsset[];
+  links?: Partial<Record<SocialNetwork, string>>;
   isOwner?: boolean;
   /** A short description, when the organizer wrote one. */
   description?: string;
@@ -73,6 +78,65 @@ export type MemberEvent = {
   category?: string;
   genres?: string[];
   vibes?: string[];
+  /** The event page's details, from GET /app/events/:id. Lists and cards don't carry them. */
+  details?: EventPageDetails;
+};
+
+/** Who can come: anyone with a pass, members free and guests with a pass, or members only. */
+export type EventAccess = 'open' | 'free-for-members' | 'members-only';
+
+/** One run of text in an event's About, with the web's inline styles. */
+export type RichSpan = { text: string; bold?: boolean; italic?: boolean; link?: string };
+
+/** Everything the event page shows beyond an event card, as the server sends it. */
+export type EventPageDetails = {
+  access: EventAccess;
+  /** Whether passes are still on sale. Sold out is read from the pass types. */
+  sales: 'on-sale' | 'ended';
+  /** The community hosting it. */
+  host: {
+    communityId: string;
+    name: string;
+    logo: ImageAsset | null;
+    verified: boolean;
+    /** The community's own short description. */
+    about: string;
+  };
+  /** Whether the viewer belongs to the host community. */
+  viewerIsMember: boolean;
+  venue: { name: string; address: string };
+  /**
+   * The price as the server words it: a headline ("$30", "Free") and the
+   * line under it ("Free for members · guests from $30"). Never worked out here.
+   */
+  price: { headline: string; line: string; free: boolean };
+  /** People going, as shown publicly: a few names with photos, and the rest as a count. */
+  going: { people: { name: string; initials: string; photo?: ImageAsset }[]; othersCount: number };
+  /** About this event: paragraphs of styled runs. */
+  about: RichSpan[][];
+  /** What members get at this event. */
+  memberPerks: { title: string; kind: string; detail: string }[];
+};
+
+/** A community's public page, from GET /app/communities/:id. */
+export type CommunityPage = {
+  community: Community;
+  /** "Atlanta, Georgia, United States". */
+  location: string;
+  verified: boolean;
+  about: string;
+  /** Discovery tags, as shown publicly. */
+  tags: string[];
+  links: { network: SocialNetwork; url: string }[];
+  gallery: ImageAsset[];
+  /** Membership tiers on offer. The price is worded by the server ("$25 a month", "Free"). */
+  memberships: { id: string; name: string; price: string; included: string }[];
+  /** How the server words joining in the bar: "Free to join", "Memberships from $25 a month". */
+  joinLine: string;
+  /** The viewer's own membership, when they have one. */
+  viewerMembership: { tierLabel: string; owner: boolean } | null;
+  /** Its events, soonest first. */
+  upcoming: MemberEvent[];
 };
 
 export type DjTier = 'Verified' | 'Top performer' | 'Resident' | 'City pillar';
