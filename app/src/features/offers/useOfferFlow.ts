@@ -79,7 +79,11 @@ export function useOfferFlow({
   const queueOffline = async (list: DraftOffer[]) => {
     for (const o of list) {
       if (o.offerCents == null) continue;
-      await ensurePendingOffer(storage, { eventId, djId: o.dj.id, offerCents: o.offerCents, note: o.note }, { queued: true });
+      await ensurePendingOffer(
+        storage,
+        { eventId, djId: o.dj.id, offerCents: o.offerCents, note: o.note, setStart: o.setStart, setEnd: o.setEnd },
+        { queued: true },
+      );
     }
     await refreshPending();
     setStep(IDLE);
@@ -145,13 +149,15 @@ export function useOfferFlow({
     setSending(true);
     setStep({ ...step, error: null });
     try {
-      const stored = await ensurePendingOffer(storage, { ...ref, offerCents: offer.offerCents, note: offer.note });
+      const stored = await ensurePendingOffer(storage, { ...ref, offerCents: offer.offerCents, note: offer.note, setStart: offer.setStart, setEnd: offer.setEnd });
       let booking: Booking;
       try {
         booking = await repo.createOffer(eventId, {
           djId: offer.dj.id,
           offerCents: offer.offerCents,
           note: offer.note,
+          setStart: offer.setStart ?? null,
+          setEnd: offer.setEnd ?? null,
           clientOfferId: stored.clientOfferId,
         });
       } catch (error) {

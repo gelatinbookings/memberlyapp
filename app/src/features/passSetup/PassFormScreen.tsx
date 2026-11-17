@@ -28,12 +28,14 @@ import {
   PASS_NAME_MAX,
   passBlocker,
   priceOf,
-  sanitizeCount,
+  PARENT_UNAVAILABLE_DETAIL,
+  PARENT_UNAVAILABLE_TITLE,
   SAVE_FAILED,
   STRIPE_NOTICE,
   type PassDraft,
   type PassScope,
 } from './passForm';
+import { QuantityStepper } from './QuantityStepper';
 import { passListHref } from './routes';
 
 export const STRIPE_NOTICE_DETAIL = 'It’s saved, and goes on sale once Stripe is connected.';
@@ -127,26 +129,27 @@ function PassForm({
 
   const blocker = passBlocker(draft, scope);
   const busy = save.isPending || remove.isPending;
+  // The server doesn't know the event or community for this account: saving again won't help.
+  const gone = isRepositoryError(save.error, 'not_found');
   const held = (pass?.heldCount ?? 0) > 0 || isRepositoryError(remove.error, 'pass_held');
   const waitingOnStripe = !!pass && !pass.sellable && draft.paid;
 
   return (
     <Screen
+      header={<ScreenHeader title={pass ? 'Edit pass' : community ? 'Community pass' : 'Event pass'} subtitle={parentName} onBack={busy ? () => undefined : back} />}
       testID="pass-form"
       footer={
         <>
-          {save.isError ? <Notice tone="error">{SAVE_FAILED}</Notice> : null}
+          {save.isError ? <Notice tone="error">{gone ? PARENT_UNAVAILABLE_DETAIL[scope] : SAVE_FAILED}</Notice> : null}
           <Button
             testID="pass-save"
-            label={blocker ?? (save.isError ? 'Try again' : 'Save')}
-            disabled={!!blocker || remove.isPending}
+            label={blocker ?? (save.isError && !gone ? 'Try again' : 'Save')}
+            disabled={!!blocker || remove.isPending || gone}
             loading={save.isPending}
             onPress={() => save.mutate()}
           />
         </>
       }>
-      <ScreenHeader title={pass ? 'Edit pass' : community ? 'Community pass' : 'Event pass'} subtitle={parentName} onBack={busy ? () => undefined : back} />
-
       {waitingOnStripe ? (
         <Notice tone="warning" title={STRIPE_NOTICE}>
           {STRIPE_NOTICE_DETAIL}
@@ -195,14 +198,11 @@ function PassForm({
         returnKeyType="done"
         onChangeText={(included) => set({ included })}
       />
-      <TextField
+      <QuantityStepper
         testID="pass-limit"
         label={community ? 'Member limit' : 'Quantity'}
         value={draft.limit}
-        placeholder="No limit"
-        keyboardType="number-pad"
-        helper="Optional"
-        onChangeText={(limit) => set({ limit: sanitizeCount(limit) })}
+        onChange={(limit) => set({ limit })}
       />
 
       {community ? null : (
@@ -265,12 +265,24 @@ export function PassFormScreen({
   const list = scope === 'community' ? communityPasses : eventPasses;
   const parentName = scope === 'community' ? organized.data?.find((c) => c.id === parentId)?.name : event.data?.name;
 
+  // Only someone who runs the event or community can add to it: check before showing a form that can't save.
+  const parent = scope === 'community' ? organized : event;
+  const parentMissing = scope === 'community' ? organized.isSuccess && !parentName : event.isSuccess && !event.data;
+  if (parent.isPending || parent.isError || parentMissing) {
+    return (
+      <Screen header={<ScreenHeader title={passId ? 'Edit pass' : scope === 'community' ? 'Community pass' : 'Event pass'} onBack={onBack} />}>
+        {parent.isPending ? <LoadingRows count={3} label="Loading" /> : null}
+        {parent.isError ? <ErrorState title="Couldn’t load this pass" onRetry={() => parent.refetch()} /> : null}
+        {parentMissing ? <ErrorState title={PARENT_UNAVAILABLE_TITLE} detail={PARENT_UNAVAILABLE_DETAIL[scope]} /> : null}
+      </Screen>
+    );
+  }
+
   if (passId) {
     const pass = list.data?.find((p) => p.id === passId);
     if (!pass) {
       return (
-        <Screen>
-          <ScreenHeader title="Edit pass" subtitle={parentName} onBack={onBack} />
+        <Screen header={<ScreenHeader title="Edit pass" subtitle={parentName} onBack={onBack} />}>
           {list.isPending ? (
             <LoadingRows count={3} label="Loading the pass" />
           ) : list.isError ? (

@@ -77,6 +77,10 @@ export const queryKeys = {
   organized: ['organized-communities'] as const,
   overview: (id: string) => ['community-overview', id] as const,
   cities: ['cities'] as const,
+  venues: (query: string) => ['venues', query] as const,
+  stripeAccount: (communityId: string) => ['stripe-account', communityId] as const,
+  members: (communityId: string, query: string, tier: string | null) => ['community-members', communityId, query, tier] as const,
+  marketing: (communityId: string) => ['community-marketing', communityId] as const,
   organizerEvent: (id: string) => ['organizer-event', id] as const,
   bookings: (eventId: string) => ['event-bookings', eventId] as const,
   bookingsMeta: (eventId: string) => ['event-bookings-meta', eventId] as const,
@@ -179,6 +183,57 @@ export function useCommunityOverview(id: string | undefined) {
 export function useCities() {
   const repo = useRepository();
   return useQuery({ queryKey: queryKeys.cities, queryFn: () => repo.getCities(), staleTime: Infinity });
+}
+
+/**
+ * The Location type-ahead. Pass the debounced text; under two characters it
+ * does not search. The last answer stays up while the next one loads.
+ */
+export function useVenueSearch(query: string) {
+  const repo = useRepository();
+  const q = query.trim();
+  return useQuery({
+    queryKey: queryKeys.venues(q.toLowerCase()),
+    queryFn: () => repo.searchVenues(q),
+    enabled: q.length >= 2,
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+    retry: false,
+  });
+}
+
+/** A community's members, a page at a time, searched and filtered by the server. */
+export function useCommunityMembers(communityId: string | undefined, query: string, tier: string | null) {
+  const repo = useRepository();
+  const q = query.trim();
+  return useInfiniteQuery({
+    queryKey: queryKeys.members(communityId ?? '', q.toLowerCase(), tier),
+    queryFn: ({ pageParam }) => repo.getCommunityMembers(communityId ?? '', { query: q, tier, cursor: pageParam }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor,
+    enabled: !!communityId,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** A community's page link and its announcements. */
+export function useCommunityMarketing(communityId: string | undefined) {
+  const repo = useRepository();
+  return useQuery({
+    queryKey: queryKeys.marketing(communityId ?? ''),
+    queryFn: () => repo.getCommunityMarketing(communityId ?? ''),
+    enabled: !!communityId,
+  });
+}
+
+/** A community's Stripe account for payouts. */
+export function useStripeAccount(communityId: string | undefined) {
+  const repo = useRepository();
+  return useQuery({
+    queryKey: queryKeys.stripeAccount(communityId ?? ''),
+    queryFn: () => repo.getStripeAccount(communityId ?? ''),
+    enabled: !!communityId,
+  });
 }
 
 /** An event as the organizer edits it. Pass undefined (a new event) to skip the read. */

@@ -13,6 +13,12 @@ export const PASS_INCLUDED_MAX = 120;
 
 export const STRIPE_NOTICE = 'Connect Stripe to sell paid passes';
 export const SAVE_FAILED = 'Couldn’t save this pass. Try again.';
+/** The event or community is gone, or isn't one this account runs: trying again won't help. */
+export const PARENT_UNAVAILABLE_TITLE = 'You can’t add passes here';
+export const PARENT_UNAVAILABLE_DETAIL = {
+  event: 'This event was removed, or it belongs to a community you don’t run.',
+  community: 'This community was removed, or it isn’t one you run.',
+} as const;
 export const DELETE_FAILED = 'Couldn’t delete this pass. Try again.';
 export const NEEDS_COMMUNITY = 'Start a community to add events and passes.';
 

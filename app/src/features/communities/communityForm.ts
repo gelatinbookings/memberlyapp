@@ -1,4 +1,4 @@
-import type { City, CreateCommunityInput, SocialNetwork } from '@/data/types';
+import type { CreateCommunityInput, SocialNetwork } from '@/data/types';
 import { dollarsToCents } from '@/features/booking/offers';
 import type { LibraryPhoto } from '@/lib/photos';
 
@@ -51,7 +51,10 @@ export type CommunityDraft = {
   slug: string;
   description: string;
   country: string;
-  city: City | null;
+  /** Any city, as typed (optional). */
+  city: string;
+  /** Its state, province or region, as typed or filled from a suggestion. */
+  region: string;
   logo: LibraryPhoto | null;
   banner: LibraryPhoto | null;
   gallery: LibraryPhoto[];
@@ -94,7 +97,8 @@ export const EMPTY_COMMUNITY: CommunityDraft = {
   slug: '',
   description: '',
   country: DEFAULT_COUNTRY,
-  city: null,
+  city: '',
+  region: '',
   logo: null,
   banner: null,
   gallery: [],
@@ -173,8 +177,7 @@ export function pricingBlocker(d: CommunityDraft): string | null {
 /** Anything entered that closing would lose. */
 export function hasEntries(d: CommunityDraft): boolean {
   return (
-    [d.name, d.tagline, d.slug, d.description, d.referralCode, ...Object.values(d.links)].some((v) => v.trim().length > 0) ||
-    d.city != null ||
+    [d.name, d.tagline, d.slug, d.description, d.referralCode, d.city, d.region, ...Object.values(d.links)].some((v) => v.trim().length > 0) ||
     d.logo != null ||
     d.banner != null ||
     d.gallery.length > 0 ||
@@ -199,7 +202,7 @@ export function toCreateInput(d: CommunityDraft, idempotencyKey: string): Create
     ...(slug ? { slug } : null),
     description: d.description.trim(),
     country: d.country,
-    ...(d.city ? { state: d.city.region, city: d.city.name } : null),
+    ...(d.city.trim() ? { city: d.city.trim(), ...(d.region.trim() ? { state: d.region.trim() } : null) } : null),
     logo: { uri: d.logo?.uri ?? '' },
     banner: { uri: d.banner?.uri ?? '' },
     gallery: d.gallery.map((p) => ({ uri: p.uri })),

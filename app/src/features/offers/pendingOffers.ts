@@ -14,6 +14,8 @@ export type PendingOffer = {
   clientOfferId: string;
   offerCents: number;
   note: string;
+  setStart?: string | null;
+  setEnd?: string | null;
   /** Sent with no connection: goes out by itself when the connection returns. */
   queued?: boolean;
   /** Went out from the queue and the DJ was not available. Lineup says so once. */
@@ -45,7 +47,7 @@ export function listPendingOffers(storage: KeyValueStorage): Promise<PendingOffe
  */
 export function ensurePendingOffer(
   storage: KeyValueStorage,
-  offer: OfferRef & { offerCents: number; note: string },
+  offer: OfferRef & { offerCents: number; note: string; setStart?: string | null; setEnd?: string | null },
   flags: Pick<PendingOffer, 'queued'> = {},
 ): Promise<PendingOffer> {
   const s = store(storage);
@@ -55,6 +57,7 @@ export function ensurePendingOffer(
     clientOfferId: current?.clientOfferId ?? newClientId('offer'),
     offerCents: offer.offerCents,
     note: offer.note,
+    ...(offer.setStart && offer.setEnd ? { setStart: offer.setStart, setEnd: offer.setEnd } : null),
     ...(flags.queued || current?.queued ? { queued: true } : null),
   }));
 }

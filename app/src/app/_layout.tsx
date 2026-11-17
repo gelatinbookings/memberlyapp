@@ -83,6 +83,9 @@ function Screens() {
       <Stack.Screen name="return/portal" options={{ animation: 'none' }} />
       {/* Create community asks before discarding what was entered, so the edge swipe can't skip that question. */}
       <Stack.Screen name="organizer/communities/new" options={{ gestureEnabled: false }} />
+      {/* Stripe onboarding rises over Manage or Tiers and closes back to it; leaving partway asks first. */}
+      <Stack.Screen name="organizer/communities/[id]/stripe" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+      <Stack.Screen name="return/stripe" options={{ animation: 'none' }} />
       <Stack.Screen name="later" />
       <Stack.Screen name="kit" />
     </Stack>

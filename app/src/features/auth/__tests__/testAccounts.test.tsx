@@ -6,7 +6,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-
 import SignInSheet from '@/app/(auth)/sign-in';
 import EventsScreen, { EMPTY_SCOPE, NOTHING_YET } from '@/app/(tabs)/events';
 import HomeScreen from '@/app/(tabs)/index';
-import ManageScreen, { NO_COMMUNITY_TITLE, NO_EVENTS_LINE, NO_EVENTS_TITLE, NO_NUMBERS_LINE, SAMPLE_NUMBERS_LINE } from '@/app/(tabs)/manage';
+import ManageScreen, { NO_COMMUNITY_TITLE, NO_EVENTS_LINE, NO_EVENTS_TITLE, NO_NUMBERS_LINE, SAMPLE_NUMBERS_LINE } from '@/app/manage';
 import MeScreen, { START_COMMUNITY } from '@/app/(tabs)/me';
 import { createFakeRepository, createMemoryStorage, SESSION_KEY, type FakeRepository } from '@/data/fakeRepository';
 import { useEventBookings, useOrganizedCommunities, useViewer } from '@/data/RepositoryProvider';

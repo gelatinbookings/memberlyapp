@@ -34,6 +34,7 @@ export function BookingCard({
   booking: Booking;
   /** Hold the card for this request. */
   onPay?: () => void;
+  /** The payment sheet is working for this request: Pay now (or Try again) shows it is busy. */
   paying?: boolean;
   /** The last payment for this request was refused. */
   paymentFailed?: boolean;

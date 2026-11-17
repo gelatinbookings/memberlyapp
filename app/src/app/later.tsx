@@ -19,12 +19,14 @@ export default function LaterScreen() {
   const m = milestone ?? '3';
   const what = note ?? WHAT[m];
   return (
-    <Screen>
-      <IconButton
-        accessibilityLabel="Back"
-        icon={<ArrowLeft size={18} color={c.foreground} strokeWidth={2} />}
-        onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
-      />
+    <Screen
+      header={
+        <IconButton
+          accessibilityLabel="Back"
+          icon={<ArrowLeft size={18} color={c.foreground} strokeWidth={2} />}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        />
+      }>
       <View style={styles.block}>
         <Text variant="display" accessibilityRole="header">
           {title ?? 'Coming next'}

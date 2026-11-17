@@ -21,11 +21,13 @@ export function DateChangeDialog({
   onKeep,
   onManage,
 }: {
+  /** Why the date can’t simply change: a confirmed DJ or offers still open on the current date, from the server. */
   block: DateChangeBlock;
   /** The event's current date, "Fri, Nov 20". */
   day: string;
   /** The date just picked, "Sat, Nov 21". */
   newDay: string;
+  /** Keep the current date and close. */
   onKeep: () => void;
   /** Open the hand-off for `block.manage`. */
   onManage: () => void;

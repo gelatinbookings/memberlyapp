@@ -26,6 +26,7 @@ import { DjCard } from './DjCard';
 import { DjProfileSheet } from './DjProfileSheet';
 import { budgetLabel, doneLabel, filtersActive, genreLabel, matchLine, NO_FILTERS, openLine } from './filters';
 import { TalentFiltersSheet } from './TalentFiltersSheet';
+import { comingSoonLine, TALENT_TYPES } from './talentTypes';
 
 type View_ =
   | 'loading'
@@ -49,6 +50,7 @@ export function BrowseTalentScreen({ eventId }: { eventId: string }) {
   const insets = useSafeAreaInsets();
   const event = useOrganizerEvent(eventId);
   const [filters, setFilters] = useState<TalentFilters>(NO_FILTERS);
+  const [soon, setSoon] = useState<string | null>(null);
   const [sheet, setSheet] = useState({ open: false, opening: 0 });
   const [profile, setProfile] = useState<Dj | null>(null);
 
@@ -133,6 +135,28 @@ export function BrowseTalentScreen({ eventId }: { eventId: string }) {
           </Text>
         </View>
         <IconButton accessibilityLabel="Close" icon={<X size={18} color={c.foreground} strokeWidth={2} />} onPress={close} />
+      </View>
+
+      {/* Every kind of talent has a place here; DJs are the only one bookable for now. */}
+      <View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters} accessibilityRole="radiogroup" testID="talent-types">
+          {TALENT_TYPES.map((t) => (
+            <Chip
+              key={t.id}
+              testID={`talent-type-${t.id}`}
+              label={t.available ? t.label : `${t.label} · Soon`}
+              accessibilityLabel={t.available ? `${t.label}, selected` : `${t.label}, coming soon`}
+              selected={t.id === 'dj'}
+              onPress={() => setSoon(t.available ? null : t.label)}
+              style={t.available ? undefined : styles.soon}
+            />
+          ))}
+        </ScrollView>
+        {soon ? (
+          <Text variant="helper" tone="muted" style={styles.soonLine} testID="talent-type-soon">
+            {comingSoonLine(soon)}
+          </Text>
+        ) : null}
       </View>
 
       {showFilters ? (
@@ -243,6 +267,8 @@ export function BrowseTalentScreen({ eventId }: { eventId: string }) {
 }
 
 const styles = StyleSheet.create({
+  soon: { opacity: 0.55 },
+  soonLine: { paddingHorizontal: space.gutter, paddingTop: space.xs },
   root: { flex: 1, gap: space.card },
   header: { flexDirection: 'row', alignItems: 'center', gap: space.row, paddingHorizontal: space.gutter },
   titles: { flex: 1, minWidth: 0 },

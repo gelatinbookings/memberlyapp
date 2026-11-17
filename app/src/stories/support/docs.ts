@@ -17,6 +17,12 @@ export type ComponentDoc = {
   a11y: string[];
   do: string[];
   dont: string[];
+  /**
+   * States the component's code handles that no story shows, because the
+   * sample world can't hold them still (a spinner between two answers, a
+   * device setting). Each line says what it looks like and how to reach it.
+   */
+  unshown?: string[];
 };
 
 const list = (items: string[]) => items.map((i) => `- ${i}`).join('\n');
@@ -34,6 +40,7 @@ export function componentDocs(d: ComponentDoc): string {
     list(d.do),
     "#### Don't",
     list(d.dont),
+    ...(d.unshown?.length ? ['#### States without a story', list(d.unshown)] : []),
   ].join('\n\n');
 }
 

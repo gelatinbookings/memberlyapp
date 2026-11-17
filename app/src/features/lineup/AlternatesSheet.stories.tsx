@@ -87,6 +87,14 @@ export const Cancelled: Story = {
   parameters: storyDoc('A booking that was cancelled, with the same ways on.'),
 };
 
+export const Loading: Story = {
+  render: () => <OverEnded status="declined" />,
+  parameters: {
+    memberly: { pending: ['getAlternates'] },
+    ...storyDoc('While other DJs open that night are read: two row skeletons under the heading.'),
+  },
+};
+
 export const NobodyOpen: Story = {
   name: 'Nobody else open',
   render: () => <OverEnded status="declined" />,

@@ -1,11 +1,10 @@
 import { router } from 'expo-router';
 import { Check } from 'lucide-react-native';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import {
   Button,
-  Chip,
   ErrorState,
   GroupedList,
   Notice,
@@ -14,79 +13,31 @@ import {
   SelectField,
   Sheet,
   Text,
-  TextField,
 } from '@/components/ui';
 import { useCities, useDraftOffers, useEventBookings, useOrganizerEvent, useRepository } from '@/data/RepositoryProvider';
 import type { Booking } from '@/data/types';
 import {
   formatIsoDate,
   formatWallTime,
-  halfHourSlots,
   isoDateInZone,
   timeHelper,
   timeZoneName,
-  type WallTime,
 } from '@/lib/dates';
 import { useTheme } from '@/theme/theme';
-import { size, space } from '@/theme/tokens';
+import { space } from '@/theme/tokens';
 
 import { recheckNotice } from './dateChange';
 import { DateChangeHost, useDateChangeGuard } from './DateChangeGuard';
 import { useEventDraft } from './EventDraftProvider';
 import { MonthCalendar } from './MonthCalendar';
+import { RepeatChips } from './RepeatChips';
+import { TimesSheet, type TimeEdge } from './TimePicker';
+import { VenueField } from './VenueField';
 
-const SLOTS = halfHourSlots();
-const CHIP_ROW = size.chip + space.sm;
 const FALLBACK_ZONE = 'America/New_York';
 const NO_BOOKINGS: Booking[] = [];
 
 const done = () => (router.canGoBack() ? router.back() : router.replace('/manage'));
-
-/** Pick a time on the half hour. Wall-clock at the venue; the zone never comes from the phone. */
-function TimeSheet({
-  which,
-  value,
-  start,
-  zone,
-  onPick,
-  onClose,
-}: {
-  which: 'Starts' | 'Ends' | null;
-  value: WallTime | null;
-  /** For Ends: list from just after the start, so past-midnight times follow on. */
-  start: WallTime | null;
-  zone: string | null;
-  onPick: (t: WallTime) => void;
-  onClose: () => void;
-}) {
-  const from = which === 'Ends' && start ? (SLOTS.indexOf(start) + 1) % SLOTS.length : 0;
-  const slots = [...SLOTS.slice(from), ...SLOTS.slice(0, from)];
-  // Open near the chosen time; Starts opens at 6 PM by default.
-  const index = slots.indexOf(value ?? (which === 'Ends' && start ? slots[0] : '18:00'));
-  const offset = Math.max(0, Math.floor(index / 4) - 1) * CHIP_ROW;
-  return (
-    <Sheet
-      visible={which != null}
-      onClose={onClose}
-      title={which ?? ''}
-      subtitle={zone ? `${timeZoneName(zone)}, from the venue` : 'In the venue’s time zone'}>
-      <ScrollView style={styles.slots} contentOffset={{ x: 0, y: offset }} showsVerticalScrollIndicator={false}>
-        <View style={styles.slotGrid}>
-          {slots.map((t) => (
-            <Chip
-              key={t}
-              testID={`time-${t}`}
-              label={formatWallTime(t)}
-              selected={t === value}
-              style={styles.slot}
-              onPress={() => onPick(t)}
-            />
-          ))}
-        </View>
-      </ScrollView>
-    </Sheet>
-  );
-}
 
 /**
  * Date & time and Location for the open draft (the "Date, time and place"
@@ -101,7 +52,7 @@ export function WhenWhereScreen() {
   const repo = useRepository();
   const cities = useCities();
   const { draft, update } = useEventDraft();
-  const [timeSheet, setTimeSheet] = useState<'Starts' | 'Ends' | null>(null);
+  const [timeSheet, setTimeSheet] = useState<TimeEdge | null>(null);
   const [citySheet, setCitySheet] = useState(false);
   // The saved event behind this draft, and what is booked on it.
   const savedId = draft && draft.key !== 'new' ? draft.key : undefined;
@@ -118,8 +69,7 @@ export function WhenWhereScreen() {
 
   if (!draft) {
     return (
-      <Screen>
-        <ScreenHeader title="Date & time" />
+      <Screen header={<ScreenHeader title="Date & time" />}>
         <ErrorState title="No event open" detail="Open Create New Event from Manage first." />
       </Screen>
     );
@@ -132,8 +82,10 @@ export function WhenWhereScreen() {
 
   return (
     <View style={styles.fill}>
-    <Screen footer={<Button testID="when-done" label="Done" onPress={done} />} contentStyle={styles.content}>
-      <ScreenHeader title="Date & time" subtitle={f.name.trim() || 'New event'} />
+    <Screen
+      header={<ScreenHeader title="Date & time" subtitle={f.name.trim() || 'New event'} />}
+      footer={<Button testID="when-done" label="Done" onPress={done} />}
+      contentStyle={styles.content}>
       <MonthCalendar
         selected={f.date}
         today={today}
@@ -152,7 +104,7 @@ export function WhenWhereScreen() {
             strong
             value={f.startTime ? formatWallTime(f.startTime) : null}
             placeholder="Add"
-            onPress={() => setTimeSheet('Starts')}
+            onPress={() => setTimeSheet('start')}
             style={styles.flex}
           />
           <SelectField
@@ -161,47 +113,52 @@ export function WhenWhereScreen() {
             strong
             value={f.endTime ? formatWallTime(f.endTime) : null}
             placeholder="Add"
-            onPress={() => setTimeSheet('Ends')}
+            onPress={() => setTimeSheet('end')}
             style={styles.flex}
           />
         </View>
         <Text variant="helper" tone="muted" testID="time-helper">
           {timeHelper(zone, f.startTime, f.endTime)}
         </Text>
+        <RepeatChips date={f.date} value={f.recurrence ?? null} onChange={(recurrence) => update({ recurrence })} />
       </View>
 
       <View style={styles.location}>
         <Text variant="title" accessibilityRole="header">
           Location
         </Text>
-        <TextField
-          testID="field-venue"
-          label="Venue"
+        <VenueField
           value={f.venue}
-          placeholder="Where it happens"
-          maxLength={120}
+          place={f.place ?? null}
           onChangeText={(venue) => update({ venue })}
+          // A recognized venue brings its address and city, and the city its time zone.
+          onPick={(place) => update({ venue: place.name, place, city: place.city })}
+          onClear={() => update({ place: null })}
         />
-        <SelectField
-          testID="field-city"
-          label="City"
-          value={f.city ? `${f.city.name}, ${f.city.region}` : null}
-          placeholder="Choose a city"
-          onPress={() => setCitySheet(true)}
-        />
+        {f.place ? null : (
+          <SelectField
+            testID="field-city"
+            label="City"
+            value={f.city ? `${f.city.name}, ${f.city.region}` : null}
+            placeholder="Choose a city"
+            onPress={() => setCitySheet(true)}
+          />
+        )}
         <Text variant="helper" tone="muted">
           The city and date decide which DJs you can book in Lineup.
         </Text>
       </View>
 
-      <TimeSheet
-        which={timeSheet}
-        value={timeSheet === 'Ends' ? f.endTime : f.startTime}
+      <TimesSheet
+        key={timeSheet ?? 'closed'}
+        visible={timeSheet != null}
+        edge={timeSheet ?? 'start'}
         start={f.startTime}
+        end={f.endTime}
         zone={zone}
         onClose={() => setTimeSheet(null)}
-        onPick={(t) => {
-          update(timeSheet === 'Ends' ? { endTime: t } : { startTime: t });
+        onDone={({ start, end }) => {
+          update({ startTime: start, endTime: end });
           setTimeSheet(null);
         }}
       />
@@ -252,8 +209,5 @@ const styles = StyleSheet.create({
   timesBlock: { gap: space.sm },
   times: { flexDirection: 'row', gap: space.stack },
   location: { gap: space.stack },
-  slots: { maxHeight: CHIP_ROW * 6 },
-  slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  slot: { width: '23%', paddingHorizontal: 4 },
   cityRow: { minHeight: 56, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: space.row },
 });

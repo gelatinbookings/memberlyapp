@@ -97,15 +97,17 @@ export function CardView() {
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   return (
-    <Screen testID="card-screen">
-      <View style={styles.header}>
-        <IconButton accessibilityLabel="Back" icon={<ArrowLeft size={18} color={c.foreground} strokeWidth={2} />} onPress={back} />
-        <Text variant="headline" accessibilityRole="header" align="center" style={styles.flex}>
-          My Memberly Card
-        </Text>
-        <View style={styles.spacer} />
-      </View>
-
+    <Screen
+      testID="card-screen"
+      header={
+        <View style={styles.header}>
+          <IconButton accessibilityLabel="Back" icon={<ArrowLeft size={18} color={c.foreground} strokeWidth={2} />} onPress={back} />
+          <Text variant="headline" accessibilityRole="header" align="center" style={styles.flex}>
+            My Memberly Card
+          </Text>
+          <View style={styles.spacer} />
+        </View>
+      }>
       {state.status === 'loading' ? <LoadingRows count={2} label="Loading your card" /> : null}
       {state.status === 'unavailable' ? (
         <ErrorState

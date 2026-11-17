@@ -12,13 +12,19 @@ export type ButtonVariant = 'primary' | 'secondary' | 'destructive';
 export type ButtonProps = {
   label: string;
   onPress?: () => void;
+  /** Primary (purple fill, the one main action), secondary (outline) or destructive (red fill, Change date and Cancel). Default primary. */
   variant?: ButtonVariant;
+  /** Dimmed to 50% and not pressable. Say why nearby or through `accessibilityHint`. */
   disabled?: boolean;
+  /** Working: a spinner replaces the label, the button reads as busy and can’t be pressed again. */
   loading?: boolean;
+  /** An 18px icon before the label. */
   icon?: ReactNode;
+  /** An 18px icon after the label, such as the arrow on Continue. */
   trailingIcon?: ReactNode;
   /** A smaller label (14px) for two buttons side by side in a dialog. */
   compact?: boolean;
+  /** Spoken after the label, e.g. why the button is disabled. */
   accessibilityHint?: string;
   style?: StyleProp<ViewStyle>;
   testID?: string;

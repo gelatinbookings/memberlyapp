@@ -30,8 +30,11 @@ export function TestPaymentSheet({
   fake,
   onResult,
 }: {
+  /** The payment session from the server: its total and what it is for (a hold or a pass). */
   session: PaymentSheetSession;
+  /** The fake repository’s controls, which play the payment provider. */
   fake: FakeControls;
+  /** Succeeded, failed (after the declined test card) or cancelled. */
   onResult: (result: PaymentResult) => void;
 }) {
   const c = useTheme();

@@ -1,23 +1,20 @@
-import { CalendarDays, Compass, House, LayoutGrid, User } from 'lucide-react-native';
+import { CalendarDays, Compass, House, User } from 'lucide-react-native';
 import { TabList, TabSlot, TabTrigger, Tabs } from 'expo-router/ui';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabButton, tabBarStyles } from '@/components/navigation/TabBar';
-import { useViewer } from '@/data/RepositoryProvider';
 import { CreateSheetProvider } from '@/features/create/CreateSheet';
 import { useTheme } from '@/theme/theme';
 import { space } from '@/theme/tokens';
 
 /**
- * Members see four tabs: Home, Explore, Events, Me. Organizers get a fifth,
- * Manage. The Memberly Card is reached from Home and Me, not from a tab.
+ * Four tabs for everyone: Home, Explore, Events, Me. Organizers reach Manage
+ * from Me, under You organize. The Memberly Card is reached from Home and Me.
  */
 export default function TabsLayout() {
   const c = useTheme();
   const insets = useSafeAreaInsets();
-  const { data: viewer } = useViewer();
-  const isOrganizer = !!viewer?.roles.includes('organizer');
 
   return (
     // The Create sheet lives here, above every tab, so nothing under it can take it away while it is open.
@@ -28,7 +25,6 @@ export default function TabsLayout() {
           <TabTrigger name="index" href="/" />
           <TabTrigger name="explore" href="/explore" />
           <TabTrigger name="events" href="/events" />
-          {isOrganizer ? <TabTrigger name="manage" href="/manage" /> : null}
           <TabTrigger name="me" href="/me" />
         </TabList>
         <View
@@ -46,11 +42,6 @@ export default function TabsLayout() {
           <TabTrigger name="events" asChild>
             <TabButton label="Events" Icon={CalendarDays} />
           </TabTrigger>
-          {isOrganizer ? (
-            <TabTrigger name="manage" asChild>
-              <TabButton label="Manage" Icon={LayoutGrid} />
-            </TabTrigger>
-          ) : null}
           <TabTrigger name="me" asChild>
             <TabButton label="Me" Icon={User} />
           </TabTrigger>

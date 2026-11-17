@@ -17,16 +17,16 @@ export function EventDetailsScreen() {
   const { draft, update } = useEventDraft();
   if (!draft) {
     return (
-      <Screen>
-        <ScreenHeader title="Event details" />
+      <Screen header={<ScreenHeader title="Event details" />}>
         <ErrorState title="No event open" detail="Open Create New Event from Manage first." />
       </Screen>
     );
   }
   const f = draft.fields;
   return (
-    <Screen footer={<Button label="Done" onPress={done} />}>
-      <ScreenHeader title="Event details" subtitle={f.name.trim() || 'New event'} />
+    <Screen
+      header={<ScreenHeader title="Event details" subtitle={f.name.trim() || 'New event'} />}
+      footer={<Button label="Done" onPress={done} />}>
       <View style={styles.cover}>
         {f.cover ? (
           <Image source={f.cover} style={styles.coverImage} contentFit="cover" accessibilityLabel="Cover photo" />

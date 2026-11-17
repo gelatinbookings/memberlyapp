@@ -50,8 +50,11 @@ export function TalentFiltersSheet({
 }: {
   visible: boolean;
   eventId: string;
+  /** The event’s city, shown locked: it is changed in Date & time, not here. */
   city: string;
+  /** The event’s night, shown locked like the city. */
   day: string;
+  /** The filters on now. The sheet edits a copy and applies it only on Show. */
   applied: TalentFilters;
   onApply: (filters: TalentFilters) => void;
   onClose: () => void;

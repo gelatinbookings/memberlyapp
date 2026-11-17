@@ -2,11 +2,14 @@ import type { Booking, DraftOffer, EventFields } from '@/data/types';
 import { lineupSummary } from '@/features/booking/lineupSummary';
 import { formatIsoDate, formatIsoDateShort, formatWallTime } from '@/lib/dates';
 
+import { frequencyShort } from './recurrence';
+
 /**
  * Create New Event: which sections are complete, what each card says in one
  * line, and what (if anything) stops Create & publish. Lineup and Access &
  * passes never block publishing.
  */
+
 export type SectionId = 'details' | 'when' | 'location' | 'lineup' | 'access';
 
 export const SECTION_ORDER: SectionId[] = ['details', 'when', 'location', 'lineup', 'access'];
@@ -65,7 +68,8 @@ export function publishBlocker(f: EventFields): string | null {
 export function whenSummary(f: EventFields): string {
   if (!f.date) return 'Pick the night and the times';
   if (!f.startTime || !f.endTime) return `${formatIsoDate(f.date)} · add times`;
-  return `${formatIsoDate(f.date)} · ${formatWallTime(f.startTime)} – ${formatWallTime(f.endTime)}`;
+  const repeats = f.recurrence ? ` · ${frequencyShort(f.recurrence.frequency)}` : '';
+  return `${formatIsoDate(f.date)} · ${formatWallTime(f.startTime)} – ${formatWallTime(f.endTime)}${repeats}`;
 }
 
 export function locationSummary(f: EventFields): string {
@@ -110,4 +114,6 @@ export const EMPTY_FIELDS: EventFields = {
   endTime: null,
   venue: '',
   city: null,
+  place: null,
+  recurrence: null,
 };

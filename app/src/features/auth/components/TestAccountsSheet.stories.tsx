@@ -37,6 +37,10 @@ const meta = {
           ],
           do: ['Say plainly that these are sample people on sample data.', 'Keep the warning pill on the sheet.'],
           dont: ['Show it with a real backend.', 'Put real emails or names in the accounts.'],
+          unshown: [
+            'Signing in: the tapped row shows a spinner and the others are disabled. On sample data sign-in answers at once, so it passes in a blink.',
+            '“Couldn’t sign in as that account. Try again.”, an error notice above the list. Signing in to the sample repository can’t fail, so no story shows it.',
+          ],
         }),
       },
     },

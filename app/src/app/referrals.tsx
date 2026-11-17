@@ -62,8 +62,7 @@ export default function ReferralsScreen() {
   const joined = r?.people.length ?? 0;
 
   return (
-    <Screen testID="referrals">
-      <ScreenHeader title="Referrals" subtitle="Bring people to Memberly" onBack={back} />
+    <Screen header={<ScreenHeader title="Referrals" subtitle="Bring people to Memberly" onBack={back} />} testID="referrals">
       {referrals.isPending ? <LoadingRows count={3} label="Loading referrals" /> : null}
       {referrals.isError ? <ErrorState title="Couldn’t load your referrals" onRetry={() => referrals.refetch()} /> : null}
       {r ? (

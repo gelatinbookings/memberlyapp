@@ -52,6 +52,7 @@ export function DjProfileSheet({
   dj: Dj | null;
   /** The event's night, e.g. "Fri, Nov 20". */
   day: string;
+  /** The DJ is already on the lineup: the footer offers Remove instead of Add. */
   added: boolean;
   onAdd: (dj: Dj) => void;
   onRemove: (dj: Dj) => void;

@@ -35,7 +35,7 @@ function WithNight({ eventId, children }: { eventId: string; children: (city: st
 const meta = {
   title: 'Organisms/BrowseStates',
   component: UnavailableState,
-  subcomponents: { TalentSkeleton, NoCityState, TooTightState, NoneOpenState, NotReadyState, UnavailableFooter, Attribution },
+  subcomponents: { TalentSkeleton, NoCityState, TooTightState, NoneOpenState, NotReadyState, UnavailableFooter },
   tags: ['autodocs'],
   args: { offline: false, onRetry: fn(), onContinue: fn() },
   argTypes: { offline: { control: 'boolean' } },
@@ -50,7 +50,7 @@ const meta = {
     docs: {
       description: {
         component: componentDocs({
-          what: 'Every state Browse talent can be in besides a list of DJs. Each is a centred block: a 72pt round badge, a headline, one line, then the way on. Loading is four skeleton DJ cards, never a spinner. `Attribution` is the line under every view of the catalog.',
+          what: 'Every state Browse talent can be in besides a list of DJs. Each is a centred block: a 72pt round badge, a headline, one line, then the way on. Loading is four skeleton DJ cards, never a spinner. The catalog credit under each state is `Attribution`, which has its own page under Atoms.',
           use: 'inside Browse talent’s body, in place of the DJ list: loading, a city Gelatin doesn’t serve yet (Notify me), the catalog unavailable or offline, filters too tight, nobody open that night, and an event with no night or city.',
           avoid: 'outside Browse talent. The Lineup has its own blocked and empty screens; sheets that list DJs (Other DJs open that night, DJ taken) show their own short notices.',
           usage: `{talent.isPending ? <TalentSkeleton /> : null}

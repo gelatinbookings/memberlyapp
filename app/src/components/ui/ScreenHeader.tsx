@@ -22,7 +22,9 @@ export function ScreenHeader({
 }: {
   title: string;
   subtitle?: string;
+  /** Shows the round back button before the title. */
   onBack?: () => void;
+  /** Round actions on the right of the title, such as Edit or Add more talent. */
   right?: ReactNode;
   /** Lines the subtitle may take before it is cut; 2 for a lineup summary with many parts. */
   subtitleLines?: number;

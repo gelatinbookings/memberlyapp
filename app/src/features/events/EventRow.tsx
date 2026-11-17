@@ -12,6 +12,7 @@ export type EventRowProps = {
   event: MemberEvent;
   /** Show the date in the meta line (lists spanning days). */
   showDate?: boolean;
+  /** End the meta line with how far away it is (tonight, near you). */
   showDistance?: boolean;
   /** Plain row (inside a sheet) or bordered card row (in a list). */
   framed?: boolean;

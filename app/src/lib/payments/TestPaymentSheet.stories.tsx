@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-native-web-vite';
-import { fn } from 'storybook/test';
+import { fn, screen, userEvent } from 'storybook/test';
 
 import { getFakeControls } from '@/data/fakeRepository';
 import type { MemberlyRepository } from '@/data/repository';
@@ -82,4 +82,13 @@ export const PassPayment: Story = {
   name: 'Pass payment',
   render: () => <Payment kind="pass" load={passSession} />,
   parameters: storyDoc('Paying for a pass: paid now, and the pass goes on the Memberly Card.'),
+};
+
+export const Declined: Story = {
+  name: 'Declined card',
+  render: () => <Payment kind="hold" load={holdSession} />,
+  play: async () => {
+    await userEvent.click(await screen.findByText('Use a declined test card'));
+  },
+  parameters: storyDoc('The declined test card was used: an error notice gives the payment provider’s message, and nothing is held. Closing the sheet reports the decline to the flow.'),
 };

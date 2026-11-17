@@ -101,6 +101,49 @@ export function endsNextMorning(start: WallTime, end: WallTime): boolean {
   return minutesOf(end) <= minutesOf(start);
 }
 
+/** "10 PM", "10:30 PM": a wall time without ":00". */
+export function formatShortTime(time: WallTime): string {
+  return formatWallTime(time).replace(':00', '');
+}
+
+/** A set as a booking words it: "10 PM – 12 AM". */
+export function formatSetTime(start: WallTime, end: WallTime): string {
+  return `${formatShortTime(start)} – ${formatShortTime(end)}`;
+}
+
+/** A wall time moved by some minutes, round the clock: addMinutes("22:00", 240) is "02:00". */
+export function addMinutes(time: WallTime, minutes: number): WallTime {
+  const total = (((minutesOf(time) + minutes) % 1440) + 1440) % 1440;
+  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
+}
+
+/** Minutes from start to end; an end at or before the start is the next morning. */
+export function minutesBetween(start: WallTime, end: WallTime): number {
+  const d = minutesOf(end) - minutesOf(start);
+  return d <= 0 ? d + 1440 : d;
+}
+
+/** "4 hours", "3 hr 30 min", "45 min". */
+export function durationLabel(start: WallTime, end: WallTime): string {
+  const total = minutesBetween(start, end);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h} ${h === 1 ? 'hour' : 'hours'}`;
+  return `${h} hr ${m} min`;
+}
+
+/** A wall time as 12-hour parts, and back: "22:15" ↔ { hour: 10, minute: 15, pm: true }. */
+export function toClock(time: WallTime): { hour: number; minute: number; pm: boolean } {
+  const total = minutesOf(time);
+  const h = Math.floor(total / 60);
+  return { hour: h % 12 === 0 ? 12 : h % 12, minute: total % 60, pm: h >= 12 };
+}
+export function fromClock(hour: number, minute: number, pm: boolean): WallTime {
+  const h = (hour % 12) + (pm ? 12 : 0);
+  return `${pad(h)}:${pad(minute)}`;
+}
+
 /** Every half hour of the day, "00:00" to "23:30". */
 export function halfHourSlots(): WallTime[] {
   return Array.from({ length: 48 }, (_, i) => `${pad(Math.floor(i / 2))}:${i % 2 ? '30' : '00'}`);

@@ -15,6 +15,7 @@ export function MonthCalendar({
   today,
   onSelect,
 }: {
+  /** The night picked, or null before one is. */
   selected: IsoDate | null;
   /** Today at the venue, "2026-11-18". */
   today: IsoDate;

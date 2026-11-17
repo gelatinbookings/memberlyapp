@@ -63,7 +63,8 @@ export const OverContent: Story = {
   parameters: storyDoc('Floating at the bottom right over Home’s list, flat, separated only by its own fill.'),
 };
 
-export const Loading: Story = {
+export const OverLoadingContent: Story = {
+  name: 'Over loading content',
   render: (args) => (
     <View style={styles.area}>
       <LoadingRows />

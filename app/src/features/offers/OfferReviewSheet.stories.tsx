@@ -110,6 +110,15 @@ export const WithNote: Story = {
   parameters: storyDoc('The organizer wrote a note; it is quoted above Edit and goes with the offer.'),
 };
 
+export const WaitingForTotal: Story = {
+  name: 'Waiting for the total',
+  render: () => <Review />,
+  parameters: {
+    memberly: { pending: ['quoteOffer'] },
+    ...storyDoc('Before the server’s quote arrives: skeleton lines in place of the figures, and a disabled “Getting your total” button.'),
+  },
+};
+
 export const Sending: Story = {
   render: () => <Review sending />,
   parameters: storyDoc('Hold and send was pressed: the button shows it is working and can’t be pressed twice.'),
@@ -121,8 +130,16 @@ export const SendFailed: Story = {
   parameters: storyDoc('The last send didn’t go through; nothing was held, and the button tries again.'),
 };
 
-export const WaitingForTotal: Story = {
-  name: 'Waiting for the total',
+export const QuoteFailed: Story = {
+  name: 'Couldn’t get the total',
+  render: () => <Review />,
+  parameters: {
+    memberly: { failing: ['quoteOffer'] },
+    ...storyDoc('The server answered but couldn’t price the offer: an error notice in place of the figures, and Try again in place of Hold and send.'),
+  },
+};
+
+export const Offline: Story = {
   render: () => <Review noQuote />,
-  parameters: storyDoc('Before the server’s quote arrives: skeleton lines, and a disabled “Getting your total” button. Offline, the flow also calls `onOffline` and keeps the offer.'),
+  parameters: storyDoc('No connection while the total loads: the skeleton stays and the sheet calls `onOffline`, so the flow can keep the offer and say it will send when you’re back online.'),
 };

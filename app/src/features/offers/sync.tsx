@@ -36,7 +36,14 @@ export function flushQueuedOffers(repo: MemberlyRepository, storage: KeyValueSto
     const touched = new Set<string>();
     for (const o of queued) {
       try {
-        await repo.createOffer(o.eventId, { djId: o.djId, offerCents: o.offerCents, note: o.note, clientOfferId: o.clientOfferId });
+        await repo.createOffer(o.eventId, {
+          djId: o.djId,
+          offerCents: o.offerCents,
+          note: o.note,
+          setStart: o.setStart ?? null,
+          setEnd: o.setEnd ?? null,
+          clientOfferId: o.clientOfferId,
+        });
         await clearPendingOffer(storage, o);
       } catch (error) {
         if (isRepositoryError(error, 'dj_unavailable')) {

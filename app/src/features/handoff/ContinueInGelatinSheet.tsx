@@ -24,8 +24,11 @@ export function ContinueInGelatinSheet({
 }: {
   booking: Booking;
   eventName: string;
+  /** The one-time link is being fetched: Open in Gelatin shows it is busy. */
   opening: boolean;
+  /** Why the last try didn’t open: `expired` (the 60-second link ran out) or `failed`. Null when there is none. */
   problem: HandoffProblem;
+  /** Fetches a one-time link and opens Gelatin. */
   onOpen: () => void;
   onClose: () => void;
 }) {

@@ -49,7 +49,11 @@ const preview: Preview = {
     },
     docs: { theme: memberlyTheme },
     options: {
+      // The sidebar reads top to bottom: Start here, Foundations, then the atomic levels in build order.
+      // Components sort A–Z inside each level; a component's own stories keep the order they're written
+      // in (rest state first, error states last). First run keeps the order a person meets its screens.
       storySort: {
+        method: 'alphabetical',
         order: [
           'Start here',
           'Foundations',
@@ -59,6 +63,7 @@ const preview: Preview = {
           'Organisms',
           'Templates',
           'Pages',
+          ['First run', ['Welcome', 'Sign in', 'Intro', 'Create account', 'Verify code', 'Preferences', 'Permissions'], 'Member', 'Organizer'],
         ],
       },
     },
