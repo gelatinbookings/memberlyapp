@@ -201,7 +201,7 @@ export function CreateSheet({ visible, onClose }: { visible: boolean; onClose: (
             <PickRow
               key={x.id}
               testID={`create-event-for-${x.id}`}
-              cover={x.cover}
+              cover={x.logo ?? x.cover}
               title={x.name}
               line={`${x.city} · ${members(x.memberCount)}`}
               onPress={() => go(() => openNewEvent(x.id))}
@@ -242,7 +242,7 @@ export function CreateSheet({ visible, onClose }: { visible: boolean; onClose: (
             <PickRow
               key={x.id}
               testID={`create-pass-for-${x.id}`}
-              cover={x.cover}
+              cover={x.logo ?? x.cover}
               title={x.name}
               line={`${x.city} · ${members(x.memberCount)}`}
               onPress={() => go(() => router.push(newPassHref('community', x.id)))}

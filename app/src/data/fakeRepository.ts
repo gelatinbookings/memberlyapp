@@ -7,6 +7,7 @@ import { runExplore } from '@/features/explore/filters';
 import { addDays, endsNextMorning, formatEventDate, formatIsoDate, zonedIso, type IsoDate } from '@/lib/dates';
 
 import { CatalogUnavailableError, RepositoryError } from './errors';
+import { COMMUNITY_TYPES, EVENT_THEMES, EVENT_TYPES, EVENT_VIBES, MUSIC_GENRES } from './taxonomy';
 import {
   DEFAULT_TEST_ACCOUNT,
   NEW_ACCOUNT_TEMPLATE,
@@ -551,7 +552,28 @@ const CONNECT_STRIPE_TASK: SetupTask = {
 
 /** Longest name the server takes for a community or a pass (GEL-1058). */
 export const NAME_MAX = 60;
-export const DESCRIPTION_MAX = 280;
+/** The web's limits for a community: tagline 120, description 500, gallery 10 photos. */
+export const TAGLINE_MAX = 120;
+export const DESCRIPTION_MAX = 500;
+export const GALLERY_MAX = 10;
+export const TAG_LIMIT = 10;
+/** Paid tiers a community can start with, and the length of a tier's "what's included" line. */
+export const MEMBERSHIP_TIER_MAX = 5;
+export const INCLUDED_MAX = 120;
+
+/** Sort a community's tags into the Explore taxonomy: one type, genres, vibes, event types; the rest as custom. */
+function fileTags(tags: string[]): Pick<Community, 'type' | 'genres' | 'vibes' | 'categories' | 'customTags'> {
+  const is = (list: readonly string[]) => (t: string) => list.includes(t);
+  const type = tags.find(is(COMMUNITY_TYPES));
+  const known = [...COMMUNITY_TYPES, ...MUSIC_GENRES, ...EVENT_VIBES, ...EVENT_TYPES, ...EVENT_THEMES] as readonly string[];
+  return {
+    ...(type ? { type } : null),
+    genres: tags.filter(is(MUSIC_GENRES)),
+    vibes: tags.filter(is(EVENT_VIBES)),
+    categories: tags.filter(is(EVENT_TYPES)),
+    customTags: tags.filter((t) => !known.includes(t)),
+  };
+}
 
 /** A booking that still holds the DJ for the night. */
 const OPEN_BOOKING: Booking['status'][] = ['authorization_required', 'requested', 'negotiating', 'reauthorization_required', 'confirmed'];
@@ -1746,46 +1768,67 @@ function createWorld(options: FakeRepositoryOptions, seed: WorldSeed): World {
       return later(orderView(order), delay);
     },
 
-    createCommunity: async ({ name, city, type, description, cover, membership, idempotencyKey }) => {
+    createCommunity: async ({ name, tagline, description, country, state, city, logo, banner, gallery, tags, membership, idempotencyKey }) => {
       await network();
       const key = `community:${idempotencyKey}`;
       let id = savedByKey.get(key);
       if (!id) {
         const trimmed = validName(name);
-        const about = (description ?? '').trim();
-        if (!sampleCities.some((c) => c.name === city) || !type.trim() || about.length > DESCRIPTION_MAX) throw new RepositoryError('invalid_input');
-        const paid = membership.kind === 'paid' ? { name: validName(membership.name), priceCents: validPrice(membership.monthlyPriceCents) } : null;
-        // A paid membership has a price; "paid at $0" is not a thing.
-        if (paid && paid.priceCents == null) throw new RepositoryError('invalid_input');
+        const line = tagline.trim();
+        const about = description.trim();
+        const cityOk = city == null || sampleCities.some((c) => c.name === city);
+        if (!line || line.length > TAGLINE_MAX || !about || about.length > DESCRIPTION_MAX || !country.trim() || !cityOk) {
+          throw new RepositoryError('invalid_input');
+        }
+        if (!logo?.uri || !banner?.uri || gallery.length > GALLERY_MAX || tags.length > TAG_LIMIT) throw new RepositoryError('invalid_input');
+        // Known tags are filed where Explore filters on them; the rest are kept as written.
+        const filed = fileTags(tags);
+        const tiers =
+          membership.kind === 'paid'
+            ? membership.tiers.map((t) => ({ name: validName(t.name), priceCents: validPrice(t.monthlyPriceCents), included: (t.included ?? '').trim() }))
+            : [];
+        // A paid membership has at least one tier, each with a price ("paid at $0" is not a thing) and its own name.
+        const names = new Set(tiers.map((t) => t.name.toLowerCase()));
+        if (membership.kind === 'paid' && (tiers.length === 0 || tiers.length > MEMBERSHIP_TIER_MAX || names.size !== tiers.length)) {
+          throw new RepositoryError('invalid_input');
+        }
+        if (tiers.some((t) => t.priceCents == null || t.included.length > INCLUDED_MAX)) throw new RepositoryError('invalid_input');
         id = `c_new_${nextId++}`;
         owned.push({
           // The caller is the owner, and so far the only member.
-          community: { id, name: trimmed, city, memberCount: 1, cover: cover ?? null, type, isOwner: true, ...(about ? { description: about } : null) },
+          community: {
+            id,
+            name: trimmed,
+            city: city ?? state ?? country,
+            memberCount: 1,
+            cover: banner,
+            logo,
+            tagline: line,
+            description: about,
+            ...filed,
+            isOwner: true,
+          },
           setupTasks: [],
           stats: { revenueMonthCents: 0, newMembersMonth: 0, churnPercent: null, sampleNumbers: false },
           stripeConnected: false,
         });
         communityPasses.set(
           id,
-          paid
-            ? [
-                {
-                  id: `cp_${nextId++}`,
-                  scope: 'community',
-                  communityId: id,
-                  eventId: null,
-                  name: paid.name,
-                  priceCents: paid.priceCents,
-                  included: '',
-                  limit: null,
-                  freeForMembers: false,
-                  active: true,
-                  heldCount: 0,
-                  soldOut: false,
-                  seeded: false,
-                },
-              ]
-            : [],
+          tiers.map((t) => ({
+            id: `cp_${nextId++}`,
+            scope: 'community' as const,
+            communityId: id!,
+            eventId: null,
+            name: t.name,
+            priceCents: t.priceCents,
+            included: t.included,
+            limit: null,
+            freeForMembers: false,
+            active: true,
+            heldCount: 0,
+            soldOut: false,
+            seeded: false,
+          })),
         );
         savedByKey.set(key, id);
       }

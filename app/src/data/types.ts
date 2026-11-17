@@ -23,12 +23,18 @@ export type Community = {
   name: string;
   city: string;
   memberCount: number;
-  /** Null for a community created without a cover photo: screens show a muted tile. */
+  /** The banner (4:1). Null for a community without one: screens show a muted tile. */
   cover: ImageAsset | null;
+  /** The square logo, when the community has one. */
+  logo?: ImageAsset | null;
+  /** One line shown under the name. */
+  tagline?: string;
   isOwner?: boolean;
   /** A short description, when the organizer wrote one. */
   description?: string;
   /** Explore taxonomy: community type, the event types it runs, its sound and its vibe. */
+  /** Tags the organizer wrote that aren't in the taxonomy. */
+  customTags?: string[];
   type?: string;
   categories?: string[];
   genres?: string[];
@@ -162,6 +168,8 @@ export type City = {
   id: string;
   name: string;
   region: string;
+  /** Omitted for the United States. */
+  country?: string;
   /** IANA, e.g. "America/New_York". */
   timeZone: string;
 };
@@ -297,21 +305,46 @@ export type PassOrder = {
 export type SetupTask = { id: string; title: string; detail: string; actionLabel: string };
 
 /** How people join: free, or a named membership at a monthly price. */
-export type MembershipInput = { kind: 'free' } | { kind: 'paid'; name: string; monthlyPriceCents: number };
+/** One paid membership tier, as the organizer sets it up. */
+export type MembershipTierInput = { name: string; monthlyPriceCents: number; included?: string };
+
+/** Free to join, or one or more paid tiers (each becomes a community pass). */
+export type MembershipInput = { kind: 'free' } | { kind: 'paid'; tiers: MembershipTierInput[] };
 
 /** Body of POST /app/organizer/communities. */
+/** The social links a community can show on its public page. */
+export type SocialNetwork = 'instagram' | 'facebook' | 'x' | 'tiktok' | 'youtube' | 'linkedin';
+
+/** A photo picked on the phone. The HTTP repository uploads it first and sends its upload id. */
+export type PickedPhoto = { uri: string };
+
+/** The web's Create New Community, step 1 and 2, as one request. */
 export type CreateCommunityInput = {
   name: string;
-  /** A city name from `getCities()`. */
-  city: string;
-  /** One of the Explore community types. */
-  type: string;
-  description?: string;
+  /** One line shown under the name. */
+  tagline: string;
+  /** The end of withmemberly.com/community/…; the server makes it unique. Omitted: made from the name. */
+  slug?: string;
+  /** The community description, plain text. */
+  description: string;
+  country: string;
+  /** State or province, when known. */
+  state?: string;
+  /** A city name from `getCities()`, when chosen. */
+  city?: string;
+  /** Square logo. */
+  logo: PickedPhoto;
+  /** 4:1 banner. */
+  banner: PickedPhoto;
+  /** Up to 10 photos. */
+  gallery: PickedPhoto[];
   /**
-   * A photo picked on the phone, or null. The HTTP repository uploads it
-   * first (POST /app/uploads/cover) and sends `cover_upload_id`.
+   * Discovery tags, up to 10. Known ones come from the Explore taxonomy and the
+   * server files them as type, genres and vibes; others are kept as written.
    */
-  cover?: { uri: string } | null;
+  tags: string[];
+  links: Partial<Record<SocialNetwork, string>>;
+  referralCode?: string;
   membership: MembershipInput;
   /** Made on the device and reused on a retry, so a community is never created twice. */
   idempotencyKey: string;

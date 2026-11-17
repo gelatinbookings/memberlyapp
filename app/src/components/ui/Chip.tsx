@@ -12,18 +12,20 @@ export type ChipProps = {
   onPress?: () => void;
   icon?: ReactNode;
   trailingIcon?: ReactNode;
+  /** Spoken name when it differs from the label, e.g. "Remove House". */
+  accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
   testID?: string;
 };
 
 /** Filter and choice chip. Round, 44px. Selected: tint, purple line, purple text. */
-export function Chip({ label, selected = false, onPress, icon, trailingIcon, style, testID }: ChipProps) {
+export function Chip({ label, selected = false, onPress, icon, trailingIcon, accessibilityLabel, style, testID }: ChipProps) {
   const c = useTheme();
   return (
     <Pressable
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ selected }}
       onPress={onPress}
       style={({ pressed }) => [

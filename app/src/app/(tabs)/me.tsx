@@ -86,7 +86,7 @@ export default function MeScreen() {
           <SectionHeader title="You organize" />
           {(organized.data ?? []).map((community) => (
             <Card key={community.id} selected padding={12} style={styles.organize}>
-              <CommunityThumb cover={community.cover} />
+              <CommunityThumb cover={community.logo ?? community.cover} />
               <View style={styles.flex}>
                 <Text variant="cardTitle" numberOfLines={1}>
                   {community.name}

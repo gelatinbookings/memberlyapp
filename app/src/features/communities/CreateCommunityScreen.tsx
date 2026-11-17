@@ -1,45 +1,62 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { ImagePlus } from 'lucide-react-native';
-import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { AtSign, Gift } from 'lucide-react-native';
+import { useState, type ReactNode } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 
-import { Button, Chip, Notice, PillButton, Screen, ScreenHeader, SelectField, Text, TextField } from '@/components/ui';
+import { Button, GroupedList, Notice, PillButton, Screen, ScreenHeader, SelectField, Text, TextField } from '@/components/ui';
 import { refreshAfterCommunity, useRepository } from '@/data/RepositoryProvider';
-import { sanitizeDollars } from '@/features/booking/offers';
 import { newClientId } from '@/lib/clientId';
-import { pickCoverPhoto } from '@/lib/photos';
+import { pickPhoto, pickPhotos, type LibraryPhoto } from '@/lib/photos';
 import { useTheme } from '@/theme/theme';
 import { radius, space } from '@/theme/tokens';
 
 import { ChoiceCard } from './ChoiceCard';
-import { CitySheet } from './CitySheet';
+import { CitySheet, CountrySheet } from './CitySheet';
 import {
   COMMUNITY_DESCRIPTION_MAX,
   COMMUNITY_NAME_MAX,
-  COMMUNITY_TYPE_OPTIONS,
-  COVER_FAILED,
   CREATE_FAILED,
-  DESCRIPTION_COUNTER_FROM,
-  detailsBlocker,
+  effectiveSlug,
   EMPTY_COMMUNITY,
+  GALLERY_MAX,
   hasEntries,
-  pricingBlocker,
+  LAST_STEP,
+  linkProblem,
+  PHOTO_LIMITS,
+  PHOTOS_FAILED,
+  REFERRAL_MAX,
+  sanitizeReferral,
+  SLUG_HOST,
+  SLUG_MAX,
+  slugify,
+  SOCIAL_FIELDS,
+  STEP_SHORT,
   STEP_TITLES,
-  STRIPE_HELPER,
+  stepBlocker,
+  TAGLINE_MAX,
   toCreateInput,
+  tooLarge,
   type CommunityDraft,
+  type Step,
 } from './communityForm';
+import { FormSection } from './FormSection';
+import { GalleryField } from './GalleryField';
+import { HeaderPreview } from './HeaderPreview';
+import { TagInput } from './TagInput';
+import { TierEditor } from './TierEditor';
 
 const leave = () => (router.canGoBack() ? router.back() : router.replace('/me'));
 
-/** The two steps under the header, each a bar with its name; the current one and the one done are purple. */
-function StepBar({ step }: { step: 0 | 1 }) {
+/** A count shown once the end is near, so a short entry stays quiet. */
+const countdown = (value: string, max: number) => (value.length >= max * 0.8 ? `${value.length}/${max}` : null);
+
+/** The four steps under the header: a bar each, purple up to the current one, its short name under it. */
+function StepBar({ step }: { step: Step }) {
   const c = useTheme();
   return (
-    <View style={styles.steps} accessible accessibilityLabel={`Step ${step + 1} of 2, ${STEP_TITLES[step]}`}>
-      {STEP_TITLES.map((title, i) => (
+    <View style={styles.steps} accessible accessibilityLabel={`Step ${step + 1} of 4, ${STEP_TITLES[step]}`}>
+      {STEP_SHORT.map((title, i) => (
         <View key={title} style={styles.step}>
           <View style={[styles.stepBar, { backgroundColor: i <= step ? c.brand : c.muted }]} />
           <Text variant="helper" tone={i === step ? 'brand' : 'muted'} numberOfLines={1}>
@@ -51,19 +68,55 @@ function StepBar({ step }: { step: 0 | 1 }) {
   );
 }
 
+/** A titled group of fields inside a step: the title, one line, then the fields. */
+function Group({ title, line, children }: { title: string; line?: string; children: ReactNode }) {
+  return (
+    <View style={styles.group}>
+      <View style={styles.groupHead}>
+        <Text variant="title" accessibilityRole="header">
+          {title}
+        </Text>
+        {line ? (
+          <Text variant="secondary" tone="muted">
+            {line}
+          </Text>
+        ) : null}
+      </View>
+      {children}
+    </View>
+  );
+}
+
+/** One required photo in the list under the preview: what it is, what fits, and Add or Replace. */
+function AssetRow({ label, hint, warning, photo, onPick, testID }: { label: string; hint: string; warning: string | null; photo: LibraryPhoto | null; onPick: () => void; testID: string }) {
+  return (
+    <View style={styles.assetRow}>
+      <View style={styles.flex}>
+        <Text variant="bodyStrong">{label}</Text>
+        <Text variant="helper" tone={warning ? 'warning' : 'muted'}>
+          {warning ?? hint}
+        </Text>
+      </View>
+      <PillButton testID={testID} label={photo ? 'Replace' : 'Add'} accessibilityLabel={`${photo ? 'Replace' : 'Add'} ${label.toLowerCase()}`} onPress={onPick} />
+    </View>
+  );
+}
+
 /**
- * Create community (GEL-1056): Community details, then Membership pricing.
- * One screen holds both steps, so going back keeps what was entered. Creating
- * carries a key made here, so a retry after a lost answer makes one community.
+ * Create community (GEL-1056). Everything the web's Create New Community and
+ * community Settings ask for at the start, in four short steps: the story, the
+ * look (with the public header previewed as it's built), how people find it,
+ * and membership pricing. One screen holds every step, so going back keeps
+ * what was entered. Creating carries a key made here, so a retry after a lost
+ * answer makes one community.
  */
 export function CreateCommunityScreen() {
-  const c = useTheme();
   const repo = useRepository();
   const qc = useQueryClient();
-  const [step, setStep] = useState<0 | 1>(0);
+  const [step, setStep] = useState<Step>(0);
   const [draft, setDraft] = useState<CommunityDraft>(EMPTY_COMMUNITY);
-  const [citySheet, setCitySheet] = useState(false);
-  const [coverFailed, setCoverFailed] = useState(false);
+  const [sheet, setSheet] = useState<'country' | 'city' | null>(null);
+  const [photoNote, setPhotoNote] = useState<{ logo?: string; banner?: string; gallery?: string }>({});
   // One key for this visit: trying again is the same request.
   const [key] = useState(() => newClientId('community'));
   const set = (patch: Partial<CommunityDraft>) => setDraft((d) => ({ ...d, ...patch }));
@@ -84,169 +137,234 @@ export function CreateCommunityScreen() {
       { text: 'Discard', style: 'destructive', onPress: leave },
     ]);
   };
+  const back = () => {
+    if (create.isPending) return;
+    if (step === 0) close();
+    else setStep((step - 1) as Step);
+  };
 
-  const chooseCover = async () => {
-    setCoverFailed(false);
+  const pickOne = async (slot: 'logo' | 'banner') => {
+    setPhotoNote((n) => ({ ...n, [slot]: undefined }));
     try {
-      const photo = await pickCoverPhoto();
-      if (photo) set({ cover: photo });
+      const photo = await pickPhoto({ square: slot === 'logo' });
+      if (!photo) return;
+      if (tooLarge(photo, PHOTO_LIMITS[slot])) {
+        const mb = PHOTO_LIMITS[slot] / (1024 * 1024);
+        setPhotoNote((n) => ({ ...n, [slot]: `That ${slot} is over ${mb} MB. Choose a smaller one.` }));
+        return;
+      }
+      set({ [slot]: photo });
     } catch {
-      setCoverFailed(true);
+      setPhotoNote((n) => ({ ...n, [slot]: PHOTOS_FAILED }));
     }
   };
 
-  if (step === 0) {
-    const blocker = detailsBlocker(draft);
-    const left = COMMUNITY_DESCRIPTION_MAX - draft.description.length;
-    return (
-      <Screen
-        key="details"
-        testID="community-details"
-        footer={<Button testID="community-continue" label={blocker ?? 'Continue'} disabled={!!blocker} onPress={() => setStep(1)} />}>
-        <ScreenHeader title={STEP_TITLES[0]} subtitle="Create community" onBack={close} />
-        <StepBar step={0} />
+  const addToGallery = async () => {
+    setPhotoNote((n) => ({ ...n, gallery: undefined }));
+    try {
+      const picked = await pickPhotos(GALLERY_MAX - draft.gallery.length);
+      const fits = picked.filter((p) => !tooLarge(p, PHOTO_LIMITS.gallery));
+      const dropped = picked.length - fits.length;
+      if (dropped > 0) {
+        setPhotoNote((n) => ({ ...n, gallery: `${dropped === 1 ? 'One photo was' : `${dropped} photos were`} over 10 MB and ${dropped === 1 ? 'wasn’t' : 'weren’t'} added.` }));
+      }
+      if (fits.length) setDraft((d) => ({ ...d, gallery: [...d.gallery, ...fits].slice(0, GALLERY_MAX) }));
+    } catch {
+      setPhotoNote((n) => ({ ...n, gallery: PHOTOS_FAILED }));
+    }
+  };
 
-        <View style={styles.block}>
-          <Text variant="secondaryStrong">Cover photo</Text>
-          <Pressable
-            testID="community-cover"
-            accessibilityRole="button"
-            accessibilityLabel={draft.cover ? 'Cover photo. Change photo' : 'Add a cover photo, optional'}
-            onPress={chooseCover}
-            style={({ pressed }) => [styles.cover, { backgroundColor: c.muted, borderColor: c.border }, pressed ? { opacity: 0.85 } : null]}>
-            {draft.cover ? (
-              <Image source={draft.cover} style={StyleSheet.absoluteFill} contentFit="cover" testID="community-cover-image" />
-            ) : (
-              <>
-                <ImagePlus size={22} color={c.mutedText} strokeWidth={2} />
-                <Text variant="secondary" tone="muted">
-                  Add a cover photo
-                </Text>
-              </>
-            )}
-          </Pressable>
-          {draft.cover ? (
-            <View style={styles.coverActions}>
-              <PillButton label="Change photo" onPress={chooseCover} />
-              <PillButton label="Remove" onPress={() => set({ cover: null })} />
-            </View>
-          ) : (
-            <Text variant="helper" tone={coverFailed ? 'warning' : 'muted'}>
-              {coverFailed ? COVER_FAILED : 'Optional. You can add one later.'}
-            </Text>
-          )}
-        </View>
+  const blocker = stepBlocker(step, draft);
+  const last = step === LAST_STEP;
+  const footer = (
+    <>
+      {last && create.isError ? <Notice tone="error">{CREATE_FAILED}</Notice> : null}
+      <Button
+        testID={last ? 'community-create' : 'community-continue'}
+        label={blocker ?? (last ? (create.isError ? 'Try again' : 'Create community') : 'Continue')}
+        disabled={!!blocker}
+        loading={last && create.isPending}
+        onPress={() => (last ? create.mutate() : setStep((step + 1) as Step))}
+      />
+    </>
+  );
 
-        <TextField
-          testID="community-name"
-          label="Community name"
-          value={draft.name}
-          placeholder="What people will call it"
-          maxLength={COMMUNITY_NAME_MAX}
-          autoCapitalize="words"
-          returnKeyType="done"
-          onChangeText={(name) => set({ name })}
-        />
-        <SelectField
-          testID="community-city"
-          label="City"
-          value={draft.city ? `${draft.city.name}, ${draft.city.region}` : null}
-          placeholder="Choose a city"
-          onPress={() => setCitySheet(true)}
-        />
-        <View style={styles.block}>
-          <Text variant="secondaryStrong">Community type</Text>
-          <View style={styles.chips} accessibilityRole="radiogroup">
-            {COMMUNITY_TYPE_OPTIONS.map((type) => (
-              <Chip key={type} testID={`community-type-${type}`} label={type} selected={draft.type === type} onPress={() => set({ type })} />
-            ))}
-          </View>
-        </View>
-        <TextField
-          testID="community-description"
-          label="Description"
-          value={draft.description}
-          placeholder="Who it’s for and what you do together"
-          multiline
-          maxLength={COMMUNITY_DESCRIPTION_MAX}
-          helper={draft.description.length >= DESCRIPTION_COUNTER_FROM ? `${left} ${left === 1 ? 'character' : 'characters'} left` : 'Optional'}
-          onChangeText={(description) => set({ description })}
-        />
+  const slug = effectiveSlug(draft);
+  const linksFilled = SOCIAL_FIELDS.some((f) => draft.links[f.key].trim());
 
-        <CitySheet
-          visible={citySheet}
-          selected={draft.city}
-          onClose={() => setCitySheet(false)}
-          onPick={(city) => {
-            set({ city });
-            setCitySheet(false);
-          }}
-        />
-      </Screen>
-    );
-  }
-
-  const blocker = pricingBlocker(draft);
-  const paid = draft.membership === 'paid';
   return (
-    <Screen
-      key="pricing"
-      testID="community-pricing"
-      footer={
-        <>
-          {create.isError ? <Notice tone="error">{CREATE_FAILED}</Notice> : null}
-          <Button
-            testID="community-create"
-            label={blocker ?? (create.isError ? 'Try again' : 'Create community')}
-            disabled={!!blocker}
-            loading={create.isPending}
-            onPress={() => create.mutate()}
-          />
-        </>
-      }>
-      <ScreenHeader title={STEP_TITLES[1]} subtitle="Create community" onBack={() => (create.isPending ? undefined : setStep(0))} />
-      <StepBar step={1} />
+    <Screen key={`step-${step}`} testID={`community-step-${step}`} footer={footer}>
+      <ScreenHeader title={STEP_TITLES[step]} subtitle="Create community" onBack={back} />
+      <StepBar step={step} />
 
-      <View style={styles.choices} accessibilityRole="radiogroup">
-        <ChoiceCard
-          testID="membership-free"
-          title="Free to join"
-          line="Anyone can join at no cost."
-          selected={!paid}
-          onPress={() => set({ membership: 'free' })}
-        />
-        <ChoiceCard
-          testID="membership-paid"
-          title="Paid membership"
-          line="Members pay each month to belong."
-          selected={paid}
-          onPress={() => set({ membership: 'paid' })}
-        />
-      </View>
-
-      {paid ? (
+      {step === 0 ? (
         <>
           <TextField
-            testID="membership-name"
-            label="Membership name"
-            value={draft.membershipName}
-            placeholder="Member"
+            testID="community-name"
+            label="Community name"
+            value={draft.name}
+            placeholder="What people will call it"
             maxLength={COMMUNITY_NAME_MAX}
             autoCapitalize="words"
             returnKeyType="done"
-            onChangeText={(membershipName) => set({ membershipName })}
+            onChangeText={(name) => set({ name })}
           />
           <TextField
-            testID="membership-price"
-            label="Monthly price"
-            value={draft.price}
-            prefix="$"
-            money
-            placeholder="0"
-            keyboardType="number-pad"
-            helper={STRIPE_HELPER}
-            onChangeText={(price) => set({ price: sanitizeDollars(price) })}
+            testID="community-tagline"
+            label="Tagline"
+            value={draft.tagline}
+            placeholder="Bringing live upscale events to you."
+            maxLength={TAGLINE_MAX}
+            returnKeyType="done"
+            helper={countdown(draft.tagline, TAGLINE_MAX) ?? 'One line, shown under your name everywhere.'}
+            onChangeText={(tagline) => set({ tagline })}
           />
+          <TextField
+            testID="community-description"
+            label="Description"
+            value={draft.description}
+            placeholder="Who it’s for, what a night with you feels like, and how often you meet."
+            multiline
+            maxLength={COMMUNITY_DESCRIPTION_MAX}
+            helper={`${draft.description.length}/${COMMUNITY_DESCRIPTION_MAX}`}
+            onChangeText={(description) => set({ description })}
+          />
+          <TextField
+            testID="community-slug"
+            label="Link (optional)"
+            value={draft.slug}
+            placeholder={slugify(draft.name) || 'your-community'}
+            maxLength={SLUG_MAX}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="done"
+            helper={`${SLUG_HOST}${slug || 'your-community'}`}
+            onChangeText={(text) => set({ slug: slugify(text) })}
+          />
+        </>
+      ) : null}
+
+      {step === 1 ? (
+        <>
+          <View style={styles.previewWrap}>
+            <HeaderPreview
+              name={draft.name}
+              tagline={draft.tagline}
+              logo={draft.logo}
+              banner={draft.banner}
+              onPickLogo={() => pickOne('logo')}
+              onPickBanner={() => pickOne('banner')}
+            />
+            <Text variant="helper" tone="muted">
+              The top of your public page, as people will see it.
+            </Text>
+          </View>
+          <GroupedList>
+            <AssetRow
+              testID="community-logo"
+              label="Logo"
+              hint="Square, at least 400×400. Up to 2 MB."
+              warning={photoNote.logo ?? null}
+              photo={draft.logo}
+              onPick={() => pickOne('logo')}
+            />
+            <AssetRow
+              testID="community-banner"
+              label="Banner"
+              hint="4:1, like 1920×480. Up to 5 MB."
+              warning={photoNote.banner ?? null}
+              photo={draft.banner}
+              onPick={() => pickOne('banner')}
+            />
+          </GroupedList>
+          <Group title="Gallery" line="Optional. Up to 10 photos from past nights.">
+            <GalleryField
+              photos={draft.gallery}
+              warning={photoNote.gallery ?? null}
+              onAdd={addToGallery}
+              onRemove={(i) => setDraft((d) => ({ ...d, gallery: d.gallery.filter((_, j) => j !== i) }))}
+            />
+          </Group>
+        </>
+      ) : null}
+
+      {step === 2 ? (
+        <>
+          <Group title="Where you meet" line="Puts your events in front of people searching that city.">
+            <SelectField testID="community-country" label="Country" value={draft.country} placeholder="Choose a country" onPress={() => setSheet('country')} />
+            <SelectField
+              testID="community-city"
+              label="City (optional)"
+              value={draft.city ? `${draft.city.name}, ${draft.city.region}` : null}
+              placeholder="Choose a city"
+              onPress={() => setSheet('city')}
+            />
+          </Group>
+          <Group title="Tags" line="How people find you in Explore. Pick a few that truly describe your nights, or add your own.">
+            <TagInput tags={draft.tags} onChange={(tags) => set({ tags })} />
+          </Group>
+          <FormSection testID="community-links" icon={AtSign} title="Social links" line="Shown as icons on your public page." optional filled={linksFilled}>
+            {SOCIAL_FIELDS.map((f) => (
+              <TextField
+                key={f.key}
+                testID={`link-${f.key}`}
+                label={f.label}
+                value={draft.links[f.key]}
+                placeholder={f.placeholder}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                returnKeyType="done"
+                warning={linkProblem(draft.links[f.key]) ?? undefined}
+                onChangeText={(v) => set({ links: { ...draft.links, [f.key]: v } })}
+              />
+            ))}
+          </FormSection>
+          <FormSection testID="community-referral" icon={Gift} title="Referral code" line="Did someone refer you to Memberly?" optional filled={draft.referralCode.length > 0}>
+            <TextField
+              testID="community-referral-code"
+              label="Referral code"
+              hideLabel
+              value={draft.referralCode}
+              placeholder="e.g. JORDANREESE"
+              maxLength={REFERRAL_MAX}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              returnKeyType="done"
+              onChangeText={(v) => set({ referralCode: sanitizeReferral(v) })}
+            />
+          </FormSection>
+
+          <CountrySheet
+            visible={sheet === 'country'}
+            selected={draft.country}
+            onClose={() => setSheet(null)}
+            onPick={(country) => {
+              // A city belongs to its country.
+              set(country === draft.country ? {} : { country, city: null });
+              setSheet(null);
+            }}
+          />
+          <CitySheet
+            visible={sheet === 'city'}
+            country={draft.country}
+            selected={draft.city}
+            onClose={() => setSheet(null)}
+            onPick={(city) => {
+              set({ city });
+              setSheet(null);
+            }}
+          />
+        </>
+      ) : null}
+
+      {step === 3 ? (
+        <>
+          <View style={styles.choices} accessibilityRole="radiogroup">
+            <ChoiceCard testID="membership-free" title="Free to join" line="Anyone can join at no cost." selected={draft.membership === 'free'} onPress={() => set({ membership: 'free' })} />
+            <ChoiceCard testID="membership-paid" title="Paid membership" line="Members pay monthly, per tier." selected={draft.membership === 'paid'} onPress={() => set({ membership: 'paid' })} />
+          </View>
+          {draft.membership === 'paid' ? <TierEditor tiers={draft.tiers} onChange={(tiers) => set({ tiers })} /> : null}
         </>
       ) : null}
     </Screen>
@@ -257,17 +375,12 @@ const styles = StyleSheet.create({
   steps: { flexDirection: 'row', gap: space.label },
   step: { flex: 1, gap: space.label },
   stepBar: { height: 4, borderRadius: radius.pill },
-  block: { gap: space.sm },
-  cover: {
-    height: 150,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: space.sm,
-  },
-  coverActions: { flexDirection: 'row', gap: space.sm },
+  flex: { flex: 1, gap: 2 },
+  group: { gap: space.md },
+  groupHead: { gap: space.xs },
+  previewWrap: { gap: space.sm },
+  assetRow: { minHeight: 64, paddingHorizontal: space.card, paddingVertical: space.row, flexDirection: 'row', alignItems: 'center', gap: space.row },
+  tagGroup: { gap: space.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   choices: { gap: space.stack },
 });

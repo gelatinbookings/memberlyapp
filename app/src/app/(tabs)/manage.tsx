@@ -117,7 +117,7 @@ export default function ManageScreen() {
       {o ? (
         <>
           <View style={styles.header}>
-            <CommunityThumb cover={o.community.cover} />
+            <CommunityThumb cover={o.community.logo ?? o.community.cover} />
             <View style={styles.flex}>
               <Text variant="headline" accessibilityRole="header" numberOfLines={1}>
                 {o.community.name}

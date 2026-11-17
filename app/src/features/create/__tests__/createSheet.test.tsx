@@ -5,6 +5,7 @@ import KitScreen from '@/app/kit';
 import { createFakeRepository, type FakeRepository } from '@/data/fakeRepository';
 import type { TestAccountId } from '@/data/testAccounts';
 import { NEEDS_COMMUNITY } from '@/features/passSetup/passForm';
+import { communityInput } from '@/test-utils/communityInput';
 import { renderWithProviders } from '@/test-utils/renderWithProviders';
 
 import { CREATE_ROWS, NO_UPCOMING_EVENTS } from '../CreateSheet';
@@ -132,14 +133,7 @@ describe('an organizer with one community', () => {
 describe('an organizer with several communities', () => {
   async function twoCommunities() {
     const repository = await signedInAs('existing-organizer');
-    const { community } = await repository.createCommunity({
-      name: 'Night Garden',
-      city: 'Atlanta',
-      type: 'Music',
-      cover: null,
-      membership: FREE_MEMBERSHIP,
-      idempotencyKey: 'k-garden',
-    });
+    const { community } = await repository.createCommunity(communityInput({ membership: FREE_MEMBERSHIP, idempotencyKey: 'k-garden' }));
     return { repository, second: community.id };
   }
 
