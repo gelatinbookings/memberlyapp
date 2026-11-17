@@ -3,6 +3,7 @@ import type {
   Booking,
   City,
   CommunityPage,
+  Referrals,
   Community,
   CommunityOverview,
   CreateCommunityInput,
@@ -87,6 +88,8 @@ export interface MemberlyRepository {
   getEvent(id: string): Promise<MemberEvent | null>;
   /** A community's public page: profile, memberships, the viewer's membership, upcoming events. HTTP: GET /app/communities/:id */
   getCommunityPage(id: string): Promise<CommunityPage | null>;
+  /** The viewer's referral code, link and the people who joined with it. HTTP: GET /app/me/referrals */
+  getReferrals(): Promise<Referrals>;
   /** The member's events in one scope, each with pass / going / saved. HTTP: GET /app/me/events?scope= */
   getMyEvents(scope: MyEventsScope): Promise<MyEvent[]>;
   getTopCommunities(city: string): Promise<Community[]>;

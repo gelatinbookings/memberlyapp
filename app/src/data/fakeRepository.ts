@@ -9,6 +9,7 @@ import { addDays, endsNextMorning, formatEventDate, formatIsoDate, zonedIso, typ
 
 import { CatalogUnavailableError, RepositoryError } from './errors';
 import { SAMPLE_COMMUNITY_PAGES } from './sampleCommunityPages';
+import { SAMPLE_REFERRALS } from './sampleReferrals';
 import { defaultEventPage, SAMPLE_EVENT_PAGES } from './sampleEventPages';
 import { COMMUNITY_TYPES, EVENT_THEMES, EVENT_TYPES, EVENT_VIBES, MUSIC_GENRES } from './taxonomy';
 import {
@@ -27,6 +28,8 @@ import type {
   CardPass,
   City,
   CommunityPage,
+  ReferredPerson,
+  Referrals,
   Community,
   CommunityOverview,
   DraftOffer,
@@ -1026,6 +1029,8 @@ type WorldSeed = {
   events: StoredEvent[];
   bookings: Record<string, Booking[]>;
   draftOffers: Record<string, DraftOffer[]>;
+  /** People who joined with the viewer's code. */
+  referred: ReferredPerson[];
 };
 
 /** A cover for a community that is not in the shared catalog (one just created). */
@@ -1063,6 +1068,8 @@ function seedWorld(account: TestAccount, who: Partial<Pick<Viewer, 'id' | 'first
       .map((e) => (run ? { ...e, communityId: run.community.id } : e)),
     bookings: only(allBookings),
     draftOffers: only(seedDraftOffers()),
+    // Someone signing in under their own email starts with nobody referred.
+    referred: who.email ? [] : [...(SAMPLE_REFERRALS[account.id] ?? [])],
   };
 }
 
@@ -1579,6 +1586,12 @@ function createWorld(options: FakeRepositoryOptions, seed: WorldSeed): World {
         delay,
       ),
     getCommunityPage: (id) => later(communityPageOf(id), delay),
+    getReferrals: () => {
+      const { firstName, lastName } = seed.viewer;
+      const code = `${firstName}${lastName}`.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const result: Referrals = { code, link: `https://withmemberly.com/r/${code.toLowerCase()}`, people: [...seed.referred] };
+      return later(result, delay);
+    },
     getEvent: (id) => {
       const e = allEvents().find((x) => x.id === id);
       return later(e ? { ...withPass(e), details: eventPageOf(e) } : null, delay);

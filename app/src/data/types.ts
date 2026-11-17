@@ -139,6 +139,27 @@ export type CommunityPage = {
   upcoming: MemberEvent[];
 };
 
+/** Someone who joined Memberly with the viewer's referral code. */
+export type ReferredPerson = {
+  id: string;
+  name: string;
+  initials: string;
+  /** Joined as a member, or went on to start a community. */
+  status: 'joined' | 'started-community';
+  /** When they joined, as an ISO date. */
+  since: string;
+  communityName?: string;
+};
+
+/** The viewer's referrals, from GET /app/me/referrals. No rewards or amounts until the program's terms are settled. */
+export type Referrals = {
+  /** The code people enter, e.g. "JORDANREESE". */
+  code: string;
+  /** The link that carries the code, e.g. "https://withmemberly.com/r/jordanreese". */
+  link: string;
+  people: ReferredPerson[];
+};
+
 export type DjTier = 'Verified' | 'Top performer' | 'Resident' | 'City pillar';
 
 export type Dj = {

@@ -3,7 +3,7 @@ import { CalendarDays, Gift, LogOut, Moon, QrCode, SlidersHorizontal, Users, Wre
 import { Alert, StyleSheet, View } from 'react-native';
 
 import { Avatar, Card, ErrorState, GroupedList, ListRow, PillButton, Screen, SectionHeader, Skeleton, Text } from '@/components/ui';
-import { useMyEvents, useOrganizedCommunities, usePreferences, useViewer } from '@/data/RepositoryProvider';
+import { useMyEvents, useOrganizedCommunities, usePreferences, useReferrals, useViewer } from '@/data/RepositoryProvider';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { CommunityThumb } from '@/features/communities/CommunityThumb';
 import { LATER } from '@/features/navigation/later';
@@ -19,6 +19,7 @@ function onWeb(title: string) {
 }
 
 export default function MeScreen() {
+  const referrals = useReferrals();
   const c = useTheme();
   const viewer = useViewer();
   const organized = useOrganizedCommunities();
@@ -78,7 +79,12 @@ export default function MeScreen() {
           icon={icon(CalendarDays)}
           onPress={() => router.push('/events')}
         />
-        <ListRow label="Referrals" value="Earn 10%" icon={icon(Gift)} onPress={() => onWeb('Referrals')} />
+        <ListRow
+          label="Referrals"
+          value={referrals.data ? (referrals.data.people.length > 0 ? `${referrals.data.people.length} joined` : 'Share your link') : undefined}
+          icon={icon(Gift)}
+          onPress={() => router.push('/referrals')}
+        />
       </GroupedList>
 
       {(organized.data ?? []).length > 0 ? (

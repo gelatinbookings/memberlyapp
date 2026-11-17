@@ -68,6 +68,7 @@ export const queryKeys = {
   tonight: (city: string) => ['tonight', city] as const,
   event: (id: string) => ['event', id] as const,
   communityPage: (id: string) => ['community-page', id] as const,
+  referrals: ['referrals'] as const,
   myEvents: (scope: MyEventsScope) => ['my-events', scope] as const,
   preferences: ['preferences'] as const,
   explore: (q: ExploreQuery) => ['explore', q] as const,
@@ -114,6 +115,12 @@ export function useEvent(id: string) {
 export function useCommunityPage(id: string) {
   const repo = useRepository();
   return useQuery({ queryKey: queryKeys.communityPage(id), queryFn: () => repo.getCommunityPage(id) });
+}
+
+/** The viewer's referral code, link and the people who joined with it. */
+export function useReferrals() {
+  const repo = useRepository();
+  return useQuery({ queryKey: queryKeys.referrals, queryFn: () => repo.getReferrals() });
 }
 
 export function useMyEvents(scope: MyEventsScope) {
